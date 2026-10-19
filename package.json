@@ -1,6 +1,6 @@
 {
   "name": "corner-note",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "An always-on-top Windows note that folds into a screen corner.",
   "author": "dowonpark12318-creator",
@@ -11,6 +11,7 @@
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
     "test:ui": "node scripts/test-ui.cjs",
+    "test:features": "node scripts/test-features.cjs",
     "test:desktop": "node scripts/test-desktop.cjs",
     "icons": "node scripts/generate-icons.cjs",
     "pack:win": "node scripts/package-windows.cjs"

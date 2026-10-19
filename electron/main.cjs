@@ -1,10 +1,12 @@
 'use strict';
 
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, dialog, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, dialog, session, safeStorage, net, clipboard } = require('electron');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { canonicalLanguage, createTranslationService } = require('./translation.cjs');
+const { createTranslationKeyStore } = require('./translation-key-store.cjs');
 const {
   EDGES, DEFAULT_SIZE, MIN_SIZE, FOLDED_SIZE, validCorner, fitSize, clampBounds, cornerBounds,
   unfoldBounds, moveBounds, resizeBounds, selectDisplay,
@@ -32,8 +34,13 @@ let writeQueue = Promise.resolve();
 let writeBlocker;
 let applyingBounds = false;
 let interaction;
+let lastSkipTaskbar;
+let translationKeyStore;
+let translationService;
+let systemLanguage = 'en-US';
 let state = {
   version: 1, text: '', color: 'butter', savedAt: null,
+  settings: { translationLanguages: [], tutorialCompleted: false },
   window: {
     folded: false, corner: 'top-right', expandedBounds: { ...DEFAULT_SIZE },
     foldedBounds: null, displayId: null, alwaysOnTop: true,
@@ -45,6 +52,8 @@ function publicState() {
     text: state.text, color: state.color,
     folded: state.window.folded, corner: state.window.corner, savedAt: state.savedAt,
     alwaysOnTop: state.window.alwaysOnTop,
+    settings: { ...state.settings, translationLanguages: [...state.settings.translationLanguages] },
+    systemLanguage,
     bounds: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null,
   };
 }
@@ -71,8 +80,19 @@ async function loadState() {
       throw new Error('Unsupported or damaged note data.');
     }
     const windowState = saved.window && typeof saved.window === 'object' ? saved.window : {};
+    const settings = saved.settings && typeof saved.settings === 'object' ? saved.settings : {};
+    const translationLanguages = [];
+    if (Array.isArray(settings.translationLanguages)) {
+      for (const language of settings.translationLanguages.slice(0, 30)) {
+        try {
+          const canonical = canonicalLanguage(language);
+          if (!translationLanguages.includes(canonical)) translationLanguages.push(canonical);
+        } catch { /* Ignore invalid preference entries without disturbing the note. */ }
+      }
+    }
     state = {
       version: 1, text: saved.text, color: saved.color,
+      settings: { translationLanguages, tutorialCompleted: settings.tutorialCompleted === true },
       savedAt: typeof saved.savedAt === 'string' && !Number.isNaN(Date.parse(saved.savedAt)) ? saved.savedAt : null,
       window: {
         folded: windowState.folded === true,
@@ -160,6 +180,12 @@ function activeDisplay() {
 
 function keepOnTop() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  // Keep pinned notes off the taskbar. Ordinary notes have a taskbar entry
+  // and remain activatable so Windows can switch back to them with Alt-Tab.
+  if (lastSkipTaskbar !== state.window.alwaysOnTop) {
+    mainWindow.setSkipTaskbar(state.window.alwaysOnTop);
+    lastSkipTaskbar = state.window.alwaysOnTop;
+  }
   // moveTop changes z-order without activating the note or stealing Alt-Tab focus.
   mainWindow.setAlwaysOnTop(state.window.alwaysOnTop, state.window.alwaysOnTop ? 'screen-saver' : 'normal');
   if (state.window.alwaysOnTop && mainWindow.isVisible()) mainWindow.moveTop();
@@ -322,6 +348,7 @@ function endInteraction(options) {
 async function finishQuit() {
   if (quitPending || quitReady) return;
   quitPending = true;
+  translationService?.cancelCurrent();
   try {
     captureWindowBounds();
     const finalSave = schedulePersist();
@@ -374,6 +401,41 @@ function registerIpc() {
     await schedulePersist();
     return publicState();
   });
+  handle('update-preferences', async preferences => {
+    if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
+      throw new TypeError('앱 설정이 올바르지 않습니다.');
+    }
+    const next = { ...state.settings };
+    if (preferences.translationLanguages !== undefined) {
+      if (!Array.isArray(preferences.translationLanguages) || preferences.translationLanguages.length > 30) {
+        throw new TypeError('추가 언어는 최대 30개까지 저장할 수 있습니다.');
+      }
+      next.translationLanguages = [...new Set(preferences.translationLanguages.map(canonicalLanguage))];
+    }
+    if (preferences.tutorialCompleted !== undefined) {
+      if (typeof preferences.tutorialCompleted !== 'boolean') throw new TypeError('튜토리얼 설정이 올바르지 않습니다.');
+      next.tutorialCompleted = preferences.tutorialCompleted;
+    }
+    state.settings = next;
+    emitState();
+    await schedulePersist();
+    return publicState();
+  });
+  handle('get-translation-settings', () => translationKeyStore.status());
+  handle('set-translation-key', async options => {
+    translationService.cancelCurrent();
+    return translationKeyStore.setKey(options);
+  });
+  handle('clear-translation-key', async () => {
+    translationService.cancelCurrent();
+    return translationKeyStore.clear();
+  });
+  handle('translate', options => translationService.translate(options));
+  handle('cancel-translation', requestId => translationService.cancel(requestId));
+  handle('copy-text', text => {
+    if (typeof text !== 'string' || text.length > 65_536) throw new TypeError('복사할 글의 양이 너무 많거나 올바르지 않습니다.');
+    clipboard.writeText(text);
+  });
   handle('hide', () => { interaction = null; mainWindow.hide(); });
   handle('quit', finishQuit);
 }
@@ -397,7 +459,7 @@ async function createWindow() {
     minHeight: state.window.folded ? 1 : Math.min(MIN_SIZE.height, display.workArea.height),
     title: '모서리 메모', icon: iconPath,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    hasShadow: true, show: false, alwaysOnTop: state.window.alwaysOnTop, skipTaskbar: true,
+    hasShadow: true, show: false, alwaysOnTop: state.window.alwaysOnTop, skipTaskbar: state.window.alwaysOnTop,
     resizable: false, maximizable: false, fullscreenable: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -406,6 +468,7 @@ async function createWindow() {
       webSecurity: true, allowRunningInsecureContent: false,
     },
   });
+  lastSkipTaskbar = state.window.alwaysOnTop;
   mainWindow.setMenu(null);
   keepOnTop();
   if (process.platform !== 'win32') mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -480,6 +543,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.on('will-quit', () => {
     clearTimeout(persistTimer);
+    translationService?.cancelCurrent();
     if (tray) tray.destroy();
   });
   app.whenReady().then(async () => {
@@ -488,6 +552,16 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
     await loadState();
+    try {
+      systemLanguage = canonicalLanguage(app.getPreferredSystemLanguages()[0] || app.getLocale());
+    } catch {
+      try { systemLanguage = canonicalLanguage(app.getLocale()); } catch { systemLanguage = 'en-US'; }
+    }
+    translationKeyStore = createTranslationKeyStore({
+      safeStorage, filePath: path.join(app.getPath('userData'), 'translation-key.json'),
+    });
+    await translationKeyStore.load().catch(reportError);
+    translationService = createTranslationService({ fetch: (url, options) => net.fetch(url, options), getKey: translationKeyStore.getKey });
     await createWindow();
     createTray();
     screen.on('display-added', reconcileDisplays);

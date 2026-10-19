@@ -23,6 +23,12 @@ async function main() {
     const page = await application.firstWindow();
     await page.waitForFunction(() => typeof window.cornerNote?.getState === 'function');
     await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    const initialState = await page.evaluate(() => window.cornerNote.getState());
+    if (!initialState.folded && !initialState.settings?.tutorialCompleted) {
+      await page.getByTestId('tutorial-skip').waitFor({state: 'visible'});
+      await page.getByTestId('tutorial-skip').click();
+      await page.waitForFunction(async () => (await window.cornerNote.getState()).settings.tutorialCompleted === true);
+    }
     return page;
   }
   async function quit(page) {
@@ -78,6 +84,86 @@ async function main() {
     assert.equal(await page.getByTestId('note-editor').inputValue(), first);
     assert.equal(await page.getByTestId('color-mint').getAttribute('aria-pressed'), 'true');
     pass('immediate quit flushes text and color, and relaunch restores both');
+
+    const preferenceUpdate = await page.evaluate(() => window.cornerNote.updatePreferences({
+      translationLanguages: ['pt-br', 'pt-BR', 'ja', 'zh-hant'], tutorialCompleted: false,
+    }));
+    assert.deepEqual(preferenceUpdate.settings, {translationLanguages: ['pt-BR', 'ja', 'zh-Hant'], tutorialCompleted: false});
+    assert.equal(preferenceUpdate.text, first);
+    assert.equal(preferenceUpdate.color, 'mint');
+    saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
+    assert.deepEqual(saved.settings, preferenceUpdate.settings);
+    assert.equal(saved.text, first);
+    await assert.rejects(page.evaluate(() => window.cornerNote.updatePreferences({translationLanguages: ['not a language']})));
+    await assert.rejects(page.evaluate(() => window.cornerNote.updatePreferences({tutorialCompleted: 'yes'})));
+    await page.evaluate(() => window.cornerNote.updatePreferences({tutorialCompleted: true}));
+    await quit(page);
+    page = await launch();
+    const restoredPreferences = await page.evaluate(() => window.cornerNote.getState());
+    assert.deepEqual(restoredPreferences.settings, {translationLanguages: ['pt-BR', 'ja', 'zh-Hant'], tutorialCompleted: true});
+    assert.equal(restoredPreferences.text, first);
+    assert.equal(restoredPreferences.color, 'mint');
+    assert.ok(Intl.getCanonicalLocales(restoredPreferences.systemLanguage).length);
+    pass('native preferences normalize languages, reject invalid values and persist tutorial state without changing the note');
+
+    const clipboardText = '복사한 번역 결과\nA copied translation. 📝';
+    await page.evaluate(text => window.cornerNote.copyText(text), clipboardText);
+    assert.equal(await application.evaluate(({clipboard}) => clipboard.readText()), clipboardText);
+    await assert.rejects(page.evaluate(() => window.cornerNote.copyText('a'.repeat(65_537))));
+    assert.equal(await application.evaluate(({clipboard}) => clipboard.readText()), clipboardText);
+    pass('native copy bridge writes Unicode translation text to the actual clipboard and rejects oversized input');
+
+    const initialTranslationSettings = await page.evaluate(() => window.cornerNote.getTranslationSettings());
+    assert.equal(initialTranslationSettings.configured, false);
+    assert.equal(typeof initialTranslationSettings.canRememberKey, 'boolean');
+    if (process.platform === 'win32') {
+      assert.equal(initialTranslationSettings.canRememberKey, true, 'Windows account encryption must support remembered API keys');
+    }
+    assert.equal(initialTranslationSettings.provider, 'openai');
+    assert.equal(initialTranslationSettings.model, 'gpt-4.1-mini');
+    const remember = initialTranslationSettings.canRememberKey;
+    // This intentionally fake key exercises local storage only. Never translate
+    // or send a network request using it.
+    const fakeKey = `sk-${'desktop-test-only-'.repeat(4)}`;
+    const keyPath = path.join(directory, 'translation-key.json');
+    if (!remember) {
+      await assert.rejects(page.evaluate(apiKey => window.cornerNote.setTranslationKey({apiKey, remember: true}), fakeKey));
+      assert.equal((await page.evaluate(() => window.cornerNote.getTranslationSettings())).configured, false);
+    }
+    const configuredStatus = await page.evaluate(({apiKey, remember}) => window.cornerNote.setTranslationKey({apiKey, remember}), {apiKey: fakeKey, remember});
+    assert.equal(configuredStatus.configured, true);
+    assert.deepEqual(Object.keys(configuredStatus).sort(), ['canRememberKey', 'configured', 'model', 'provider']);
+    assert.equal(JSON.stringify(configuredStatus).includes(fakeKey), false);
+    assert.equal(JSON.stringify(await page.evaluate(() => window.cornerNote.getState())).includes(fakeKey), false);
+    assert.equal((await fs.readFile(statePath, 'utf8')).includes(fakeKey), false);
+    if (remember) {
+      const encryptedFile = await fs.readFile(keyPath, 'utf8');
+      assert.equal(encryptedFile.includes(fakeKey), false);
+      const encrypted = JSON.parse(encryptedFile);
+      assert.equal(encrypted.version, 1);
+      assert.equal(typeof encrypted.encryptedKey, 'string');
+      assert.equal(Buffer.from(encrypted.encryptedKey, 'base64').includes(Buffer.from(fakeKey)), false);
+    } else {
+      await assert.rejects(fs.stat(keyPath), {code: 'ENOENT'});
+    }
+    await quit(page);
+    page = await launch();
+    assert.equal((await page.evaluate(() => window.cornerNote.getTranslationSettings())).configured, remember);
+    assert.equal((await page.evaluate(() => window.cornerNote.getState())).text, first);
+    pass(`native API key storage uses ${remember ? 'OS encryption and restores the key' : 'session memory when secure persistence is unavailable'} without exposing it in note state`);
+
+    const clearedStatus = await page.evaluate(() => window.cornerNote.clearTranslationKey());
+    assert.equal(clearedStatus.configured, false);
+    await assert.rejects(fs.stat(keyPath), {code: 'ENOENT'});
+    await page.evaluate(apiKey => window.cornerNote.setTranslationKey({apiKey, remember: false}), fakeKey);
+    assert.equal((await page.evaluate(() => window.cornerNote.getTranslationSettings())).configured, true);
+    await assert.rejects(fs.stat(keyPath), {code: 'ENOENT'});
+    await quit(page);
+    page = await launch();
+    assert.equal((await page.evaluate(() => window.cornerNote.getTranslationSettings())).configured, false);
+    assert.equal((await page.evaluate(() => window.cornerNote.getState())).text, first);
+    assert.equal((await fs.readFile(statePath, 'utf8')).includes(fakeKey), false);
+    pass('disconnect deletes saved credentials and a session-only key is lost on relaunch without changing the note');
 
     await page.getByTestId('always-on-top-button').click();
     await page.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === false);

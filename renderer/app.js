@@ -44,6 +44,12 @@
       corner: CORNERS.includes(source.corner) ? source.corner : 'top-right',
       folded: source.folded === true,
       alwaysOnTop: source.alwaysOnTop !== false,
+      settings: {
+        translationLanguages: Array.isArray(source.settings?.translationLanguages)
+          ? source.settings.translationLanguages.filter((code) => typeof code === 'string') : [],
+        tutorialCompleted: source.settings?.tutorialCompleted === true,
+      },
+      systemLanguage: typeof source.systemLanguage === 'string' ? source.systemLanguage : navigator.language || 'en',
       bounds: source.bounds && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(source.bounds[key])) ? { ...source.bounds } : null,
       savedAt: source.savedAt || null,
     };
@@ -100,6 +106,19 @@
         persist(); emit(); return { ...browserState };
       },
       async setAlwaysOnTop(value) { browserState = { ...browserState, alwaysOnTop: value === true }; persist(); emit(); return { ...browserState }; },
+      async updatePreferences(patch) {
+        browserState.settings = {
+          ...browserState.settings,
+          ...(Array.isArray(patch.translationLanguages) ? { translationLanguages: [...new Set(patch.translationLanguages)] } : {}),
+          ...(typeof patch.tutorialCompleted === 'boolean' ? { tutorialCompleted: patch.tutorialCompleted } : {}),
+        };
+        persist(); emit(); return { ...browserState };
+      },
+      async getTranslationSettings() { return { configured: false, canRememberKey: false, provider: 'openai', model: 'gpt-4.1-mini' }; },
+      async setTranslationKey() { throw new Error('AI 연결은 Windows 앱에서 설정해 주세요.'); },
+      async clearTranslationKey() { return { configured: false, canRememberKey: false, provider: 'openai', model: 'gpt-4.1-mini' }; },
+      async translate() { throw new Error('AI 번역은 Windows 앱에서 API 키를 연결한 뒤 사용할 수 있어요.'); },
+      async cancelTranslation() { return false; },
       async beginInteraction(value) {
         if (interaction) throw new Error('An interaction is already active.');
         interaction = { ...value, id: `browser-${++nextInteractionId}`, bounds: { ...browserState.bounds } };
@@ -178,6 +197,8 @@
     state.folded = next.folded;
     state.corner = next.corner;
     state.alwaysOnTop = next.alwaysOnTop;
+    state.settings = next.settings;
+    state.systemLanguage = next.systemLanguage;
     state.bounds = next.bounds;
     pinButton.setAttribute('aria-pressed', String(next.alwaysOnTop));
     pinLabel.textContent = next.alwaysOnTop ? '항상 위' : '항상 위 꺼짐';
@@ -508,6 +529,8 @@
     app.classList.remove('is-loading');
     setStatus('saved', state.savedAt);
     if (state.folded) foldedNote.focus({ preventScroll: true });
+    window.CornerTranslation?.init({ bridge, textarea, note, showToast, initialState: initial });
+    window.CornerTutorial?.init({ bridge, textarea, note, showToast, initialState: initial });
   }).catch(() => {
     app.classList.remove('is-loading');
     setStatus('error');

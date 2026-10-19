@@ -8,6 +8,20 @@ contextBridge.exposeInMainWorld('cornerNote', Object.freeze({
   fold: options => ipcRenderer.invoke('corner-note:fold', { corner: options?.corner }),
   unfold: () => ipcRenderer.invoke('corner-note:unfold'),
   setAlwaysOnTop: enabled => ipcRenderer.invoke('corner-note:set-always-on-top', enabled),
+  updatePreferences: preferences => ipcRenderer.invoke('corner-note:update-preferences', {
+    translationLanguages: preferences?.translationLanguages,
+    tutorialCompleted: preferences?.tutorialCompleted,
+  }),
+  getTranslationSettings: () => ipcRenderer.invoke('corner-note:get-translation-settings'),
+  setTranslationKey: options => ipcRenderer.invoke('corner-note:set-translation-key', {
+    apiKey: options?.apiKey, remember: options?.remember,
+  }),
+  clearTranslationKey: () => ipcRenderer.invoke('corner-note:clear-translation-key'),
+  translate: options => ipcRenderer.invoke('corner-note:translate', {
+    text: options?.text, targetLanguage: options?.targetLanguage, requestId: options?.requestId,
+  }),
+  cancelTranslation: requestId => ipcRenderer.invoke('corner-note:cancel-translation', requestId),
+  copyText: text => ipcRenderer.invoke('corner-note:copy-text', text),
   beginInteraction: options => ipcRenderer.invoke('corner-note:begin-interaction', {
     kind: options?.kind, edge: options?.edge, screenX: options?.screenX, screenY: options?.screenY,
   }),

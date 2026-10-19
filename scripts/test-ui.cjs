@@ -28,6 +28,8 @@ async function main() {
   const pass = label => console.log(`ok ${++passed} - ${label}`);
   try {
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await byId('tutorial-skip').waitFor({state: 'visible'});
+    await byId('tutorial-skip').click();
     await byId('note-editor').waitFor({state: 'visible'});
     const text = '오늘의 작은 메모 🌿\n한글과 English, 줄바꿈을 기억해요.\n<script>window.injected = true</script>';
     await byId('note-editor').fill(text);
