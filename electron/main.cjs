@@ -4,8 +4,10 @@ const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, dialog, se
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const {
-  DEFAULT_SIZE, MIN_SIZE, FOLDED_SIZE, validCorner, fitSize, clampBounds, cornerBounds, selectDisplay,
+  EDGES, DEFAULT_SIZE, MIN_SIZE, FOLDED_SIZE, validCorner, fitSize, clampBounds, cornerBounds,
+  unfoldBounds, moveBounds, resizeBounds, selectDisplay,
 } = require('./window-geometry.cjs');
 
 const COLORS = new Set(['butter', 'rose', 'mint', 'sky']);
@@ -29,15 +31,21 @@ let pendingSaves = [];
 let writeQueue = Promise.resolve();
 let writeBlocker;
 let applyingBounds = false;
+let interaction;
 let state = {
   version: 1, text: '', color: 'butter', savedAt: null,
-  window: { folded: false, corner: 'top-right', expandedBounds: { ...DEFAULT_SIZE }, displayId: null },
+  window: {
+    folded: false, corner: 'top-right', expandedBounds: { ...DEFAULT_SIZE },
+    foldedBounds: null, displayId: null, alwaysOnTop: true,
+  },
 };
 
 function publicState() {
   return {
     text: state.text, color: state.color,
     folded: state.window.folded, corner: state.window.corner, savedAt: state.savedAt,
+    alwaysOnTop: state.window.alwaysOnTop,
+    bounds: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null,
   };
 }
 
@@ -71,6 +79,11 @@ async function loadState() {
         corner: validCorner(windowState.corner) ? windowState.corner : 'top-right',
         expandedBounds: windowState.expandedBounds && typeof windowState.expandedBounds === 'object'
           ? windowState.expandedBounds : { ...DEFAULT_SIZE },
+        foldedBounds: windowState.foldedBounds && typeof windowState.foldedBounds === 'object'
+          && ['x', 'y', 'width', 'height'].every(key => Number.isFinite(windowState.foldedBounds[key]))
+          && windowState.foldedBounds.width > 0 && windowState.foldedBounds.height > 0
+          ? windowState.foldedBounds : null,
+        alwaysOnTop: windowState.alwaysOnTop !== false,
         displayId: typeof windowState.displayId === 'number' || typeof windowState.displayId === 'string'
           ? windowState.displayId : null,
       },
@@ -141,21 +154,24 @@ function emitState() {
 }
 
 function activeDisplay() {
-  return selectDisplay(screen.getAllDisplays(), state.window.expandedBounds, state.window.displayId);
+  const bounds = state.window.folded ? state.window.foldedBounds || state.window.expandedBounds : state.window.expandedBounds;
+  return selectDisplay(screen.getAllDisplays(), bounds, state.window.displayId);
 }
 
 function keepOnTop() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   // moveTop changes z-order without activating the note or stealing Alt-Tab focus.
-  mainWindow.setAlwaysOnTop(true, 'screen-saver');
-  if (mainWindow.isVisible()) mainWindow.moveTop();
+  mainWindow.setAlwaysOnTop(state.window.alwaysOnTop, state.window.alwaysOnTop ? 'screen-saver' : 'normal');
+  if (state.window.alwaysOnTop && mainWindow.isVisible()) mainWindow.moveTop();
 }
 
 function setWindowBounds(bounds, folded) {
   applyingBounds = true;
   try {
     mainWindow.setMinimumSize(1, 1);
-    mainWindow.setResizable(!folded);
+    // Native resize borders steal the diagonal fold gestures on Windows.
+    // The renderer exposes only side strips and validates resizing through IPC.
+    mainWindow.setResizable(false);
     mainWindow.setBounds(bounds);
     if (!folded) {
       const minimum = fitSize(MIN_SIZE, activeDisplay().workArea, { width: 1, height: 1 });
@@ -168,21 +184,25 @@ function setWindowBounds(bounds, folded) {
 }
 
 function captureWindowBounds() {
-  if (applyingBounds || !mainWindow || mainWindow.isDestroyed() || state.window.folded) return;
-  state.window.expandedBounds = mainWindow.getBounds();
-  state.window.displayId = screen.getDisplayMatching(state.window.expandedBounds).id;
+  if (applyingBounds || !mainWindow || mainWindow.isDestroyed()) return;
+  const bounds = mainWindow.getBounds();
+  if (state.window.folded) state.window.foldedBounds = bounds;
+  else state.window.expandedBounds = bounds;
+  state.window.displayId = screen.getDisplayMatching(bounds).id;
   persistWindow();
 }
 
 function foldWindow(corner) {
   if (!validCorner(corner)) throw new TypeError('올바른 모서리를 선택해 주세요.');
+  interaction = null;
   if (!state.window.folded) {
     state.window.expandedBounds = mainWindow.getBounds();
     state.window.displayId = screen.getDisplayMatching(state.window.expandedBounds).id;
   }
   state.window.corner = corner;
   state.window.folded = true;
-  setWindowBounds(cornerBounds(activeDisplay().workArea, corner, FOLDED_SIZE), true);
+  state.window.foldedBounds = cornerBounds(activeDisplay().workArea, corner, FOLDED_SIZE);
+  setWindowBounds(state.window.foldedBounds, true);
   persistWindow();
   emitState();
   return publicState();
@@ -190,9 +210,9 @@ function foldWindow(corner) {
 
 function unfoldWindow() {
   if (state.window.folded) {
+    interaction = null;
     const display = activeDisplay();
-    const size = fitSize(state.window.expandedBounds, display.workArea);
-    const bounds = cornerBounds(display.workArea, state.window.corner, size);
+    const bounds = unfoldBounds(mainWindow.getBounds(), state.window.corner, state.window.expandedBounds, display.workArea);
     state.window.folded = false;
     state.window.displayId = display.id;
     state.window.expandedBounds = bounds;
@@ -214,16 +234,89 @@ function showWindow() {
 
 function reconcileDisplays() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  interaction = null;
   const display = activeDisplay();
   state.window.displayId = display.id;
   if (state.window.folded) {
-    setWindowBounds(cornerBounds(display.workArea, state.window.corner), true);
+    state.window.foldedBounds = clampBounds(mainWindow.getBounds(), display.workArea, { width: 1, height: 1 });
+    setWindowBounds(state.window.foldedBounds, true);
   } else {
     const bounds = clampBounds(mainWindow.getBounds(), display.workArea);
     state.window.expandedBounds = bounds;
     setWindowBounds(bounds, false);
   }
   persistWindow();
+  emitState();
+}
+
+function validatePointer(options) {
+  if (!options || !Number.isFinite(options.screenX) || !Number.isFinite(options.screenY)
+    || Math.abs(options.screenX) > 1_000_000 || Math.abs(options.screenY) > 1_000_000) {
+    throw new TypeError('올바른 마우스 좌표가 필요합니다.');
+  }
+}
+
+function beginInteraction(options) {
+  validatePointer(options);
+  if (interaction) throw new Error('진행 중인 창 이동을 먼저 끝내 주세요.');
+  if (options.kind !== 'resize' && options.kind !== 'move-folded') throw new TypeError('올바른 창 동작이 필요합니다.');
+  if (options.kind === 'resize' && (state.window.folded || !EDGES.includes(options.edge))) {
+    throw new TypeError('펼친 메모의 변을 선택해 주세요.');
+  }
+  if (options.kind === 'move-folded' && !state.window.folded) throw new TypeError('접힌 메모만 이 방식으로 옮길 수 있습니다.');
+  interaction = {
+    id: randomUUID(), kind: options.kind, edge: options.edge,
+    screenX: options.screenX, screenY: options.screenY,
+    bounds: mainWindow.getBounds(), displayId: state.window.displayId,
+    workArea: { ...activeDisplay().workArea },
+  };
+  return interaction.id;
+}
+
+function requireInteraction(options) {
+  if (!interaction || typeof options?.id !== 'string' || options.id !== interaction.id) {
+    throw new Error('진행 중인 창 동작이 아닙니다.');
+  }
+  return interaction;
+}
+
+function updateInteraction(options) {
+  const current = requireInteraction(options);
+  validatePointer(options);
+  const deltaX = options.screenX - current.screenX;
+  const deltaY = options.screenY - current.screenY;
+  let bounds;
+  let display;
+  if (current.kind === 'resize') {
+    bounds = resizeBounds(current.bounds, current.edge,
+      current.edge === 'left' || current.edge === 'right' ? deltaX : deltaY, current.workArea);
+    display = screen.getDisplayMatching(bounds);
+  } else {
+    const proposed = { ...current.bounds, x: current.bounds.x + deltaX, y: current.bounds.y + deltaY };
+    display = selectDisplay(screen.getAllDisplays(), proposed);
+    bounds = moveBounds(current.bounds, deltaX, deltaY, display.workArea);
+  }
+  if (state.window.folded) state.window.foldedBounds = bounds;
+  else state.window.expandedBounds = bounds;
+  state.window.displayId = display.id;
+  setWindowBounds(bounds, state.window.folded);
+  persistWindow();
+  return mainWindow.getBounds();
+}
+
+function endInteraction(options) {
+  const current = requireInteraction(options);
+  if (options.cancel !== undefined && typeof options.cancel !== 'boolean') throw new TypeError('취소 여부가 올바르지 않습니다.');
+  interaction = null;
+  if (options.cancel === true) {
+    state.window.displayId = current.displayId;
+    if (state.window.folded) state.window.foldedBounds = current.bounds;
+    else state.window.expandedBounds = current.bounds;
+    setWindowBounds(current.bounds, state.window.folded);
+  }
+  captureWindowBounds();
+  emitState();
+  return publicState();
 }
 
 async function finishQuit() {
@@ -270,7 +363,18 @@ function registerIpc() {
   });
   handle('fold', options => foldWindow(options?.corner));
   handle('unfold', unfoldWindow);
-  handle('hide', () => { mainWindow.hide(); });
+  handle('begin-interaction', beginInteraction);
+  handle('update-interaction', updateInteraction);
+  handle('end-interaction', endInteraction);
+  handle('set-always-on-top', async enabled => {
+    if (typeof enabled !== 'boolean') throw new TypeError('항상 위 표시 여부가 올바르지 않습니다.');
+    state.window.alwaysOnTop = enabled;
+    keepOnTop();
+    emitState();
+    await schedulePersist();
+    return publicState();
+  });
+  handle('hide', () => { interaction = null; mainWindow.hide(); });
   handle('quit', finishQuit);
 }
 
@@ -282,16 +386,19 @@ async function createWindow() {
     ? clampBounds(expanded, display.workArea)
     : cornerBounds(display.workArea, state.window.corner, fitSize(expanded, display.workArea));
   const bounds = state.window.folded
-    ? cornerBounds(display.workArea, state.window.corner)
+    ? (state.window.foldedBounds
+      ? clampBounds(state.window.foldedBounds, display.workArea, { width: 1, height: 1 })
+      : cornerBounds(display.workArea, state.window.corner))
     : state.window.expandedBounds;
+  if (state.window.folded) state.window.foldedBounds = bounds;
   mainWindow = new BrowserWindow({
     ...bounds,
     minWidth: state.window.folded ? 1 : Math.min(MIN_SIZE.width, display.workArea.width),
     minHeight: state.window.folded ? 1 : Math.min(MIN_SIZE.height, display.workArea.height),
     title: '모서리 메모', icon: iconPath,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    hasShadow: true, show: false, alwaysOnTop: true, skipTaskbar: true,
-    resizable: !state.window.folded, maximizable: false, fullscreenable: false,
+    hasShadow: true, show: false, alwaysOnTop: state.window.alwaysOnTop, skipTaskbar: true,
+    resizable: false, maximizable: false, fullscreenable: false,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -300,7 +407,7 @@ async function createWindow() {
     },
   });
   mainWindow.setMenu(null);
-  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  keepOnTop();
   if (process.platform !== 'win32') mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', event => event.preventDefault());
@@ -309,6 +416,7 @@ async function createWindow() {
   mainWindow.on('close', event => {
     if (!quitReady) {
       event.preventDefault();
+      interaction = null;
       captureWindowBounds();
       mainWindow.hide();
       void flushPersist().catch(reportError);
@@ -327,7 +435,7 @@ async function createWindow() {
 function createTray() {
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 20, height: 20 });
   tray = new Tray(icon);
-  tray.setToolTip('모서리 메모 — 항상 화면 위에');
+  tray.setToolTip('모서리 메모');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '메모 펼치기', click: showWindow },
     { label: '메모 숨기기', click: () => mainWindow.hide() },

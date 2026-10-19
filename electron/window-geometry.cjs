@@ -1,6 +1,7 @@
 'use strict';
 
 const CORNERS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
+const EDGES = Object.freeze(['left', 'right', 'top', 'bottom']);
 const DEFAULT_SIZE = Object.freeze({ width: 392, height: 460 });
 const MIN_SIZE = Object.freeze({ width: 300, height: 300 });
 const FOLDED_SIZE = Object.freeze({ width: 88, height: 88 });
@@ -51,6 +52,52 @@ function cornerBounds(workArea, corner, requestedSize = FOLDED_SIZE, inset = EDG
   }, area, { width: 1, height: 1 });
 }
 
+// Keep the physical folded corner under the same point when the note opens.
+// This also works after the user has moved the folded note away from a screen edge.
+function unfoldBounds(foldedBounds, corner, requestedSize, workArea) {
+  const size = fitSize(requestedSize, workArea);
+  const folded = clampBounds(foldedBounds, workArea, { width: 1, height: 1 });
+  return clampBounds({
+    x: corner.endsWith('right') ? folded.x + folded.width - size.width : folded.x,
+    y: corner.startsWith('bottom') ? folded.y + folded.height - size.height : folded.y,
+    ...size,
+  }, workArea);
+}
+
+function moveBounds(bounds, deltaX, deltaY, workArea) {
+  return clampBounds({
+    ...bounds,
+    x: finite(bounds.x, 0) + finite(deltaX, 0),
+    y: finite(bounds.y, 0) + finite(deltaY, 0),
+  }, workArea, { width: 1, height: 1 });
+}
+
+// Resize one side from a gesture snapshot. The opposite side stays fixed even
+// when the pointer travels past the minimum size or outside the work area.
+function resizeBounds(bounds, edge, delta, workArea) {
+  if (!EDGES.includes(edge)) throw new TypeError('Unknown resize edge.');
+  const area = normalizeWorkArea(workArea);
+  const initial = clampBounds(bounds, area);
+  const right = initial.x + initial.width;
+  const bottom = initial.y + initial.height;
+  const minimumWidth = Math.min(MIN_SIZE.width, area.width);
+  const minimumHeight = Math.min(MIN_SIZE.height, area.height);
+  const result = { ...initial };
+  const distance = finite(delta, 0);
+  if (edge === 'left') {
+    result.x = limit(initial.x + distance, area.x, right - minimumWidth);
+    result.width = right - result.x;
+  } else if (edge === 'right') {
+    result.width = limit(right + distance, initial.x + minimumWidth, area.x + area.width) - initial.x;
+  } else if (edge === 'top') {
+    result.y = limit(initial.y + distance, area.y, bottom - minimumHeight);
+    result.height = bottom - result.y;
+  } else {
+    result.height = limit(bottom + distance, initial.y + minimumHeight, area.y + area.height) - initial.y;
+  }
+  return result;
+}
+
 function selectDisplay(displays, bounds, preferredId) {
   if (!Array.isArray(displays) || !displays.length) throw new Error('No displays are available.');
   const preferred = displays.find(display => String(display.id) === String(preferredId));
@@ -75,6 +122,6 @@ function selectDisplay(displays, bounds, preferredId) {
 }
 
 module.exports = {
-  CORNERS, DEFAULT_SIZE, MIN_SIZE, FOLDED_SIZE, EDGE_INSET,
-  validCorner, normalizeWorkArea, fitSize, clampBounds, cornerBounds, selectDisplay,
+  CORNERS, EDGES, DEFAULT_SIZE, MIN_SIZE, FOLDED_SIZE, EDGE_INSET,
+  validCorner, normalizeWorkArea, fitSize, clampBounds, cornerBounds, unfoldBounds, moveBounds, resizeBounds, selectDisplay,
 };

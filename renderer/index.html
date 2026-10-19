@@ -31,7 +31,7 @@
         <section class="note-body" aria-label="메모 작성">
           <div class="note-meta">
             <time id="today" class="today"></time>
-            <span class="pinned"><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m5 2 5 2-1.5 2.2.7 2.6-2.5-.5L4.6 10 4.3 7.5 2 6.4 4.5 5zM6.3 8.5 4 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>항상 위</span>
+            <button id="always-on-top-button" data-testid="always-on-top-button" class="pinned" type="button" aria-pressed="true" title="항상 위 표시 끄기" disabled><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m5 2 5 2-1.5 2.2.7 2.6-2.5-.5L4.6 10 4.3 7.5 2 6.4 4.5 5zM6.3 8.5 4 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="pin-label">항상 위</span></button>
           </div>
           <label for="note-text" class="sr-only">메모 내용</label>
           <textarea id="note-text" data-testid="note-editor" spellcheck="false" placeholder="잊지 않고 싶은 생각을&#10;여기에 적어 보세요." aria-describedby="save-status" disabled></textarea>
@@ -50,6 +50,11 @@
           </footer>
         </section>
 
+        <button class="resize-edge resize-left" data-testid="resize-left" data-edge="left" type="button" aria-label="왼쪽 변 크기 조절: 좌우 방향키로도 조절" title="드래그하여 너비 조절 · ← → 키"></button>
+        <button class="resize-edge resize-right" data-testid="resize-right" data-edge="right" type="button" aria-label="오른쪽 변 크기 조절: 좌우 방향키로도 조절" title="드래그하여 너비 조절 · ← → 키"></button>
+        <button class="resize-edge resize-top" data-testid="resize-top" data-edge="top" type="button" aria-label="위쪽 변 크기 조절: 위아래 방향키로도 조절" title="드래그하여 높이 조절 · ↑ ↓ 키"></button>
+        <button class="resize-edge resize-bottom" data-testid="resize-bottom" data-edge="bottom" type="button" aria-label="아래쪽 변 크기 조절: 위아래 방향키로도 조절" title="드래그하여 높이 조절 · ↑ ↓ 키"></button>
+
         <button class="corner-handle top-left" data-testid="fold-handle-top-left" data-corner="top-left" type="button" aria-label="왼쪽 위 모서리: 오른쪽 아래로 끌어 접기" title="오른쪽 아래로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         <button class="corner-handle top-right" data-testid="fold-handle-top-right" data-corner="top-right" type="button" aria-label="오른쪽 위 모서리: 왼쪽 아래로 끌어 접기" title="왼쪽 아래로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
         <button class="corner-handle bottom-left" data-testid="fold-handle-bottom-left" data-corner="bottom-left" type="button" aria-label="왼쪽 아래 모서리: 오른쪽 위로 끌어 접기" title="오른쪽 위로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
@@ -63,24 +68,25 @@
 
         <section id="help-panel" class="help-panel" role="dialog" aria-labelledby="help-title" hidden>
           <div class="help-heading"><h1 id="help-title">작은 메모, 늘 이 자리에.</h1><button id="close-help" class="icon-button" type="button" aria-label="메뉴 닫기"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button></div>
-          <p class="help-intro">다른 창을 열어도 메모는 항상 위에 남아요.<br>내용과 색상은 이 컴퓨터에 자동 저장돼요.</p>
+          <p class="help-intro">‘항상 위’를 누르면 다른 창 위에 둘지 선택해요.<br>메모의 변을 끌어 크기를 조절할 수 있어요.</p>
           <div class="gesture-example" aria-hidden="true"><span class="example-sheet"><span></span><span></span><span></span></span><span class="example-arrow">↘</span><span class="example-corner"></span></div>
           <h2>당겨서 접고, 당겨서 펴세요</h2>
           <p>메모 모서리를 대각선 반대편까지 당기면<br>그쪽 화면 구석에 접어 둘 수 있어요.</p>
-          <p>접힌 모서리를 화면 안쪽으로 당기면 펴져요.<br>두 번 클릭하거나 Enter를 눌러도 돼요.</p>
+          <p>접힌 메모를 끌면 원하는 위치로 옮겨져요.<br>대각선 손잡이를 안쪽으로 당기면 펴져요.<br>두 번 클릭하거나 Enter를 눌러도 돼요.</p>
           <div class="fold-actions" role="group" aria-label="화면 구석으로 접기">
             <button type="button" data-fold-to="top-left"><span aria-hidden="true">↖</span> 왼쪽 위</button>
             <button type="button" data-fold-to="top-right"><span aria-hidden="true">↗</span> 오른쪽 위</button>
             <button type="button" data-fold-to="bottom-left"><span aria-hidden="true">↙</span> 왼쪽 아래</button>
             <button type="button" data-fold-to="bottom-right"><span aria-hidden="true">↘</span> 오른쪽 아래</button>
           </div>
-          <div class="help-footer"><span>트레이 아이콘으로 다시 열 수 있어요.</span><button id="quit-button" type="button">앱 종료</button></div>
+          <div class="help-footer"><span>내용·색상은 자동 저장돼요.<br>트레이 아이콘으로 다시 열 수 있어요.</span><button id="quit-button" type="button">앱 종료</button></div>
         </section>
       </article>
 
-      <div id="folded-note" data-testid="folded-note" class="folded-note" role="button" tabindex="0" data-corner="top-right" aria-label="접힌 메모: 화면 안쪽으로 당기거나 두 번 클릭하여 펼치기" title="안쪽으로 당겨 펼치기 · 두 번 클릭" hidden>
+      <div id="folded-note" data-testid="folded-note" class="folded-note" role="button" tabindex="0" data-corner="top-right" aria-label="접힌 메모: 끌어서 이동, 방향키로 이동, 두 번 클릭 또는 Enter로 펼치기" title="끌어서 이동 · 두 번 클릭하여 펼치기" hidden>
         <svg class="folded-lines" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M5 7h17M5 13h13M5 19h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span class="folded-dot" aria-hidden="true"></span>
+        <span id="unfold-handle" data-testid="unfold-handle" class="unfold-handle" role="button" tabindex="0" aria-label="접힌 메모 펼치기: 화면 안쪽으로 끌거나 Enter" title="안쪽으로 당겨 펼치기 · Enter"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 6-6m-3 10 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
         <span class="sr-only">Enter 키로 메모 펼치기</span>
       </div>
       <div id="toast" class="toast" role="status" hidden></div>

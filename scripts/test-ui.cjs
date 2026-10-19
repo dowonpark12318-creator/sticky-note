@@ -45,6 +45,16 @@ async function main() {
     assert.equal(await byId('color-sky').getAttribute('aria-pressed'), 'true');
     pass('selected paper color persists across reload');
 
+    assert.equal(await byId('always-on-top-button').getAttribute('aria-pressed'), 'true');
+    await byId('always-on-top-button').click();
+    assert.equal(await byId('always-on-top-button').getAttribute('aria-pressed'), 'false');
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    assert.equal(await byId('always-on-top-button').getAttribute('aria-pressed'), 'false');
+    assert.equal(await byId('note-editor').inputValue(), text);
+    await byId('always-on-top-button').click();
+    pass('pin button toggles and persists without changing note content');
+
     const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
     const opposite = {'top-left': 'bottom-right', 'top-right': 'bottom-left', 'bottom-left': 'top-right', 'bottom-right': 'top-left'};
     async function dragCorner(corner, fraction = .95, cancel = false) {
@@ -68,9 +78,9 @@ async function main() {
     for (const corner of corners) {
       await dragCorner(corner);
       await byId('folded-note').waitFor({state: 'visible'});
-      const box = await byId('folded-note').boundingBox();
+      const box = await byId('unfold-handle').boundingBox();
       const destination = opposite[corner];
-      const grab = {x: box.x + box.width * (destination.endsWith('right') ? .75 : .25), y: box.y + box.height * (destination.startsWith('bottom') ? .75 : .25)};
+      const grab = {x: box.x + box.width / 2, y: box.y + box.height / 2};
       await page.mouse.move(grab.x, grab.y);
       await page.mouse.down();
       await page.mouse.move(grab.x + (destination.endsWith('right') ? -90 : 90), grab.y + (destination.startsWith('bottom') ? -90 : 90), {steps: 10});
@@ -98,6 +108,87 @@ async function main() {
     await page.screenshot({path: path.resolve(__dirname, '..', 'test-results', 'note-folded.png')});
     assert.deepEqual(errors, [], 'renderer has no uncaught errors');
     pass('expanded and folded screenshots captured without renderer errors');
+
+    await byId('folded-note').focus();
+    await page.keyboard.press('Enter');
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    const appBox = () => page.locator('#app').boundingBox();
+    const closeTo = (actual, expected, label) => assert.ok(Math.abs(actual - expected) <= 1, `${label}: ${actual} vs ${expected}`);
+    async function dragControl(control, dx, dy, cancel = false) {
+      const box = await control.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, {steps: 8});
+      if (cancel) await page.keyboard.press('Escape');
+      await page.mouse.up();
+      await page.waitForTimeout(80);
+    }
+    const beforeResize = await appBox();
+    for (const edge of ['left', 'right']) {
+      await byId(`resize-${edge}`).hover();
+      assert.equal(await byId(`resize-${edge}`).evaluate(el => getComputedStyle(el).cursor), 'ew-resize');
+    }
+    for (const edge of ['top', 'bottom']) {
+      await byId(`resize-${edge}`).hover();
+      assert.equal(await byId(`resize-${edge}`).evaluate(el => getComputedStyle(el).cursor), 'ns-resize');
+    }
+    await dragControl(byId('resize-right'), 96, 0);
+    let box = await appBox();
+    closeTo(box.width, beforeResize.width + 96, 'right edge grows width');
+    closeTo(box.x, beforeResize.x, 'right resize keeps left edge');
+    await dragControl(byId('resize-left'), 20, 0);
+    let next = await appBox();
+    closeTo(next.x + next.width, box.x + box.width, 'left resize keeps right edge');
+    closeTo(next.width, box.width - 20, 'left edge shrinks width');
+    await dragControl(byId('resize-top'), 0, 30);
+    box = await appBox();
+    closeTo(box.y + box.height, next.y + next.height, 'top resize keeps bottom edge');
+    await dragControl(byId('resize-bottom'), 0, 70);
+    next = await appBox();
+    closeTo(next.height, box.height + 70, 'bottom edge grows height');
+    await dragControl(byId('resize-right'), 50, 0, true);
+    box = await appBox();
+    closeTo(box.width, next.width, 'Escape restores pre-resize size');
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    box = await appBox();
+    closeTo(box.width, next.width, 'resized width survives reload');
+    closeTo(box.height, next.height, 'resized height survives reload');
+    pass('four side strips resize with fixed opposite edges, Escape cancels, dimensions persist');
+
+    const expandedSize = {width: box.width, height: box.height};
+    await dragCorner('top-left');
+    await byId('folded-note').waitFor({state: 'visible'});
+    const snapped = await appBox();
+    closeTo(snapped.x, 1280 - 88 - 12, 'fresh fold snaps to right screen corner');
+    closeTo(snapped.y, 900 - 88 - 12, 'fresh fold snaps to bottom screen corner');
+    const body = await byId('folded-note').boundingBox();
+    await page.mouse.move(body.x + body.width * .87, body.y + body.height * .87);
+    await page.mouse.down();
+    await page.mouse.move(body.x + body.width * .87 - 170, body.y + body.height * .87 - 140, {steps: 12});
+    await page.mouse.up();
+    await page.waitForTimeout(80);
+    assert.equal(await byId('folded-note').isVisible(), true);
+    let moved = await appBox();
+    closeTo(moved.x, snapped.x - 170, 'folded body moves horizontally');
+    closeTo(moved.y, snapped.y - 140, 'folded body moves vertically');
+    await page.reload();
+    await byId('folded-note').waitFor({state: 'visible'});
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    box = await appBox();
+    closeTo(box.x, moved.x, 'moved folded x survives reload');
+    closeTo(box.y, moved.y, 'moved folded y survives reload');
+    await byId('folded-note').dblclick({position: {x: body.width * .87, y: body.height * .87}});
+    await byId('note-editor').waitFor({state: 'visible'});
+    box = await appBox();
+    closeTo(box.width, expandedSize.width, 'unfold preserves resized width');
+    closeTo(box.height, expandedSize.height, 'unfold preserves resized height');
+    closeTo(box.x + box.width, moved.x + moved.width, 'unfold anchors moved right edge');
+    closeTo(box.y + box.height, moved.y + moved.height, 'unfold anchors moved bottom edge');
+    assert.deepEqual(errors, [], 'new interactions do not throw renderer errors');
+    pass('fold snaps once, body moves freely and persists, then unfolds at the moved location');
     console.log(`UI checks: ${passed} passed`);
   } finally {
     await browser.close();
