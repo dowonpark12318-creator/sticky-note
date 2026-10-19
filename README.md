@@ -4,7 +4,7 @@
 
 ## Windows에서 사용하기
 
-테스트 실행 파일은 [GitHub Actions](https://github.com/dowonpark12318-creator/sticky-note/actions?query=branch%3Acodex%2Fwindows-test-build)의 **Windows test build** → **Artifacts** → **CornerNote-Windows-x64**에서 받을 수 있습니다. 빌드가 끝난 뒤 다운로드하며 GitHub 로그인이 필요합니다. 자세한 다운로드 절차와 직접 확인할 항목은 [Windows 테스트 가이드](WINDOWS-테스트.md)를 참고하세요.
+테스트 실행 파일은 [다운로드 페이지](https://github.com/dowonpark12318-creator/sticky-note/releases)의 최신 **모서리 메모 Windows 테스트** → **Assets** → **CornerNote-Windows-x64.zip**에서 로그인 없이 받을 수 있습니다. 자세한 다운로드 절차와 직접 확인할 항목은 [Windows 테스트 가이드](WINDOWS-테스트.md)를 참고하세요.
 
 `dist/CornerNote-Windows-x64.zip`을 **모두 압축 해제**하고 폴더 안의 `CornerNote.exe`를 실행하세요. Windows 10/11 x64용 포터블 앱입니다. 설치와 계정이 필요하지 않습니다. 실행 파일과 나머지 파일을 같은 폴더에 보관하세요.
 

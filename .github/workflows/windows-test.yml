@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-test-build-${{ github.ref }}
@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -56,6 +58,27 @@ jobs:
           name: Windows-desktop-test-log
           path: ${{ runner.temp }}/windows-desktop-test.log
           retention-days: 14
+
+      - name: Publish a directly downloadable test release
+        if: success() && steps.desktop.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "windows-test-$env:GITHUB_RUN_NUMBER-$env:GITHUB_RUN_ATTEMPT"
+          $notes = Join-Path $env:RUNNER_TEMP 'corner-note-release.md'
+          @'
+          Windows 10/11 64비트용 모서리 메모 테스트 앱입니다.
+
+          CornerNote-Windows-x64.zip을 모두 압축 해제하고, CornerNote-win32-x64 폴더 안의 CornerNote.exe를 실행하세요. Node.js 설치와 GitHub 로그인이 필요하지 않습니다.
+
+          메모 자동 저장, 항상 위 표시, 대각선으로 접기, 화면 모서리 고정, 안쪽으로 끌어 펼치기를 지원합니다.
+
+          Windows 자동 테스트를 통과한 빌드입니다. 본인 PC에서 Alt-Tab과 접기·펼치기 동작을 확인하세요. 코드 서명되지 않은 테스트 앱입니다.
+          '@ | Set-Content -LiteralPath $notes -Encoding utf8
+          gh release create "$tag" "dist/CornerNote-Windows-x64.zip" "dist/CornerNote-Windows-x64.zip.sha256" --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --latest=false --title "모서리 메모 Windows 테스트 $env:GITHUB_RUN_NUMBER" --notes-file "$notes"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "다운로드: https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/CornerNote-Windows-x64.zip" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Report desktop test failure
         if: always() && steps.desktop.outcome == 'failure'

@@ -4,12 +4,12 @@ Windows 10/11 x64에서 확인합니다. 아직 사용자의 실제 Windows에�
 
 ## 다운로드와 실행
 
-1. GitHub에 로그인하고 [저장소의 Actions](https://github.com/dowonpark12318-creator/sticky-note/actions)를 엽니다. 비공개 저장소라면 해당 저장소 접근 권한이 필요합니다.
-2. `codex/windows-test-build` 브랜치의 최신 **Windows test build** 실행을 엽니다. 검색창에 `branch:codex/windows-test-build`를 입력하면 찾을 수 있습니다.
-3. 실행이 끝나면 아래 **Artifacts**에서 **CornerNote-Windows-x64**를 다운로드합니다. 파일은 빌드 후 14일 동안 보관됩니다.
-4. ZIP을 **모두 압축 해제**하고 폴더 안의 `CornerNote.exe`를 실행합니다. 다른 파일도 같은 폴더에 두세요. Node.js 설치는 필요하지 않습니다.
+1. [다운로드 페이지](https://github.com/dowonpark12318-creator/sticky-note/releases)를 엽니다. 공개 저장소의 Release 파일은 GitHub 로그인 없이 받을 수 있습니다.
+2. 가장 최근 **모서리 메모 Windows 테스트**의 **Assets**에서 **CornerNote-Windows-x64.zip**을 다운로드합니다. `.sha256`은 무결성 확인용 파일입니다.
+3. ZIP을 **모두 압축 해제**하고 `CornerNote-win32-x64` 폴더 안의 `CornerNote.exe`를 실행합니다. 다른 파일도 같은 폴더에 두세요. Node.js 설치는 필요하지 않습니다.
+4. 앱 안의 브라우저에서 다운로드되지 않으면, 같은 링크를 컴퓨터의 Edge 또는 Chrome에서 여세요.
 
-실행 결과가 빨간색이면 실패한 단계를 확인하세요. Windows 데스크톱 자동 테스트만 실패한 경우에도 패키징이 성공했다면 앱을 다운로드할 수 있습니다. 이때는 **Windows-desktop-test-log**도 확인하고 검증이 끝나지 않은 테스트 빌드로 취급하세요. Artifacts가 없으면 아직 빌드 중이거나 패키징 전에 실패한 것입니다.
+Windows 데스크톱 자동 테스트가 통과한 경우에만 Release를 게시합니다. 빌드 상태와 실패 로그는 [GitHub Actions](https://github.com/dowonpark12318-creator/sticky-note/actions?query=branch%3Acodex%2Fwindows-test-build)에서 확인할 수 있습니다. Actions의 Artifacts를 다운로드하려면 GitHub 로그인이 필요합니다.
 
 ## 약 5분 동안 확인할 항목
 
