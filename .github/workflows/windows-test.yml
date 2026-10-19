@@ -1,0 +1,65 @@
+name: Windows test build
+
+on:
+  push:
+    branches: [codex/windows-test-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-test-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run setup
+      - run: npm test
+
+      - name: Test the Windows desktop app
+        id: desktop
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          ELECTRON_TEST_NO_SANDBOX: '0'
+        shell: pwsh
+        run: |
+          npm run test:desktop 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/windows-desktop-test.log"
+          $desktopExitCode = $LASTEXITCODE
+          exit $desktopExitCode
+
+      - name: Package the Windows app
+        run: npm run pack:win
+
+      - name: Upload the portable app
+        uses: actions/upload-artifact@v4
+        with:
+          name: CornerNote-Windows-x64
+          path: dist/CornerNote-win32-x64/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload desktop test failure log
+        if: always() && steps.desktop.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-desktop-test-log
+          path: ${{ runner.temp }}/windows-desktop-test.log
+          retention-days: 14
+
+      - name: Report desktop test failure
+        if: always() && steps.desktop.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Write-Error 'Windows desktop tests failed. The portable app artifact is available if packaging succeeded; inspect Windows-desktop-test-log before testing.'
+          exit 1
