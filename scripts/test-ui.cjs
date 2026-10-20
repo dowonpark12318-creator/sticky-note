@@ -4,6 +4,48 @@ const path = require('node:path');
 const http = require('node:http');
 const {chromium} = require('playwright');
 
+function installDelayedFoldedBridge() {
+  const copy = value => JSON.parse(JSON.stringify(value));
+  const listeners = new Set();
+  const anchor = {x: 12, y: 12, width: 88, height: 88};
+  let state = {
+    text: '접힌 메모의 내용은 그대로예요.', color: 'butter', folded: true,
+    corner: 'top-left', alwaysOnTop: true, bounds: {x: 180, y: 160, width: 88, height: 88},
+    settings: {translationLanguages: [], tutorialCompleted: true}, savedAt: null,
+  };
+  let interaction;
+  let sequence = 0;
+  let releaseEnd;
+  const endGate = new Promise(resolve => { releaseEnd = resolve; });
+  const calls = {end: 0, returned: 0, staleEnds: 0};
+  window.cornerNote = {
+    async getState() { return copy(state); },
+    async getTranslationSettings() { return {configured: false, canRememberKey: false}; },
+    async saveNote() { return {savedAt: new Date().toISOString()}; },
+    async beginInteraction() { interaction = `delayed-${++sequence}`; return interaction; },
+    async updateInteraction({id}) {
+      if (id !== interaction) throw new Error('진행 중인 창 동작이 아닙니다.');
+      return copy(state.bounds);
+    },
+    async endInteraction({id}) {
+      calls.end += 1;
+      await endGate;
+      if (id !== interaction) { calls.staleEnds += 1; throw new Error('진행 중인 창 동작이 아닙니다.'); }
+      interaction = null;
+      return copy(state);
+    },
+    async returnFoldedNote() {
+      calls.returned += 1;
+      interaction = null;
+      state.bounds = copy(anchor);
+      for (const listener of listeners) listener(copy(state));
+      return copy(state);
+    },
+    onState(callback) { listeners.add(callback); return () => listeners.delete(callback); },
+  };
+  window.__delayedFoldedFixture = {calls, releaseEnd, state: () => copy(state), anchor};
+}
+
 async function main() {
   const renderer = path.resolve(__dirname, '..', 'renderer');
   const server = http.createServer((request, response) => {
@@ -201,6 +243,7 @@ async function main() {
     }, snapped);
     assert.equal(await byId('folded-note').isVisible(), true);
     assert.equal(await byId('note-editor').isVisible(), false);
+    assert.equal(await page.locator('#toast').evaluate(element => element.hidden), true, 'returning a folded note must not leave an error notification');
     box = await appBox();
     closeTo(box.x, snapped.x, 'double-click restores the first folded x');
     closeTo(box.y, snapped.y, 'double-click restores the first folded y');
@@ -221,6 +264,39 @@ async function main() {
     closeTo(box.y + box.height, snapped.y + snapped.height, 'unfold anchors restored bottom edge');
     assert.deepEqual(errors, [], 'new interactions do not throw renderer errors');
     pass('moved folded note survives reload, double-click returns to its first anchor without unfolding or changing content, and Enter unfolds');
+
+    const delayedContext = await browser.newContext({viewport: {width: 88, height: 88}});
+    await delayedContext.addInitScript(installDelayedFoldedBridge);
+    const delayed = await delayedContext.newPage();
+    delayed.on('pageerror', error => errors.push(error.message));
+    try {
+      await delayed.goto(`http://127.0.0.1:${server.address().port}/`);
+      await delayed.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+      await delayed.getByTestId('folded-note').dblclick({position: {x: 14, y: 14}});
+      await delayed.waitForFunction(() => window.__delayedFoldedFixture.calls.end === 1);
+      await delayed.waitForTimeout(80);
+      assert.equal(await delayed.evaluate(() => window.__delayedFoldedFixture.calls.returned), 0, 'double-click must wait until the native move has finished before returning the note');
+      await delayed.getByTestId('folded-note').dblclick({position: {x: 14, y: 14}});
+      assert.deepEqual(await delayed.evaluate(() => ({end: window.__delayedFoldedFixture.calls.end, returned: window.__delayedFoldedFixture.calls.returned})), {end: 1, returned: 0}, 'rapid repeat clicks must not start a second move or bypass the pending completion');
+      await delayed.evaluate(() => window.__delayedFoldedFixture.releaseEnd());
+      await delayed.waitForFunction(() => window.__delayedFoldedFixture.calls.returned === 1);
+      // Let the rejected/successful delayed IPC completion reach its UI handler.
+      await delayed.waitForTimeout(80);
+      const outcome = await delayed.evaluate(() => ({
+        state: window.__delayedFoldedFixture.state(),
+        anchor: window.__delayedFoldedFixture.anchor,
+        toastHidden: document.querySelector('#toast').hidden,
+        toastVisible: Boolean(document.querySelector('#toast').getClientRects().length),
+      }));
+      assert.equal(outcome.state.folded, true);
+      assert.deepEqual(outcome.state.bounds, outcome.anchor);
+      assert.equal(outcome.state.text, '접힌 메모의 내용은 그대로예요.');
+      assert.equal(outcome.toastHidden, true, 'a delayed folded-move completion must not leave a clipped error box after double-click');
+      assert.equal(outcome.toastVisible, false);
+      assert.equal(await delayed.evaluate(() => window.__delayedFoldedFixture.calls.staleEnds), 0, 'returning must not invalidate a pending movement token');
+      assert.deepEqual(errors, [], 'delayed gesture completion does not throw renderer errors');
+      pass('double-click waits for a delayed folded movement to finish and returns without a clipped notification');
+    } finally { await delayedContext.close(); }
     console.log(`UI checks: ${passed} passed`);
   } finally {
     await browser.close();

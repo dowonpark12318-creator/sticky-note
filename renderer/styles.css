@@ -137,6 +137,7 @@ button:disabled { cursor: default; opacity: .5; }
 .folded-note[data-corner="bottom-left"] .unfold-handle { bottom: 24px; left: 24px; transform: rotate(90deg); cursor: nesw-resize; }
 .folded-note[data-corner="bottom-right"] .unfold-handle { right: 24px; bottom: 24px; }
 .toast { position: absolute; z-index: 20; right: 24px; bottom: 56px; left: 24px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-light); box-shadow: 0 3px 18px #473b1920; color: var(--ink); font-size: 11px; line-height: 1.6; text-align: center; }
+.app.is-folded .toast { display: none; }
 .is-loading .note-body { opacity: .65; }
 @keyframes blink { 50% { opacity: .25; } }
 @media (max-width: 330px) { .note-body { padding-right: 22px; padding-left: 22px; } .fold-tip { font-size: 8px; } .palette { gap: 7px; } .help-panel { padding: 12px; } }

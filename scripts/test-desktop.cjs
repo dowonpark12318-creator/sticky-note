@@ -437,6 +437,7 @@ async function main() {
     assert.equal((await stateFor(page)).text, first);
     assert.equal((await stateFor(page)).color, 'mint');
     assert.equal(await page.getByTestId('note-editor').isVisible(), false);
+    assert.equal(await page.locator('#toast').evaluate(element => element.hidden), true, 'returning a moved folded note must not show a clipped error box');
     await quit(page);
     saved = await readSaved();
     assert.deepEqual(saved.notes[0].window.foldedBounds, folded);
@@ -493,6 +494,7 @@ async function main() {
       return state.folded && state.bounds.x === expected.x && state.bounds.y === expected.y;
     }, beforeBodyDrag);
     assert.deepEqual(await nativeBounds(), beforeBodyDrag);
+    assert.equal(await page.locator('#toast').evaluate(element => element.hidden), true, 'body double-click leaves the folded note free of popup notifications');
     const grip = await page.getByTestId('unfold-handle').boundingBox();
     assert.ok(grip);
     await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);

@@ -236,7 +236,11 @@
     foldedNote.dataset.corner = next.corner;
     foldedNote.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양으로 접힌 메모: 끌어서 이동, 두 번 클릭하여 처음 접힌 위치로 복귀, Enter로 펼치기`);
     unfoldHandle.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양의 메모 펼치기: 대각선 손잡이를 안쪽으로 끌거나 Enter`);
-    if (next.folded) setHelp(false, false);
+    if (next.folded) {
+      setHelp(false, false);
+      clearTimeout(toastTimer);
+      toast.hidden = true;
+    }
     if (!initial && previousFolded !== next.folded) {
       if (next.folded) foldedNote.focus({ preventScroll: true });
       else textarea.focus({ preventScroll: true });
@@ -293,6 +297,9 @@
     if (!ready || actionBusy) return;
     actionBusy = true;
     try {
+      // A double-click follows two pointer-up events. Finish their native move
+      // transaction before an action can reset its token or window position.
+      await finishInteraction(false);
       const saved = await persistNow();
       if (!saved) return;
       const result = await bridge[method](args);
@@ -411,25 +418,28 @@
 
   function finishInteraction(cancel = false, event) {
     const interaction = activeInteraction;
-    if (!interaction || interaction.ending || (event && interaction.pointerId !== event.pointerId)) return;
+    if (!interaction || (event && interaction.pointerId !== event.pointerId)) return Promise.resolve();
+    if (interaction.ending) return interaction.completion || interaction.chain || Promise.resolve();
     if (!cancel && event) moveInteraction(event);
     interaction.ending = true;
     interaction.target.classList.remove('is-active');
     app.classList.remove('is-interacting');
     foldedNote.classList.remove('is-moving');
     if (interaction.target.hasPointerCapture(interaction.pointerId)) interaction.target.releasePointerCapture(interaction.pointerId);
-    interaction.chain.then(async () => {
+    interaction.completion = interaction.chain.then(async () => {
       if (!interaction.id) return;
       const result = await bridge.endInteraction({ id: interaction.id, cancel: cancel || interaction.failed });
       if (result && typeof result.folded === 'boolean') applyState(result);
     }).catch(() => showToast('창 변경을 완료하지 못했어요. 다시 시도해 주세요.')).finally(() => {
       if (activeInteraction === interaction) activeInteraction = null;
     });
+    return interaction.completion;
   }
 
   async function keyboardInteraction(kind, edge, dx, dy) {
     if (!ready || activeInteraction || activeGesture || actionBusy) return;
-    const interaction = { ending: true };
+    let resolveCompletion;
+    const interaction = { ending: true, completion: new Promise(resolve => { resolveCompletion = resolve; }) };
     activeInteraction = interaction;
     let id;
     try {
@@ -438,9 +448,12 @@
       const result = await bridge.endInteraction({ id });
       if (result && typeof result.folded === 'boolean') applyState(result);
     } catch {
-      if (id) bridge.endInteraction({ id, cancel: true }).catch(() => {});
+      if (id) await bridge.endInteraction({ id, cancel: true }).catch(() => {});
       showToast('창의 크기나 위치를 변경하지 못했어요. 다시 시도해 주세요.');
-    } finally { if (activeInteraction === interaction) activeInteraction = null; }
+    } finally {
+      if (activeInteraction === interaction) activeInteraction = null;
+      resolveCompletion();
+    }
   }
 
   textarea.addEventListener('input', markEdited);
