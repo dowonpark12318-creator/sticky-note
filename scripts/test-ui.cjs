@@ -31,6 +31,17 @@ async function main() {
     await byId('tutorial-skip').waitFor({state: 'visible'});
     await byId('tutorial-skip').click();
     await byId('note-editor').waitFor({state: 'visible'});
+    assert.deepEqual(await page.locator('.window-controls > button').evaluateAll(buttons => buttons.map(button => button.id)), ['help-button', 'add-note-button', 'hide-button']);
+    assert.equal(await byId('add-note-button').count(), 1);
+    const plusPlacement = await byId('add-note-button').evaluate(button => {
+      const bounds = button.getBoundingClientRect();
+      const help = document.querySelector('#help-button').getBoundingClientRect();
+      const hide = document.querySelector('#hide-button').getBoundingClientRect();
+      const top = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      return {between: help.right <= bounds.left && bounds.right <= hide.left, uncovered: button === top || button.contains(top), enabled: !button.disabled};
+    });
+    assert.deepEqual(plusPlacement, {between: true, uncovered: true, enabled: true});
+    pass('one visible and enabled plus button sits between help and hide controls');
     const text = '오늘의 작은 메모 🌿\n한글과 English, 줄바꿈을 기억해요.\n<script>window.injected = true</script>';
     await byId('note-editor').fill(text);
     await page.waitForFunction(value => Object.values(localStorage).some(raw => raw.includes(value)), '오늘의 작은 메모');
@@ -71,15 +82,16 @@ async function main() {
       if (cancel) await page.keyboard.press('Escape');
       await page.mouse.up();
     }
-    await dragCorner('top-left', .2);
-    assert.equal(await byId('note-editor').isVisible(), true);
     await dragCorner('top-left', .95, true);
     assert.equal(await byId('note-editor').isVisible(), true);
-    pass('short drags and Escape cancel a fold');
+    pass('Escape cancels a fold even beyond the completion threshold');
 
     for (const corner of corners) {
-      await dragCorner(corner);
+      await dragCorner(corner, .32);
+      assert.equal(await byId('note-editor').isVisible(), true, `${corner}: less than one third must stay unfolded`);
+      await dragCorner(corner, .36);
       await byId('folded-note').waitFor({state: 'visible'});
+      assert.equal(await page.locator('#app').getAttribute('data-corner'), opposite[corner]);
       const box = await byId('unfold-handle').boundingBox();
       const destination = opposite[corner];
       const grab = {x: box.x + box.width / 2, y: box.y + box.height / 2};
@@ -89,7 +101,7 @@ async function main() {
       await page.mouse.up();
       await byId('note-editor').waitFor({state: 'visible'});
       assert.equal(await byId('note-editor').inputValue(), text);
-      pass(`${corner} folds diagonally and reverses with an inward drag`);
+      pass(`${corner} cancels below one third, folds just above one third and reverses with an inward drag`);
     }
 
     await dragCorner('bottom-right');
@@ -183,14 +195,32 @@ async function main() {
     closeTo(box.x, moved.x, 'moved folded x survives reload');
     closeTo(box.y, moved.y, 'moved folded y survives reload');
     await byId('folded-note').dblclick({position: {x: body.width * .87, y: body.height * .87}});
+    await page.waitForFunction(({x, y}) => {
+      const box = document.querySelector('#app').getBoundingClientRect();
+      return document.querySelector('#app').classList.contains('is-folded') && Math.abs(box.x - x) <= 1 && Math.abs(box.y - y) <= 1;
+    }, snapped);
+    assert.equal(await byId('folded-note').isVisible(), true);
+    assert.equal(await byId('note-editor').isVisible(), false);
+    box = await appBox();
+    closeTo(box.x, snapped.x, 'double-click restores the first folded x');
+    closeTo(box.y, snapped.y, 'double-click restores the first folded y');
+    assert.equal(await byId('note-editor').inputValue(), sample);
+    assert.equal(await byId('color-butter').getAttribute('aria-pressed'), 'true');
+    await page.reload();
+    await byId('folded-note').waitFor({state: 'visible'});
+    box = await appBox();
+    closeTo(box.x, snapped.x, 'returned anchor x persists after reload');
+    closeTo(box.y, snapped.y, 'returned anchor y persists after reload');
+    await byId('folded-note').focus();
+    await page.keyboard.press('Enter');
     await byId('note-editor').waitFor({state: 'visible'});
     box = await appBox();
     closeTo(box.width, expandedSize.width, 'unfold preserves resized width');
     closeTo(box.height, expandedSize.height, 'unfold preserves resized height');
-    closeTo(box.x + box.width, moved.x + moved.width, 'unfold anchors moved right edge');
-    closeTo(box.y + box.height, moved.y + moved.height, 'unfold anchors moved bottom edge');
+    closeTo(box.x + box.width, snapped.x + snapped.width, 'unfold anchors restored right edge');
+    closeTo(box.y + box.height, snapped.y + snapped.height, 'unfold anchors restored bottom edge');
     assert.deepEqual(errors, [], 'new interactions do not throw renderer errors');
-    pass('fold snaps once, body moves freely and persists, then unfolds at the moved location');
+    pass('moved folded note survives reload, double-click returns to its first anchor without unfolding or changing content, and Enter unfolds');
     console.log(`UI checks: ${passed} passed`);
   } finally {
     await browser.close();

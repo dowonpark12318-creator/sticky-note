@@ -12,8 +12,8 @@
   const STEPS = [
     {
       label: '나만의 자리', title: '메모를 원하는 곳으로', art: 'move',
-      body: '펼쳐진 메모는 위쪽 제목 표시줄의 빈 곳을 잡고 끌어 옮겨요.',
-      detail: '‘항상 위’를 켜면 다른 창 위에 고정돼요. 끄면 일반 창처럼 Alt + Tab으로 다시 찾을 수 있어요.',
+      body: '제목 표시줄을 끌어 옮기고, +로 새 메모를 만들어요. 겹친 메모는 마지막으로 클릭한 것이 위로 올라와요.',
+      detail: '‘항상 위’ 설정은 모든 메모에 함께 적용돼요. 끄면 일반 창처럼 Alt + Tab으로 다시 찾을 수 있어요.',
     },
     {
       label: '딱 맞는 크기', title: '변을 당겨 크기 조절', art: 'resize',
@@ -22,13 +22,13 @@
     },
     {
       label: '작게 접어 두기', title: '대각선으로 접고 펴기', art: 'fold',
-      body: '메모의 모서리를 대각선 반대편 모서리까지 끌면 접히면서 그쪽 화면 구석에 붙어요.',
-      detail: '접힌 메모의 대각선 손잡이를 화면 안쪽으로 끌면 펼쳐져요. 두 번 클릭하거나 Enter를 눌러도 돼요.',
+      body: '메모의 모서리를 대각선 거리의 1/3만 끌면 접히면서 그쪽 화면 구석에 붙어요.',
+      detail: '접힌 메모의 대각선 손잡이를 화면 안쪽으로 끌거나 Enter를 누르면 펼쳐져요.',
     },
     {
       label: '접어도 자유롭게', title: '접힌 메모도 옮겨요', art: 'foldedMove',
       body: '처음 접을 때는 화면 구석에 붙어요. 그다음에는 접힌 메모의 몸체를 잡고 원하는 곳으로 끌어 보세요.',
-      detail: '몸체를 잡으면 이동, 대각선 손잡이를 잡으면 펼치기예요. 이동한 자리와 메모 내용은 자동 저장돼요.',
+      detail: '옮긴 뒤 두 번 클릭하면 처음 접혔던 위치로 돌아가요. 이동한 자리와 메모 내용은 자동 저장돼요.',
     },
     {
       label: '생각을 다른 언어로', title: '선택한 글을 AI로 번역', art: 'translate',
@@ -90,7 +90,8 @@
     let currentState = initialState;
     let stepIndex = 0;
     let opened = false;
-    let pendingFirstRun = initialState.settings?.tutorialCompleted !== true;
+    let pendingFirstRun = initialState.settings?.tutorialCompleted !== true && initialState.offerTutorial !== false;
+    let automaticTour = false;
     let finishing = false;
     const inertStates = new Map();
 
@@ -141,12 +142,13 @@
       if (visible && !wasVisible) title.focus({ preventScroll: true });
     }
 
-    function open() {
+    function open({ automatic = false } = {}) {
       if (finishing) return;
       if (helpPanel) helpPanel.hidden = true;
       helpButton?.setAttribute('aria-expanded', 'false');
       stepIndex = 0;
       opened = true;
+      automaticTour = automatic;
       pendingFirstRun = false;
       render(false);
       syncVisibility();
@@ -154,6 +156,7 @@
 
     function close({ restoreFocus = true } = {}) {
       opened = false;
+      automaticTour = false;
       shell.hidden = true;
       setBackgroundInert(false);
       app.classList.remove('has-corner-tutorial');
@@ -220,12 +223,13 @@
 
     if (typeof bridge.onState === 'function') bridge.onState((next) => {
       currentState = next;
+      if (automaticTour && next.settings?.tutorialCompleted === true) close({ restoreFocus: false });
       if (pendingFirstRun && next.settings?.tutorialCompleted === true) pendingFirstRun = false;
-      if (pendingFirstRun && !folded()) open();
+      if (pendingFirstRun && !folded()) open({ automatic: true });
       else syncVisibility();
     });
     const observer = new MutationObserver(() => {
-      if (pendingFirstRun && !folded()) open();
+      if (pendingFirstRun && !folded()) open({ automatic: true });
       else syncVisibility();
     });
     observer.observe(note, { attributes: true, attributeFilter: ['hidden'] });
@@ -233,7 +237,7 @@
 
     const api = { open, close };
     shell._cornerTutorial = api;
-    if (pendingFirstRun && !folded()) open();
+    if (pendingFirstRun && !folded()) open({ automatic: true });
     return api;
   }
 

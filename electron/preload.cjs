@@ -4,8 +4,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('cornerNote', Object.freeze({
   getState: () => ipcRenderer.invoke('corner-note:get-state'),
+  createNote: () => ipcRenderer.invoke('corner-note:create-note'),
+  activateNote: () => ipcRenderer.invoke('corner-note:activate-note'),
   saveNote: note => ipcRenderer.invoke('corner-note:save-note', { text: note?.text, color: note?.color }),
   fold: options => ipcRenderer.invoke('corner-note:fold', { corner: options?.corner }),
+  returnFoldedNote: () => ipcRenderer.invoke('corner-note:return-folded-note'),
   unfold: () => ipcRenderer.invoke('corner-note:unfold'),
   setAlwaysOnTop: enabled => ipcRenderer.invoke('corner-note:set-always-on-top', enabled),
   updatePreferences: preferences => ipcRenderer.invoke('corner-note:update-preferences', {

@@ -2,7 +2,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
+const {execFile} = require('node:child_process');
+const {promisify} = require('node:util');
 const {_electron: electron} = require('playwright');
+const execFileAsync = promisify(execFile);
 
 async function main() {
   const root = path.resolve(__dirname, '..');
@@ -11,6 +14,22 @@ async function main() {
   let application;
   let passed = 0;
   const pass = label => console.log(`ok ${++passed} - ${label}`);
+  const readSaved = async () => JSON.parse(await fs.readFile(statePath, 'utf8'));
+  async function eventually(check, label, timeout = 10000) {
+    const deadline = Date.now() + timeout;
+    let last;
+    do {
+      try { last = await check(); if (last) return last; }
+      catch (error) { if (!['ENOENT', 'SyntaxError'].includes(error.code || error.name)) throw error; }
+      await new Promise(resolve => setTimeout(resolve, 40));
+    } while (Date.now() < deadline);
+    assert.fail(`Timed out: ${label} (last result ${JSON.stringify(last)})`);
+  }
+  async function readyWindow(page) {
+    await page.waitForFunction(() => typeof window.cornerNote?.getState === 'function');
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    return page;
+  }
   async function launch() {
     application = await electron.launch({
       executablePath: require('electron'),
@@ -21,8 +40,7 @@ async function main() {
       timeout: 30000
     });
     const page = await application.firstWindow();
-    await page.waitForFunction(() => typeof window.cornerNote?.getState === 'function');
-    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    await readyWindow(page);
     const initialState = await page.evaluate(() => window.cornerNote.getState());
     if (!initialState.folded && !initialState.settings?.tutorialCompleted) {
       await page.getByTestId('tutorial-skip').waitFor({state: 'visible'});
@@ -54,6 +72,51 @@ async function main() {
     const state = await window.cornerNote.endInteraction({id, cancel});
     return {id, bounds, state};
   }, {options, delta, cancel});
+  const stateFor = page => page.evaluate(() => window.cornerNote.getState());
+  async function nativeFor(page, action, argument) {
+    const window = await application.browserWindow(page);
+    return window.evaluate((window, {action, argument}) => {
+      if (action === 'setBounds') { window.setBounds(argument); return window.getBounds(); }
+      if (action === 'blur') { window.emit('blur'); return; }
+      return {bounds: window.getBounds(), focused: window.isFocused(), visible: window.isVisible(), topmost: window.isAlwaysOnTop(), webContentsId: window.webContents.id};
+    }, {action, argument});
+  }
+  async function windowsNativeState() {
+    if (process.platform !== 'win32') return null;
+    const notes = await application.evaluate(async ({BrowserWindow}) => Promise.all(BrowserWindow.getAllWindows().map(async window => {
+      const note = await window.webContents.executeJavaScript('window.cornerNote.getState()');
+      const bytes = window.getNativeWindowHandle();
+      return {noteId: note.noteId, handle: (bytes.length === 8 ? bytes.readBigUInt64LE() : BigInt(bytes.readUInt32LE())).toString()};
+    })));
+    assert.ok(notes.every(note => /^\d+$/.test(note.handle)));
+    // Read the real Windows desktop stacking list and extended window styles.
+    // This observes User32, rather than checking calls to Electron.moveTop().
+    const script = `
+      Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CornerNoteNativeTest { [DllImport("user32.dll")] public static extern IntPtr GetTopWindow(IntPtr parent); [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr window, uint command); [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] public static extern IntPtr GetWindowLongPtr(IntPtr window, int index); }';
+      $ids = @(${notes.map(note => `'${note.handle}'`).join(',')});
+      $order = New-Object 'System.Collections.Generic.List[string]';
+      $styles = @{};
+      $current = [CornerNoteNativeTest]::GetTopWindow([IntPtr]::Zero);
+      while ($current -ne [IntPtr]::Zero) {
+        $id = $current.ToInt64().ToString();
+        if ($ids -contains $id) { $order.Add($id); }
+        $current = [CornerNoteNativeTest]::GetWindow($current, 2);
+      }
+      foreach ($id in $ids) {
+        $handle = [IntPtr]::new([Int64]::Parse($id));
+        $style = [CornerNoteNativeTest]::GetWindowLongPtr($handle, -20).ToInt64();
+        $styles[$id] = @{ toolWindow = (($style -band 128) -ne 0); owner = [CornerNoteNativeTest]::GetWindow($handle, 4).ToInt64().ToString() };
+      }
+      ConvertTo-Json -Depth 4 -Compress -InputObject @{ order = @($order.ToArray()); styles = $styles };
+    `;
+    const {stdout} = await execFileAsync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {timeout: 15000, windowsHide: true});
+    const observed = JSON.parse(stdout.trim());
+    const byHandle = new Map(notes.map(note => [note.handle, note.noteId]));
+    return {
+      order: observed.order.map(handle => byHandle.get(handle)),
+      styles: Object.fromEntries(notes.map(note => [note.noteId, observed.styles[note.handle]])),
+    };
+  }
   try {
     let page = await launch();
     const preferences = await application.evaluate(({BrowserWindow}) => {
@@ -64,6 +127,12 @@ async function main() {
     assert.deepEqual(preferences, {topmost: true, resizable: false, sandbox: true, isolation: true, node: false});
     assert.equal(await page.evaluate(() => typeof require), 'undefined');
     pass('actual Electron window is topmost with isolated renderer, sandbox and custom resize borders');
+
+    assert.deepEqual(await page.locator('.window-controls > button').evaluateAll(buttons => buttons.map(button => button.id)), ['help-button', 'add-note-button', 'hide-button']);
+    assert.equal(await page.getByTestId('add-note-button').count(), 1);
+    assert.equal(await page.getByTestId('add-note-button').isVisible(), true);
+    assert.equal(await page.getByTestId('add-note-button').isEnabled(), true);
+    pass('exactly one plus control is visible between the help and hide buttons');
 
     await assert.rejects(page.evaluate(() => window.cornerNote.fold({corner: 'invalid'})));
     await assert.rejects(page.evaluate(() => window.cornerNote.setAlwaysOnTop('false')));
@@ -78,8 +147,10 @@ async function main() {
     // Quit immediately, without waiting for the disk debounce.
     await quit(page);
     let saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
-    assert.equal(saved.text, first);
-    assert.equal(saved.color, 'mint');
+    assert.equal(saved.version, 2);
+    assert.equal(saved.notes.length, 1);
+    assert.equal(saved.notes[0].text, first);
+    assert.equal(saved.notes[0].color, 'mint');
     page = await launch();
     assert.equal(await page.getByTestId('note-editor').inputValue(), first);
     assert.equal(await page.getByTestId('color-mint').getAttribute('aria-pressed'), 'true');
@@ -93,7 +164,7 @@ async function main() {
     assert.equal(preferenceUpdate.color, 'mint');
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
     assert.deepEqual(saved.settings, preferenceUpdate.settings);
-    assert.equal(saved.text, first);
+    assert.equal(saved.notes[0].text, first);
     await assert.rejects(page.evaluate(() => window.cornerNote.updatePreferences({translationLanguages: ['not a language']})));
     await assert.rejects(page.evaluate(() => window.cornerNote.updatePreferences({tutorialCompleted: 'yes'})));
     await page.evaluate(() => window.cornerNote.updatePreferences({tutorialCompleted: true}));
@@ -248,6 +319,33 @@ async function main() {
     assert.equal((await page.evaluate(() => window.cornerNote.getState())).folded, false);
     pass('an actual pointer drag on a side strip resizes the native window without folding');
 
+    const oppositeCorners = {'top-left': 'bottom-right', 'top-right': 'bottom-left', 'bottom-left': 'top-right', 'bottom-right': 'top-left'};
+    async function dragFoldCorner(corner, fraction) {
+      const from = await page.getByTestId(`fold-handle-${corner}`).boundingBox();
+      const to = await page.getByTestId(`fold-handle-${oppositeCorners[corner]}`).boundingBox();
+      assert.ok(from && to);
+      const start = {x: from.x + from.width / 2, y: from.y + from.height / 2};
+      const end = {x: to.x + to.width / 2, y: to.y + to.height / 2};
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(start.x + (end.x - start.x) * fraction, start.y + (end.y - start.y) * fraction, {steps: 8});
+      await page.mouse.up();
+    }
+    for (const corner of Object.keys(oppositeCorners)) {
+      await centerWindow();
+      await dragFoldCorner(corner, .32);
+      assert.equal((await stateFor(page)).folded, false, `${corner}: below one third stays unfolded`);
+      await dragFoldCorner(corner, .36);
+      await page.getByTestId('folded-note').waitFor({state: 'visible'});
+      assert.equal((await stateFor(page)).corner, oppositeCorners[corner]);
+      assert.equal((await nativeBounds()).width, 88);
+      await page.getByTestId('folded-note').focus();
+      await page.keyboard.press('Enter');
+      await page.getByTestId('note-editor').waitFor({state: 'visible'});
+      assert.equal(await page.getByTestId('note-editor').inputValue(), first);
+    }
+    pass('all four native corner gestures cancel below one third and fold just above one third');
+
     const original = await application.evaluate(({BrowserWindow, screen}) => ({bounds: BrowserWindow.getAllWindows()[0].getBounds(), area: screen.getPrimaryDisplay().workArea}));
     await page.evaluate(() => window.cornerNote.fold({corner: 'bottom-right'}));
     await page.getByTestId('folded-note').waitFor({state: 'visible'});
@@ -268,8 +366,9 @@ async function main() {
     await assert.rejects(page.evaluate(() => window.cornerNote.beginInteraction({kind: 'resize', edge: 'left', screenX: 0, screenY: 0})));
     await quit(page);
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
-    assert.deepEqual(saved.window.foldedBounds, moved.bounds);
-    assert.equal(saved.window.alwaysOnTop, false);
+    assert.deepEqual(saved.notes[0].window.foldedBounds, moved.bounds);
+    assert.deepEqual(saved.notes[0].window.foldedAnchorBounds, folded);
+    assert.equal(saved.alwaysOnTop, false);
     page = await launch();
     const restored = await page.evaluate(() => window.cornerNote.getState());
     assert.equal(restored.folded, true);
@@ -280,6 +379,31 @@ async function main() {
     await blur();
     assert.equal(await nativeTopmost(), false);
     pass('folded movement and cancellation preserve shape, text, color and exact moved position through relaunch');
+
+    const returnedBody = await page.getByTestId('folded-note').boundingBox();
+    await page.getByTestId('folded-note').dblclick({position: {x: returnedBody.width * .87, y: returnedBody.height * .87}});
+    await page.waitForFunction(async expected => {
+      const state = await window.cornerNote.getState();
+      return state.folded && state.bounds.x === expected.x && state.bounds.y === expected.y;
+    }, folded);
+    assert.deepEqual(await nativeBounds(), folded);
+    assert.equal((await stateFor(page)).text, first);
+    assert.equal((await stateFor(page)).color, 'mint');
+    assert.equal(await page.getByTestId('note-editor').isVisible(), false);
+    await quit(page);
+    saved = await readSaved();
+    assert.deepEqual(saved.notes[0].window.foldedBounds, folded);
+    assert.deepEqual(saved.notes[0].window.foldedAnchorBounds, folded);
+    page = await launch();
+    assert.equal((await stateFor(page)).folded, true);
+    assert.deepEqual(await nativeBounds(), folded);
+    assert.equal((await stateFor(page)).text, first);
+    assert.equal((await stateFor(page)).color, 'mint');
+    pass('double-click returns a moved folded note to its original persisted anchor without unfolding or changing its contents');
+
+    // Moving after returning remains free, and unfolding still follows the
+    // current physical corner rather than changing the remembered fold anchor.
+    await interact(page, {kind: 'move-folded'}, {x: moved.bounds.x - folded.x, y: moved.bounds.y - folded.y});
 
     await page.evaluate(() => window.cornerNote.unfold());
     await page.getByTestId('note-editor').waitFor({state: 'visible'});
@@ -313,8 +437,15 @@ async function main() {
       return state.folded && (state.bounds.x !== before.x || state.bounds.y !== before.y);
     }, beforeBodyDrag);
     assert.equal((await page.evaluate(() => window.cornerNote.getState())).corner, 'top-left');
-    // Resnap before unfolding so the physical screen has room for the full drag.
-    await page.evaluate(() => window.cornerNote.fold({corner: 'top-left'}));
+    // The body's double-click returns to the original top-left folded anchor;
+    // the separate diagonal grip continues to unfold it.
+    const movedBody = await page.getByTestId('folded-note').boundingBox();
+    await page.getByTestId('folded-note').dblclick({position: {x: movedBody.width * .2, y: movedBody.height * .2}});
+    await page.waitForFunction(async expected => {
+      const state = await window.cornerNote.getState();
+      return state.folded && state.bounds.x === expected.x && state.bounds.y === expected.y;
+    }, beforeBodyDrag);
+    assert.deepEqual(await nativeBounds(), beforeBodyDrag);
     const grip = await page.getByTestId('unfold-handle').boundingBox();
     assert.ok(grip);
     await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
@@ -332,8 +463,193 @@ async function main() {
     await quit(page);
     pass('blur keeps enabled topmost state; hide removes the note without losing its process');
 
+    // Exercise multiple real native windows in the same Windows CI test gate.
+    page = await launch();
+    const noteOne = page;
+    const idOne = (await stateFor(noteOne)).noteId;
+    assert.equal(typeof idOne, 'string');
+    async function addNote(source) {
+      const appeared = application.waitForEvent('window');
+      await source.getByTestId('add-note-button').click();
+      const created = await readyWindow(await appeared);
+      assert.equal(await created.getByTestId('note-editor').inputValue(), '');
+      return created;
+    }
+    const noteTwo = await addNote(noteOne);
+    const idTwo = (await stateFor(noteTwo)).noteId;
+    await noteTwo.getByTestId('note-editor').fill('두 번째 메모 · 독립적인 내용');
+    await noteTwo.getByTestId('color-rose').click();
+    const noteThree = await addNote(noteTwo);
+    const idThree = (await stateFor(noteThree)).noteId;
+    assert.equal(new Set([idOne, idTwo, idThree]).size, 3);
+    for (const note of [noteOne, noteTwo, noteThree]) {
+      await note.waitForFunction(async () => (await window.cornerNote.getState()).noteCount === 3);
+    }
+    assert.equal(await noteOne.getByTestId('note-editor').inputValue(), first);
+    assert.equal((await stateFor(noteTwo)).text, '두 번째 메모 · 독립적인 내용');
+    assert.equal((await stateFor(noteTwo)).color, 'rose');
+    assert.equal((await stateFor(noteThree)).color, 'butter');
+    pass('clicking + creates three distinct native notes and retains the source note draft and color');
+
+    await noteThree.getByTestId('note-editor').fill('세 번째 메모 · another independent note');
+    await noteThree.getByTestId('color-sky').click();
+    const area = await application.evaluate(({screen}) => screen.getPrimaryDisplay().workArea);
+    const desiredBounds = (offset, size) => ({
+      x: area.x + Math.min(offset, Math.max(0, area.width - size)),
+      y: area.y + Math.min(offset, Math.max(0, area.height - size)),
+      width: Math.min(size, area.width), height: Math.min(size, area.height),
+    });
+    const oneBounds = await nativeFor(noteOne, 'setBounds', desiredBounds(40, 340));
+    const twoBounds = await nativeFor(noteTwo, 'setBounds', desiredBounds(70, 360));
+    const threeBounds = await nativeFor(noteThree, 'setBounds', desiredBounds(100, 380));
+    await noteTwo.evaluate(() => window.cornerNote.fold({corner: 'top-right'}));
+    const secondFolded = await nativeFor(noteTwo);
+    const secondMoved = await interact(noteTwo, {kind: 'move-folded'}, {x: -130, y: 140});
+    assert.equal(secondMoved.state.folded, true);
+    assert.equal(secondMoved.state.corner, 'top-right');
+    assert.notDeepEqual(secondMoved.bounds, secondFolded.bounds);
+    assert.deepEqual((await nativeFor(noteOne)).bounds, oneBounds);
+    assert.deepEqual((await nativeFor(noteThree)).bounds, threeBounds);
+    assert.equal((await stateFor(noteOne)).folded, false);
+    assert.equal((await stateFor(noteThree)).folded, false);
+    assert.equal((await stateFor(noteOne)).color, 'mint');
+    assert.equal((await stateFor(noteTwo)).color, 'rose');
+    assert.equal((await stateFor(noteThree)).color, 'sky');
+    const crossWindowInteraction = await noteOne.evaluate(() => window.cornerNote.beginInteraction({kind: 'resize', edge: 'right', screenX: 0, screenY: 0}));
+    await assert.rejects(noteThree.evaluate(id => window.cornerNote.updateInteraction({id, screenX: 70, screenY: 0}), crossWindowInteraction));
+    await assert.rejects(noteThree.evaluate(id => window.cornerNote.endInteraction({id}), crossWindowInteraction));
+    await noteOne.evaluate(id => window.cornerNote.endInteraction({id, cancel: true}), crossWindowInteraction);
+    assert.deepEqual((await nativeFor(noteThree)).bounds, threeBounds);
+    pass('each note keeps independent text, color, size, folded position and interaction tokens');
+
+    const overlap = desiredBounds(80, 350);
+    await nativeFor(noteOne, 'setBounds', overlap);
+    await nativeFor(noteThree, 'setBounds', overlap);
+    assert.deepEqual((await nativeFor(noteOne)).bounds, overlap);
+    assert.deepEqual((await nativeFor(noteThree)).bounds, overlap);
+    async function assertActive(note, id) {
+      await note.waitForFunction(async expected => (await window.cornerNote.getState()).activeNoteId === expected, id);
+      // The Linux CI smoke display intentionally has no window manager, so it
+      // cannot grant native focus. Windows is the supported desktop target and
+      // must additionally pass real native focus and User32 stacking checks.
+      if (process.platform === 'win32') await eventually(async () => (await nativeFor(note)).focused, `native focus on ${id}`);
+      assert.equal((await nativeFor(note)).visible, true);
+      await eventually(async () => {
+        const data = await readSaved();
+        return data.activeNoteId === id && data.noteOrder.at(-1) === id;
+      }, `persisted active note order for ${id}`);
+      const native = await windowsNativeState();
+      if (native) assert.equal(native.order[0], id, 'last activated note is actually highest in Windows User32 stacking order');
+    }
+    await noteOne.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await noteOne.getByTestId('note-editor').fill(`${first}\n겹친 상태에서 첫 메모 편집`);
+    await assertActive(noteOne, idOne);
+    await noteThree.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await assertActive(noteThree, idThree);
+    // A delayed sibling blur used to raise older always-on-top windows again.
+    // Re-delivering that native event must leave focus AND real Windows order.
+    await nativeFor(noteOne, 'blur');
+    await nativeFor(noteTwo, 'blur');
+    await assertActive(noteThree, idThree);
+    assert.deepEqual((await nativeFor(noteOne)).bounds, overlap);
+    assert.deepEqual((await nativeFor(noteThree)).bounds, overlap);
+    pass(`overlapping notes are allowed; clicking or editing activates the latest note and sibling blur preserves it${process.platform === 'win32' ? ' with actual Windows focus and stacking order' : ' (Linux smoke display; native focus/stacking are checked on Windows)'}`);
+
+    await noteOne.getByTestId('always-on-top-button').click();
+    for (const note of [noteOne, noteTwo, noteThree]) {
+      await note.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === false);
+      assert.equal((await nativeFor(note)).topmost, false);
+    }
+    let nativeWindows = await windowsNativeState();
+    if (nativeWindows) {
+      for (const id of [idOne, idTwo, idThree]) {
+        assert.equal(nativeWindows.styles[id].toolWindow, false, 'pin-off notes must remain normal Alt-Tab windows');
+        assert.equal(nativeWindows.styles[id].owner, '0', 'independent notes must not be owned tool windows');
+      }
+    }
+    await noteThree.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await assertActive(noteThree, idThree);
+    await noteThree.getByTestId('always-on-top-button').click();
+    for (const note of [noteOne, noteTwo, noteThree]) {
+      await note.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === true);
+      assert.equal((await nativeFor(note)).topmost, true);
+    }
+    nativeWindows = await windowsNativeState();
+    if (nativeWindows) {
+      assert.equal(nativeWindows.order[0], idThree);
+      for (const id of [idOne, idTwo, idThree]) assert.equal(nativeWindows.styles[id].toolWindow, true, 'pinned notes use the always-visible tool-window band');
+    }
+    pass('the pin setting updates every native note together and pin-off notes retain normal Windows Alt-Tab styles');
+
+    const concurrentOne = `${first}\n다른 창 설정 중에도 첫 번째 초안 보존`;
+    const concurrentThree = '세 번째의 새 초안 · shared settings must preserve this';
+    await Promise.all([
+      noteOne.getByTestId('note-editor').fill(concurrentOne),
+      noteTwo.evaluate(() => window.cornerNote.updatePreferences({translationLanguages: ['fr', 'ja'], tutorialCompleted: true})),
+      noteThree.getByTestId('note-editor').fill(concurrentThree),
+    ]);
+    for (const [note, expected] of [[noteOne, concurrentOne], [noteTwo, '두 번째 메모 · 독립적인 내용'], [noteThree, concurrentThree]]) {
+      await note.waitForFunction(async expected => (await window.cornerNote.getState()).text === expected, expected);
+      assert.equal((await stateFor(note)).text, expected);
+      assert.deepEqual((await stateFor(note)).settings, {translationLanguages: ['fr', 'ja'], tutorialCompleted: true});
+    }
+    assert.equal(await noteOne.getByTestId('note-editor').inputValue(), concurrentOne);
+    assert.equal(await noteThree.getByTestId('note-editor').inputValue(), concurrentThree);
+    await noteOne.evaluate(apiKey => window.cornerNote.setTranslationKey({apiKey, remember: false}), fakeKey);
+    assert.equal((await noteTwo.evaluate(() => window.cornerNote.getTranslationSettings())).configured, true);
+    assert.equal((await noteThree.evaluate(() => window.cornerNote.getTranslationSettings())).configured, true);
+    await noteThree.evaluate(() => window.cornerNote.clearTranslationKey());
+    assert.equal((await noteOne.evaluate(() => window.cornerNote.getTranslationSettings())).configured, false);
+    assert.equal((await noteTwo.evaluate(() => window.cornerNote.getTranslationSettings())).configured, false);
+    pass('shared language/tutorial preferences and key connection preserve concurrent drafts in every note without a real AI request');
+
+    await noteTwo.evaluate(() => window.cornerNote.hide());
+    assert.equal((await nativeFor(noteTwo)).visible, false);
+    assert.equal((await nativeFor(noteOne)).visible, true);
+    assert.equal((await nativeFor(noteThree)).visible, true);
+    await application.evaluate(({app}) => app.emit('activate'));
+    await eventually(async () => (await nativeFor(noteTwo)).visible, 'recover hidden note through the app activation action');
+    assert.equal((await stateFor(noteTwo)).folded, true);
+    assert.equal((await stateFor(noteTwo)).text, '두 번째 메모 · 독립적인 내용');
+    assert.deepEqual((await nativeFor(noteTwo)).bounds, secondMoved.bounds);
+    pass('hiding one note leaves its siblings visible and app activation recovers it with its folded position intact');
+
+    await noteThree.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await assertActive(noteThree, idThree);
+    const beforeRestart = new Map(await Promise.all([noteOne, noteTwo, noteThree].map(async note => {
+      const state = await stateFor(note);
+      return [state.noteId, state];
+    })));
+    await quit(noteThree);
+    saved = await readSaved();
+    assert.equal(saved.version, 2);
+    assert.equal(saved.notes.length, 3);
+    assert.deepEqual(new Set(saved.notes.map(note => note.id)), new Set([idOne, idTwo, idThree]));
+    assert.equal(saved.activeNoteId, idThree);
+    assert.equal(saved.noteOrder.at(-1), idThree);
+    assert.deepEqual(saved.notes.find(note => note.id === idTwo).window.expandedBounds, twoBounds);
+    assert.deepEqual(saved.settings, {translationLanguages: ['fr', 'ja'], tutorialCompleted: true});
+    assert.equal((await fs.readFile(statePath, 'utf8')).includes(fakeKey), false);
+    page = await launch();
+    await eventually(() => application.windows().length === 3, 'restore three native windows');
+    const reopened = await Promise.all(application.windows().map(readyWindow));
+    for (const note of reopened) {
+      const restoredNote = await stateFor(note);
+      const expected = beforeRestart.get(restoredNote.noteId);
+      assert.ok(expected, 'restore the same note IDs');
+      for (const key of ['text', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(restoredNote[key], expected[key], `${restoredNote.noteId}: restore ${key}`);
+      assert.equal(restoredNote.noteCount, 3);
+      assert.equal((await nativeFor(note)).visible, true);
+      assert.equal((await nativeFor(note)).topmost, true);
+      if (!restoredNote.folded) assert.equal(await note.getByTestId('note-editor').inputValue(), expected.text);
+    }
+    const restoredThree = reopened.find(note => note === page) || reopened[0];
+    await quit(restoredThree);
+    pass('quit and restart restore all three independent notes, shared settings, exact overlapping bounds and the last active layer');
+
     const legacy = {
       version: 1, text: '기존 버전의 메모와 설정', color: 'sky', savedAt: '2026-10-19T12:00:00.000Z',
+      settings: {translationLanguages: ['de', 'ja'], tutorialCompleted: true},
       window: {folded: true, corner: 'top-left', expandedBounds: original.bounds, displayId: null},
     };
     await fs.writeFile(statePath, JSON.stringify(legacy));
@@ -345,6 +661,7 @@ async function main() {
     assert.equal(upgraded.alwaysOnTop, true);
     assert.equal(upgraded.folded, true);
     assert.equal(upgraded.corner, 'top-left');
+    assert.deepEqual(upgraded.settings, legacy.settings);
     assert.deepEqual(await nativeBounds(), {x: original.area.x + 12, y: original.area.y + 12, width: 88, height: 88});
     await page.evaluate(() => window.cornerNote.unfold());
     assert.equal(await page.getByTestId('note-editor').inputValue(), legacy.text);
@@ -353,9 +670,12 @@ async function main() {
     assert.equal((await nativeBounds()).height, original.bounds.height);
     await quit(page);
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
-    assert.equal(saved.text, legacy.text);
-    assert.equal(saved.color, legacy.color);
-    assert.equal(saved.window.alwaysOnTop, true);
+    assert.equal(saved.version, 2);
+    assert.equal(saved.notes.length, 1);
+    assert.equal(saved.notes[0].text, legacy.text);
+    assert.equal(saved.notes[0].color, legacy.color);
+    assert.equal(saved.alwaysOnTop, true);
+    assert.deepEqual(saved.settings, legacy.settings);
     pass('legacy version 1 saves keep note settings and gain default pin and folded positioning');
 
     await fs.writeFile(statePath, '{damaged json');
@@ -368,7 +688,7 @@ async function main() {
     await page.waitForFunction(async () => (await window.cornerNote.getState()).text === '복구한 새 메모');
     await quit(page);
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
-    assert.equal(saved.text, '복구한 새 메모');
+    assert.equal(saved.notes[0].text, '복구한 새 메모');
     pass('damaged save is preserved for recovery and the app can save again');
     console.log(`Desktop checks: ${passed} passed`);
   } finally {

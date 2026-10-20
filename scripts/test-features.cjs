@@ -29,7 +29,7 @@ function installMockBridge(options) {
   let configured = sessionStorage.getItem(statusKey) === 'true';
   let interaction;
   let nextInteraction = 0;
-  const calls = { translations: [], saves: [], preferences: [], cancellations: [], copies: [], keySaves: 0, keyClears: 0, lastRemember: null };
+  const calls = { translations: [], saves: [], preferences: [], cancellations: [], copies: [], settingsChecks: 0, keySaves: 0, keyClears: 0, lastRemember: null };
   const status = () => ({ configured, canRememberKey: true, provider: 'openai', model: 'gpt-4.1-mini' });
   function persist() { localStorage.setItem(storageKey, JSON.stringify(state)); }
   function emit() { for (const listener of listeners) listener(copy(state)); }
@@ -46,7 +46,7 @@ function installMockBridge(options) {
       calls.preferences.push(copy(value));
       return update({ settings: { ...state.settings, ...copy(value) } });
     },
-    async getTranslationSettings() { return status(); },
+    async getTranslationSettings() { calls.settingsChecks += 1; return status(); },
     async setTranslationKey(value) {
       // Retain status only. Even this intentionally fake key is never persisted,
       // printed, or copied into fixture call history.
@@ -246,6 +246,51 @@ async function main() {
     assert.equal(await byId('tutorial-dialog').isVisible(), false);
     pass('help menu reopens all five tutorial topics and Finish persists completion');
 
+    const siblingText = '두 번째 메모의 내용은 안내와 관계없이 유지돼요. 📝';
+    const siblingTour = await openFixture({ initialState: { text: siblingText, offerTutorial: false } });
+    const siblingPage = siblingTour.page;
+    const siblingId = id => siblingPage.getByTestId(id);
+    await siblingId('tutorial-dialog').waitFor({ state: 'hidden' });
+    assert.equal(await siblingId('note-editor').inputValue(), siblingText);
+    assert.equal(await siblingId('note-editor').evaluate(element => element.closest('[inert]') !== null), false);
+    await siblingPage.evaluate(() => window.__featureFixture.update({
+      settings: { translationLanguages: ['ja'], tutorialCompleted: false },
+    }));
+    assert.equal(await siblingId('tutorial-dialog').isVisible(), false, 'shared preferences do not start a second automatic tour');
+    await siblingId('help-button').click();
+    await siblingId('tutorial-reopen').click();
+    await siblingId('tutorial-dialog').waitFor({ state: 'visible' });
+    await siblingId('tutorial-next').click();
+    await siblingPage.evaluate(() => window.__featureFixture.update({
+      settings: { translationLanguages: ['ja'], tutorialCompleted: true },
+    }));
+    assert.equal(await siblingId('tutorial-dialog').isVisible(), true, 'another note completing the first-run tour does not close an explicit replay');
+    assert.equal(await siblingId('tutorial-step-title').textContent(), titles[1]);
+    assert.equal(await siblingId('note-editor').inputValue(), siblingText);
+    assert.equal(await siblingId('note-editor').evaluate(element => element.closest('[inert]') !== null), true);
+    assert.deepEqual(await siblingPage.evaluate(() => window.__featureFixture.calls.saves), []);
+    await siblingId('tutorial-skip').click();
+    await siblingId('tutorial-dialog').waitFor({ state: 'hidden' });
+    await siblingTour.context.close();
+    pass('a sibling note does not open another first-run tour but can replay it explicitly without another note closing it or changing its text');
+
+    const automaticText = '안내를 다른 메모에서 마쳐도 이 메모의 글은 그대로예요.';
+    const automaticTour = await openFixture({ initialState: { text: automaticText, offerTutorial: true } });
+    const automaticPage = automaticTour.page;
+    const automaticId = id => automaticPage.getByTestId(id);
+    await automaticId('tutorial-dialog').waitFor({ state: 'visible' });
+    assert.equal(await automaticId('note-editor').evaluate(element => element.closest('[inert]') !== null), true);
+    await automaticPage.evaluate(() => window.__featureFixture.update({
+      settings: { translationLanguages: [], tutorialCompleted: true },
+    }));
+    await automaticId('tutorial-dialog').waitFor({ state: 'hidden' });
+    assert.equal(await automaticId('note-editor').evaluate(element => element.closest('[inert]') !== null), false);
+    assert.equal(await automaticId('note-editor').inputValue(), automaticText);
+    assert.deepEqual(await automaticPage.evaluate(() => window.__featureFixture.calls.saves), []);
+    assert.deepEqual(await automaticPage.evaluate(() => window.__featureFixture.calls.preferences), [], 'an external completion does not submit another preference write');
+    await automaticTour.context.close();
+    pass('shared completion closes an automatic first-run tour, restores editor access and preserves the note without a duplicate save');
+
     assert.equal(await byId('translate-button').isVisible(), false);
     const source = '앞부분은 보존해요. Hello, friend! 끝부분도 그대로 둬요.';
     const selected = 'Hello, friend!';
@@ -431,6 +476,87 @@ async function main() {
       await localized.context.close();
     }
     pass('default targets preserve the computer language locale and script while avoiding a duplicate English target');
+
+    const sharedKey = await openFixture({ configured: false, initialState: { settings: { translationLanguages: [], tutorialCompleted: true } } });
+    const sharedPage = sharedKey.page;
+    const sharedId = id => sharedPage.getByTestId(id);
+    await selectText(sharedPage, source, selected);
+    await sharedId('translate-button').click();
+    await sharedPage.getByRole('button', { name: 'AI 연결 설정', exact: true }).click();
+    await sharedPage.waitForFunction(() => document.querySelector('.ct-connection-status').textContent.includes('연결된 API 키가 없'));
+    await closeTranslation(sharedPage);
+
+    // Simulate a different note changing the main process's shared key status.
+    // This existing renderer stays open; no reload or key re-entry can refresh it.
+    await sharedPage.evaluate(() => window.__featureFixture.setConfigured(true));
+    await selectText(sharedPage, source, selected);
+    await startTranslation(sharedPage);
+    await waitCalls(sharedPage, 1);
+    assert.equal(await sharedId('translation-settings').isVisible(), false);
+    assert.deepEqual(await sharedPage.evaluate(() => ({ keySaves: window.__featureFixture.calls.keySaves, text: window.__featureFixture.calls.translations[0].text })), { keySaves: 0, text: selected });
+    await sharedPage.evaluate(() => window.__featureFixture.resolve('다른 메모에서 등록한 키로 번역'));
+    await sharedId('translation-result').waitFor({ state: 'visible' });
+    await closeTranslation(sharedPage);
+
+    await sharedPage.evaluate(() => window.__featureFixture.setConfigured(false));
+    await selectText(sharedPage, source, selected);
+    await startTranslation(sharedPage);
+    await sharedId('translation-settings').waitFor({ state: 'visible' });
+    await sharedPage.waitForFunction(() => document.querySelector('.ct-connection-status').textContent.includes('연결된 API 키가 없'));
+    assert.equal(await sharedPage.evaluate(() => window.__featureFixture.calls.translations.length), 1, 'clearing the shared key in another note prevents another outbound translation');
+    assert.equal(await sharedId('translation-clear-key').isVisible(), false);
+    await closeTranslation(sharedPage);
+
+    for (const configured of [true, false]) {
+      await sharedPage.evaluate(value => window.__featureFixture.setConfigured(value), configured);
+      await selectText(sharedPage, source, selected);
+      await sharedId('translate-button').click();
+      await sharedPage.getByRole('button', { name: 'AI 연결 설정', exact: true }).click();
+      await sharedPage.waitForFunction(expected => {
+        const text = document.querySelector('.ct-connection-status').textContent;
+        return expected ? text.includes('API 키 등록됨') : text.includes('연결된 API 키가 없');
+      }, configured);
+      assert.equal(await sharedId('translation-clear-key').isVisible(), configured);
+      assert.equal(await sharedId('translation-api-key').inputValue(), '');
+      assert.equal(await sharedPage.evaluate(() => window.__featureFixture.calls.translations.length), 1, 'opening settings only reads the shared status');
+      await closeTranslation(sharedPage);
+    }
+    assert.equal(await sharedPage.evaluate(() => window.__featureFixture.calls.keySaves), 0, 'observing another note never asks this renderer to resubmit a key');
+    pass('an already-open note observes another note registering or clearing the shared API key in settings and before translation without key re-entry or an unauthorized request');
+
+    await sharedPage.evaluate(() => {
+      window.__featureFixture.setConfigured(true);
+      const readStatus = window.cornerNote.getTranslationSettings;
+      window.__deferredSettingsReads = [];
+      window.cornerNote.getTranslationSettings = () => new Promise(resolve => {
+        window.__deferredSettingsReads.push(async () => resolve(await readStatus()));
+      });
+    });
+    await selectText(sharedPage, source, selected);
+    await sharedId('translate-button').click();
+    await sharedId('language-en').evaluate(button => { button.click(); button.click(); });
+    await sharedPage.waitForFunction(() => window.__deferredSettingsReads.length === 2);
+    assert.equal(await sharedPage.evaluate(() => window.__featureFixture.calls.translations.length), 1);
+    await sharedPage.evaluate(async () => { await Promise.all(window.__deferredSettingsReads.splice(0).map(release => release())); });
+    await waitCalls(sharedPage, 2);
+    assert.equal(await sharedPage.evaluate(() => window.__featureFixture.pending()), 1, 'two selections awaiting fresh key status start only one translation');
+    await sharedPage.evaluate(() => window.__featureFixture.resolve('한 번만 번역'));
+    await sharedId('translation-result').waitFor({ state: 'visible' });
+    await closeTranslation(sharedPage);
+
+    await selectText(sharedPage, source, selected);
+    await startTranslation(sharedPage);
+    await sharedPage.waitForFunction(() => window.__deferredSettingsReads.length === 1);
+    await closeTranslation(sharedPage);
+    await sharedPage.evaluate(async () => {
+      await Promise.all(window.__deferredSettingsReads.splice(0).map(release => release()));
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+    assert.equal(await sharedPage.evaluate(() => window.__featureFixture.calls.translations.length), 2, 'closing while fresh status is pending cancels the unstarted translation');
+    assert.equal(await sharedId('translation-settings').isVisible(), false);
+    assert.equal(await sharedId('translation-result').isVisible(), false);
+    await sharedKey.context.close();
+    pass('asynchronous shared-key status refresh keeps selection jobs guarded against duplicate requests and closing before translation starts');
 
     assert.deepEqual(blockedNetwork, [], 'feature checks do not attempt an external network call');
     assert.deepEqual(errors, [], 'all feature interactions have no uncaught renderer errors');

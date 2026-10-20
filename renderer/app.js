@@ -3,6 +3,7 @@
 
   const COLORS = ['butter', 'rose', 'mint', 'sky'];
   const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+  const FOLD_THRESHOLD = 1 / 3;
   const OPPOSITE = { 'top-left': 'bottom-right', 'top-right': 'bottom-left', 'bottom-left': 'top-right', 'bottom-right': 'top-left' };
   const CORNER_LABELS = { 'top-left': '왼쪽 위', 'top-right': '오른쪽 위', 'bottom-left': '왼쪽 아래', 'bottom-right': '오른쪽 아래' };
   const STORAGE_KEY = 'corner-note-v1';
@@ -12,6 +13,7 @@
   const foldedNote = document.querySelector('#folded-note');
   const helpPanel = document.querySelector('#help-panel');
   const helpButton = document.querySelector('#help-button');
+  const addNoteButton = document.querySelector('#add-note-button');
   const pinButton = document.querySelector('#always-on-top-button');
   const pinLabel = document.querySelector('#pin-label');
   const unfoldHandle = document.querySelector('#unfold-handle');
@@ -35,6 +37,7 @@
   let activeInteraction = null;
   let actionBusy = false;
   let pinBusy = false;
+  let creatingNote = false;
 
   function normalizeState(value) {
     const source = value && typeof value === 'object' ? value : {};
@@ -52,6 +55,8 @@
       systemLanguage: typeof source.systemLanguage === 'string' ? source.systemLanguage : navigator.language || 'en',
       bounds: source.bounds && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(source.bounds[key])) ? { ...source.bounds } : null,
       savedAt: source.savedAt || null,
+      noteId: typeof source.noteId === 'string' ? source.noteId : '',
+      noteCount: Number.isInteger(source.noteCount) && source.noteCount > 0 ? source.noteCount : 1,
     };
   }
 
@@ -72,27 +77,39 @@
     }
     let expandedBounds = clamp(stored?.expandedBounds || { x: 0, y: 0, width: 392, height: 460 }, false);
     browserState.bounds = clamp(browserState.bounds || (browserState.folded ? foldedBounds(browserState.corner) : expandedBounds));
+    let foldedAnchorBounds = stored?.foldedAnchorBounds
+      && ['x', 'y', 'width', 'height'].every(key => Number.isFinite(stored.foldedAnchorBounds[key]))
+      ? clamp(stored.foldedAnchorBounds, true) : browserState.folded ? foldedBounds(browserState.corner) : null;
     function foldedBounds(corner) {
       return clamp({ x: corner.endsWith('right') ? innerWidth - 100 : 12, y: corner.startsWith('bottom') ? innerHeight - 100 : 12, width: 88, height: 88 }, true);
     }
     const emit = () => listeners.forEach((listener) => listener({ ...browserState }));
-    const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...browserState, expandedBounds }));
+    const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...browserState, expandedBounds, foldedAnchorBounds }));
     function requireInteraction(id) {
       if (!interaction || interaction.id !== id) throw new Error('The interaction has ended.');
       return interaction;
     }
     return {
       async getState() { return { ...browserState }; },
+      async createNote() { throw new Error('새 메모는 Windows 앱에서 만들 수 있어요.'); },
+      async activateNote() { return { ...browserState }; },
       async saveNote(value) {
         const next = { ...browserState, text: value.text, color: value.color, savedAt: new Date().toISOString() };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...next, expandedBounds }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...next, expandedBounds, foldedAnchorBounds }));
         browserState = next;
         emit();
         return { savedAt: browserState.savedAt };
       },
       async fold({ corner }) {
         if (!browserState.folded) expandedBounds = { ...browserState.bounds };
-        browserState = { ...browserState, corner, folded: true, bounds: foldedBounds(corner) };
+        foldedAnchorBounds = foldedBounds(corner);
+        browserState = { ...browserState, corner, folded: true, bounds: { ...foldedAnchorBounds } };
+        persist(); emit(); return { ...browserState };
+      },
+      async returnFoldedNote() {
+        if (!browserState.folded) return { ...browserState };
+        foldedAnchorBounds = clamp(foldedAnchorBounds || foldedBounds(browserState.corner), true);
+        browserState = { ...browserState, bounds: { ...foldedAnchorBounds } };
         persist(); emit(); return { ...browserState };
       },
       async unfold() {
@@ -200,9 +217,14 @@
     state.settings = next.settings;
     state.systemLanguage = next.systemLanguage;
     state.bounds = next.bounds;
+    state.noteId = next.noteId;
+    state.noteCount = next.noteCount;
+    app.dataset.noteId = next.noteId;
+    addNoteButton.title = `새 메모 만들기 · 현재 ${next.noteCount}개`;
     pinButton.setAttribute('aria-pressed', String(next.alwaysOnTop));
     pinLabel.textContent = next.alwaysOnTop ? '항상 위' : '항상 위 꺼짐';
-    pinButton.title = next.alwaysOnTop ? '항상 위 표시 끄기' : '항상 위 표시 켜기';
+    pinButton.title = next.alwaysOnTop ? '모든 메모의 항상 위 표시 끄기' : '모든 메모의 항상 위 표시 켜기';
+    pinButton.setAttribute('aria-label', pinButton.title);
     if (app.classList.contains('browser-preview') && next.bounds) {
       Object.assign(app.style, { left: `${next.bounds.x}px`, top: `${next.bounds.y}px`, width: `${next.bounds.width}px`, height: `${next.bounds.height}px` });
     }
@@ -212,7 +234,7 @@
     note.hidden = next.folded;
     foldedNote.hidden = !next.folded;
     foldedNote.dataset.corner = next.corner;
-    foldedNote.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양으로 접힌 메모: 끌어서 이동, 방향키로 이동, 두 번 클릭 또는 Enter로 펼치기`);
+    foldedNote.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양으로 접힌 메모: 끌어서 이동, 두 번 클릭하여 처음 접힌 위치로 복귀, Enter로 펼치기`);
     unfoldHandle.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양의 메모 펼치기: 대각선 손잡이를 안쪽으로 끌거나 Enter`);
     if (next.folded) setHelp(false, false);
     if (!initial && previousFolded !== next.folded) {
@@ -318,8 +340,8 @@
       'bottom-right': `polygon(100% 100%, ${100 - extent}% 100%, 100% ${100 - extent}%)`,
     };
     foldPreview.style.clipPath = polygons[corner];
-    gestureProgress.style.width = `${Math.min(progress / 0.68, 1) * 100}%`;
-    gestureLabel.textContent = progress >= 0.68 ? `놓으면 ${CORNER_LABELS[OPPOSITE[corner]]}에 접혀요` : '반대쪽 모서리까지 당겨 주세요';
+    gestureProgress.style.width = `${Math.min(progress / FOLD_THRESHOLD, 1) * 100}%`;
+    gestureLabel.textContent = progress >= FOLD_THRESHOLD ? `놓으면 ${CORNER_LABELS[OPPOSITE[corner]]}에 접혀요` : '대각선 거리의 1/3만 당겨 주세요';
   }
 
   function moveGesture(event) {
@@ -353,7 +375,7 @@
     if (!activeGesture || activeGesture.pointerId !== event.pointerId) return;
     moveGesture(event);
     const gesture = resetGesture();
-    if (gesture.kind === 'fold' && gesture.progress >= 0.68) performAction('fold', { corner: OPPOSITE[gesture.corner] });
+    if (gesture.kind === 'fold' && gesture.progress >= FOLD_THRESHOLD) performAction('fold', { corner: OPPOSITE[gesture.corner] });
     if (gesture.kind === 'unfold' && gesture.progress >= 1) performAction('unfold');
   }
 
@@ -445,10 +467,35 @@
     finally { pinBusy = false; pinButton.disabled = false; }
   });
   helpButton.addEventListener('click', () => setHelp(helpPanel.hidden));
+  addNoteButton.addEventListener('click', async () => {
+    if (!ready || creatingNote) return;
+    creatingNote = true;
+    addNoteButton.disabled = true;
+    try {
+      if (!await persistNow()) return;
+      // The returned state belongs to the new window, never to this editor.
+      await bridge.createNote();
+    } catch {
+      showToast(window.cornerNote ? '새 메모를 만들지 못했어요. 다시 시도해 주세요.' : '새 메모는 Windows 앱에서 만들 수 있어요.');
+    } finally {
+      creatingNote = false;
+      addNoteButton.disabled = false;
+    }
+  });
   document.querySelector('#close-help').addEventListener('click', () => setHelp(false));
   document.querySelector('#hide-button').addEventListener('click', () => performAction('hide'));
   document.querySelector('#quit-button').addEventListener('click', () => performAction('quit'));
   document.querySelectorAll('[data-fold-to]').forEach((button) => button.addEventListener('click', () => performAction('fold', { corner: button.dataset.foldTo })));
+
+  function activateCurrentNote() {
+    if (ready && typeof bridge.activateNote === 'function') {
+      // Native focus handles title-bar clicks; content clicks and typing also
+      // identify the most recently used note without sending editor contents.
+      void Promise.resolve(bridge.activateNote()).catch(() => {});
+    }
+  }
+  document.addEventListener('pointerdown', activateCurrentNote, true);
+  document.addEventListener('input', activateCurrentNote, true);
 
   document.querySelectorAll('.corner-handle').forEach((handle) => {
     handle.addEventListener('pointerdown', (event) => startGesture(event, 'fold', handle.dataset.corner));
@@ -474,7 +521,7 @@
   unfoldHandle.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); performAction('unfold'); }
   });
-  foldedNote.addEventListener('dblclick', () => performAction('unfold'));
+  foldedNote.addEventListener('dblclick', () => performAction('returnFoldedNote'));
   foldedNote.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); performAction('unfold'); }
     const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
@@ -524,6 +571,7 @@
   bridge.getState().then((initial) => {
     applyState(initial, true);
     ready = true;
+    addNoteButton.disabled = false;
     textarea.disabled = false;
     pinButton.disabled = false;
     app.classList.remove('is-loading');

@@ -35,7 +35,7 @@
     let settingsReady = false;
     let settingsBusy = false;
     let pickerBusy = false;
-    let settingsLoad;
+    let settingsRefreshVersion = 0;
     let previousFocus = null;
 
     const button = document.createElement('button');
@@ -265,36 +265,46 @@
       keyInput.disabled = settingsBusy;
       rememberInput.disabled = settingsBusy;
       element('.ct-save-key').disabled = settingsBusy || !settingsReady;
-      element('.ct-clear-key').disabled = settingsBusy;
+      element('.ct-clear-key').disabled = settingsBusy || !settingsReady;
     }
 
     async function loadSettings() {
+      const version = ++settingsRefreshVersion;
+      settingsReady = false;
+      renderSettings();
+      let next;
       try {
         const status = await bridge.getTranslationSettings();
-        settings = { configured: status?.configured === true, canRememberKey: status?.canRememberKey === true };
-      } catch { settings = { configured: false, canRememberKey: false }; }
-      finally { settingsReady = true; if (!destroyed) renderSettings(); }
-      return settings;
+        next = { configured: status?.configured === true, canRememberKey: status?.canRememberKey === true };
+      } catch { next = { configured: false, canRememberKey: false }; }
+      if (!destroyed && version === settingsRefreshVersion) {
+        settings = next;
+        settingsReady = true;
+        renderSettings();
+      }
+      return next;
     }
 
     async function openSettings(options = {}) {
       if (activeRequest) { showToast('번역이 끝난 뒤 AI 연결을 변경해 주세요.'); return; }
+      if (settingsBusy) return;
       if (!options.keepPending) pendingTranslation = null;
       keyInput.value = '';
       rememberInput.checked = false;
-      renderSettings();
+      const refresh = loadSettings();
       switchView('settings', 'AI 번역 연결', keyInput);
-      if (!settingsReady) await settingsLoad;
+      await refresh;
       if (view === 'settings') renderSettings();
     }
 
     async function chooseLanguage(code) {
-      if (!hasSelection() || activeRequest) { closePanel(false); return; }
+      if (activeRequest) return;
+      if (!hasSelection()) { closePanel(false); return; }
       const job = { targetLanguage: code, snapshot: { ...snapshot } };
       pendingTranslation = job;
-      if (!settingsReady) await settingsLoad;
-      if (pendingTranslation !== job) return;
-      if (!settings.configured) { openSettings({ keepPending: true }); return; }
+      const currentSettings = await loadSettings();
+      if (pendingTranslation !== job || destroyed) return;
+      if (!currentSettings.configured) { openSettings({ keepPending: true }); return; }
       pendingTranslation = null;
       runTranslation(job);
     }
@@ -307,6 +317,7 @@
       const remember = settings.canRememberKey && rememberInput.checked;
       keyInput.value = '';
       settingsBusy = true;
+      settingsRefreshVersion += 1;
       renderSettings();
       showError('');
       try {
@@ -322,8 +333,9 @@
     }
 
     async function clearKey() {
-      if (settingsBusy) return;
+      if (settingsBusy || !settingsReady) return;
       settingsBusy = true;
+      settingsRefreshVersion += 1;
       pendingTranslation = null;
       keyInput.value = '';
       renderSettings();
@@ -456,7 +468,7 @@
       const unsubscribe = bridge.onState((value) => { readPreferences(value); updateButton(); updateApplyState(); });
       if (typeof unsubscribe === 'function') cleanups.push(unsubscribe);
     }
-    settingsLoad = loadSettings();
+    loadSettings();
     captureSelection();
     positionPanel();
     return {

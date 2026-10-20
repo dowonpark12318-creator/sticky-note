@@ -7,13 +7,12 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { canonicalLanguage, createTranslationService } = require('./translation.cjs');
 const { createTranslationKeyStore } = require('./translation-key-store.cjs');
+const { COLORS, MAX_TEXT_LENGTH, MAX_NOTES, createEmptyNote, createDefaultState, normalizeState, markNoteActive, orderedNotes, resolveFoldedAnchor } = require('./note-store.cjs');
 const {
-  EDGES, DEFAULT_SIZE, MIN_SIZE, FOLDED_SIZE, validCorner, fitSize, clampBounds, cornerBounds,
+  EDGES, MIN_SIZE, FOLDED_SIZE, validCorner, fitSize, clampBounds, cornerBounds,
   unfoldBounds, moveBounds, resizeBounds, selectDisplay,
 } = require('./window-geometry.cjs');
 
-const COLORS = new Set(['butter', 'rose', 'mint', 'sky']);
-const MAX_TEXT_LENGTH = 2_000_000;
 app.setName('Corner Note');
 const dataDirectoryArgument = process.argv.find(argument => argument.startsWith('--user-data-dir='));
 if (dataDirectoryArgument) {
@@ -24,37 +23,34 @@ if (dataDirectoryArgument) {
 
 const statePath = path.join(app.getPath('userData'), 'note-state.json');
 const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
-let mainWindow;
+const noteWindows = new Map();
+const contextsByWebContents = new Map();
 let tray;
 let quitReady = false;
 let quitPending = false;
+let restoringWindows = false;
 let persistTimer;
 let pendingSaves = [];
 let writeQueue = Promise.resolve();
+let creationQueue = Promise.resolve();
 let writeBlocker;
-let applyingBounds = false;
-let interaction;
-let lastSkipTaskbar;
 let translationKeyStore;
-let translationService;
+let pendingKeyMutations = 0;
 let systemLanguage = 'en-US';
-let state = {
-  version: 1, text: '', color: 'butter', savedAt: null,
-  settings: { translationLanguages: [], tutorialCompleted: false },
-  window: {
-    folded: false, corner: 'top-right', expandedBounds: { ...DEFAULT_SIZE },
-    foldedBounds: null, displayId: null, alwaysOnTop: true,
-  },
-};
+let state = createDefaultState();
+let tutorialNoteId = state.activeNoteId;
 
-function publicState() {
+function publicState(context) {
+  const note = context.note;
   return {
-    text: state.text, color: state.color,
-    folded: state.window.folded, corner: state.window.corner, savedAt: state.savedAt,
-    alwaysOnTop: state.window.alwaysOnTop,
+    noteId: note.id, noteCount: state.notes.length, activeNoteId: state.activeNoteId,
+    offerTutorial: note.id === tutorialNoteId,
+    text: note.text, color: note.color,
+    folded: note.window.folded, corner: note.window.corner, savedAt: note.savedAt,
+    alwaysOnTop: state.alwaysOnTop,
     settings: { ...state.settings, translationLanguages: [...state.settings.translationLanguages] },
     systemLanguage,
-    bounds: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null,
+    bounds: !context.window.isDestroyed() ? context.window.getBounds() : null,
   };
 }
 
@@ -74,40 +70,7 @@ async function loadState() {
     return;
   }
   try {
-    const saved = JSON.parse(raw);
-    if (!saved || saved.version !== 1 || typeof saved.text !== 'string'
-      || saved.text.length > MAX_TEXT_LENGTH || !COLORS.has(saved.color)) {
-      throw new Error('Unsupported or damaged note data.');
-    }
-    const windowState = saved.window && typeof saved.window === 'object' ? saved.window : {};
-    const settings = saved.settings && typeof saved.settings === 'object' ? saved.settings : {};
-    const translationLanguages = [];
-    if (Array.isArray(settings.translationLanguages)) {
-      for (const language of settings.translationLanguages.slice(0, 30)) {
-        try {
-          const canonical = canonicalLanguage(language);
-          if (!translationLanguages.includes(canonical)) translationLanguages.push(canonical);
-        } catch { /* Ignore invalid preference entries without disturbing the note. */ }
-      }
-    }
-    state = {
-      version: 1, text: saved.text, color: saved.color,
-      settings: { translationLanguages, tutorialCompleted: settings.tutorialCompleted === true },
-      savedAt: typeof saved.savedAt === 'string' && !Number.isNaN(Date.parse(saved.savedAt)) ? saved.savedAt : null,
-      window: {
-        folded: windowState.folded === true,
-        corner: validCorner(windowState.corner) ? windowState.corner : 'top-right',
-        expandedBounds: windowState.expandedBounds && typeof windowState.expandedBounds === 'object'
-          ? windowState.expandedBounds : { ...DEFAULT_SIZE },
-        foldedBounds: windowState.foldedBounds && typeof windowState.foldedBounds === 'object'
-          && ['x', 'y', 'width', 'height'].every(key => Number.isFinite(windowState.foldedBounds[key]))
-          && windowState.foldedBounds.width > 0 && windowState.foldedBounds.height > 0
-          ? windowState.foldedBounds : null,
-        alwaysOnTop: windowState.alwaysOnTop !== false,
-        displayId: typeof windowState.displayId === 'number' || typeof windowState.displayId === 'string'
-          ? windowState.displayId : null,
-      },
-    };
+    state = normalizeState(JSON.parse(raw));
   } catch (error) {
     const backupPath = `${statePath}.corrupt-${Date.now()}-${process.pid}`;
     try {
@@ -167,112 +130,196 @@ function persistWindow() {
   void schedulePersist().catch(reportError);
 }
 
-function emitState() {
-  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-    mainWindow.webContents.send('corner-note:state', publicState());
+function emitState(context) {
+  if (!context.window.isDestroyed() && !context.window.webContents.isDestroyed()) {
+    context.window.webContents.send('corner-note:state', publicState(context));
   }
 }
 
-function activeDisplay() {
-  const bounds = state.window.folded ? state.window.foldedBounds || state.window.expandedBounds : state.window.expandedBounds;
-  return selectDisplay(screen.getAllDisplays(), bounds, state.window.displayId);
+function emitAllStates() {
+  for (const context of noteWindows.values()) emitState(context);
 }
 
-function keepOnTop() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  // Keep pinned notes off the taskbar. Ordinary notes have a taskbar entry
-  // and remain activatable so Windows can switch back to them with Alt-Tab.
-  if (lastSkipTaskbar !== state.window.alwaysOnTop) {
-    mainWindow.setSkipTaskbar(state.window.alwaysOnTop);
-    lastSkipTaskbar = state.window.alwaysOnTop;
+function activeDisplay(context) {
+  const windowState = context.note.window;
+  const bounds = windowState.folded ? windowState.foldedBounds || windowState.expandedBounds : windowState.expandedBounds;
+  return selectDisplay(screen.getAllDisplays(), bounds, windowState.displayId);
+}
+
+function applyWindowLayer(context) {
+  const window = context.window;
+  if (window.isDestroyed()) return;
+  if (context.lastSkipTaskbar !== state.alwaysOnTop) {
+    window.setSkipTaskbar(state.alwaysOnTop);
+    context.lastSkipTaskbar = state.alwaysOnTop;
   }
-  // moveTop changes z-order without activating the note or stealing Alt-Tab focus.
-  mainWindow.setAlwaysOnTop(state.window.alwaysOnTop, state.window.alwaysOnTop ? 'screen-saver' : 'normal');
-  if (state.window.alwaysOnTop && mainWindow.isVisible()) mainWindow.moveTop();
+  if (context.lastAlwaysOnTop !== state.alwaysOnTop || window.isAlwaysOnTop() !== state.alwaysOnTop) {
+    window.setAlwaysOnTop(state.alwaysOnTop, state.alwaysOnTop ? 'screen-saver' : 'normal');
+    context.lastAlwaysOnTop = state.alwaysOnTop;
+  }
 }
 
-function setWindowBounds(bounds, folded) {
-  applyingBounds = true;
+function activateNote(context, { forceRaise = false } = {}) {
+  if (!context || context.window.isDestroyed()) return;
+  if (restoringWindows) return publicState(context);
+  const changed = markNoteActive(state, context.note.id);
+  if ((changed || forceRaise) && context.window.isVisible()) {
+    // moveTop preserves keyboard focus; only the note being interacted with is raised.
+    context.window.moveTop();
+  }
+  if (changed) {
+    persistWindow();
+    emitAllStates();
+  }
+  return publicState(context);
+}
+
+function setWindowBounds(context, bounds, folded) {
+  const window = context.window;
+  context.applyingBounds = true;
   try {
-    mainWindow.setMinimumSize(1, 1);
+    window.setMinimumSize(1, 1);
     // Native resize borders steal the diagonal fold gestures on Windows.
-    // The renderer exposes only side strips and validates resizing through IPC.
-    mainWindow.setResizable(false);
-    mainWindow.setBounds(bounds);
+    window.setResizable(false);
+    window.setBounds(bounds);
     if (!folded) {
-      const minimum = fitSize(MIN_SIZE, activeDisplay().workArea, { width: 1, height: 1 });
-      mainWindow.setMinimumSize(minimum.width, minimum.height);
+      const minimum = fitSize(MIN_SIZE, activeDisplay(context).workArea, { width: 1, height: 1 });
+      window.setMinimumSize(minimum.width, minimum.height);
     }
   } finally {
-    applyingBounds = false;
+    context.applyingBounds = false;
   }
-  keepOnTop();
+  applyWindowLayer(context);
 }
 
-function captureWindowBounds() {
-  if (applyingBounds || !mainWindow || mainWindow.isDestroyed()) return;
-  const bounds = mainWindow.getBounds();
-  if (state.window.folded) state.window.foldedBounds = bounds;
-  else state.window.expandedBounds = bounds;
-  state.window.displayId = screen.getDisplayMatching(bounds).id;
+function captureWindowBounds(context) {
+  if (context.applyingBounds || context.window.isDestroyed()) return;
+  const bounds = context.window.getBounds();
+  if (context.note.window.folded) context.note.window.foldedBounds = bounds;
+  else context.note.window.expandedBounds = bounds;
+  context.note.window.displayId = screen.getDisplayMatching(bounds).id;
   persistWindow();
 }
 
-function foldWindow(corner) {
+function foldWindow(context, corner) {
   if (!validCorner(corner)) throw new TypeError('올바른 모서리를 선택해 주세요.');
-  interaction = null;
-  if (!state.window.folded) {
-    state.window.expandedBounds = mainWindow.getBounds();
-    state.window.displayId = screen.getDisplayMatching(state.window.expandedBounds).id;
+  const note = context.note;
+  context.interaction = null;
+  if (!note.window.folded) {
+    note.window.expandedBounds = context.window.getBounds();
+    note.window.displayId = screen.getDisplayMatching(note.window.expandedBounds).id;
   }
-  state.window.corner = corner;
-  state.window.folded = true;
-  state.window.foldedBounds = cornerBounds(activeDisplay().workArea, corner, FOLDED_SIZE);
-  setWindowBounds(state.window.foldedBounds, true);
+  note.window.corner = corner;
+  note.window.folded = true;
+  const display = activeDisplay(context);
+  note.window.foldedBounds = cornerBounds(display.workArea, corner, FOLDED_SIZE);
+  note.window.foldedAnchorBounds = { ...note.window.foldedBounds };
+  note.window.foldedAnchorDisplayId = display.id;
+  setWindowBounds(context, note.window.foldedBounds, true);
+  activateNote(context);
   persistWindow();
-  emitState();
-  return publicState();
+  emitState(context);
+  updateTrayMenu();
+  return publicState(context);
 }
 
-function unfoldWindow() {
-  if (state.window.folded) {
-    interaction = null;
-    const display = activeDisplay();
-    const bounds = unfoldBounds(mainWindow.getBounds(), state.window.corner, state.window.expandedBounds, display.workArea);
-    state.window.folded = false;
-    state.window.displayId = display.id;
-    state.window.expandedBounds = bounds;
-    setWindowBounds(bounds, false);
+function returnFoldedNote(context) {
+  const note = context.note;
+  if (!note.window.folded) return publicState(context);
+  context.interaction = null;
+  const anchor = resolveFoldedAnchor(note.window, screen.getAllDisplays());
+  note.window.foldedAnchorBounds = { ...anchor.bounds };
+  note.window.foldedAnchorDisplayId = anchor.displayId;
+  note.window.foldedBounds = { ...anchor.bounds };
+  note.window.displayId = anchor.displayId;
+  setWindowBounds(context, note.window.foldedBounds, true);
+  activateNote(context);
+  persistWindow();
+  emitState(context);
+  return publicState(context);
+}
+
+function unfoldWindow(context) {
+  const note = context.note;
+  if (note.window.folded) {
+    context.interaction = null;
+    const display = activeDisplay(context);
+    const bounds = unfoldBounds(context.window.getBounds(), note.window.corner, note.window.expandedBounds, display.workArea);
+    note.window.folded = false;
+    note.window.displayId = display.id;
+    note.window.expandedBounds = bounds;
+    setWindowBounds(context, bounds, false);
+    activateNote(context);
     persistWindow();
-    emitState();
+    emitState(context);
+    updateTrayMenu();
   }
-  return publicState();
+  return publicState(context);
 }
 
-function showWindow() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  unfoldWindow();
-  if (mainWindow.isMinimized()) mainWindow.restore();
-  mainWindow.show();
-  keepOnTop();
-  mainWindow.focus();
+function hideNote(context) {
+  context.interaction = null;
+  context.translationService.cancelCurrent();
+  captureWindowBounds(context);
+  context.window.hide();
+  updateTrayMenu();
+}
+
+async function showNote(note) {
+  let context = noteWindows.get(note.id);
+  if (!context || context.window.isDestroyed()) context = await createWindow(note);
+  unfoldWindow(context);
+  if (context.window.isMinimized()) context.window.restore();
+  context.window.show();
+  applyWindowLayer(context);
+  activateNote(context, { forceRaise: true });
+  context.window.focus();
+  updateTrayMenu();
+}
+
+function showAllNotes() {
+  // Hidden notes are intentionally shown again on restart or tray activation.
+  // Their folded state and the saved order are preserved.
+  restoringWindows = true;
+  try {
+    for (const note of orderedNotes(state)) {
+      const context = noteWindows.get(note.id);
+      if (!context || context.window.isDestroyed()) continue;
+      if (context.window.isMinimized()) context.window.restore();
+      context.window.showInactive();
+      applyWindowLayer(context);
+      context.window.moveTop();
+    }
+  } finally {
+    restoringWindows = false;
+  }
+  const active = noteWindows.get(state.activeNoteId);
+  if (active && !active.window.isDestroyed()) {
+    active.window.show();
+    activateNote(active, { forceRaise: true });
+    active.window.focus();
+  }
+  updateTrayMenu();
 }
 
 function reconcileDisplays() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  interaction = null;
-  const display = activeDisplay();
-  state.window.displayId = display.id;
-  if (state.window.folded) {
-    state.window.foldedBounds = clampBounds(mainWindow.getBounds(), display.workArea, { width: 1, height: 1 });
-    setWindowBounds(state.window.foldedBounds, true);
-  } else {
-    const bounds = clampBounds(mainWindow.getBounds(), display.workArea);
-    state.window.expandedBounds = bounds;
-    setWindowBounds(bounds, false);
+  for (const context of noteWindows.values()) {
+    if (context.window.isDestroyed()) continue;
+    context.interaction = null;
+    const note = context.note;
+    const display = activeDisplay(context);
+    note.window.displayId = display.id;
+    if (note.window.folded) {
+      note.window.foldedBounds = clampBounds(context.window.getBounds(), display.workArea, { width: 1, height: 1 });
+      setWindowBounds(context, note.window.foldedBounds, true);
+    } else {
+      const bounds = clampBounds(context.window.getBounds(), display.workArea);
+      note.window.expandedBounds = bounds;
+      setWindowBounds(context, bounds, false);
+    }
+    persistWindow();
+    emitState(context);
   }
-  persistWindow();
-  emitState();
 }
 
 function validatePointer(options) {
@@ -282,32 +329,33 @@ function validatePointer(options) {
   }
 }
 
-function beginInteraction(options) {
+function beginInteraction(context, options) {
   validatePointer(options);
-  if (interaction) throw new Error('진행 중인 창 이동을 먼저 끝내 주세요.');
+  if (context.interaction) throw new Error('진행 중인 창 이동을 먼저 끝내 주세요.');
   if (options.kind !== 'resize' && options.kind !== 'move-folded') throw new TypeError('올바른 창 동작이 필요합니다.');
-  if (options.kind === 'resize' && (state.window.folded || !EDGES.includes(options.edge))) {
+  if (options.kind === 'resize' && (context.note.window.folded || !EDGES.includes(options.edge))) {
     throw new TypeError('펼친 메모의 변을 선택해 주세요.');
   }
-  if (options.kind === 'move-folded' && !state.window.folded) throw new TypeError('접힌 메모만 이 방식으로 옮길 수 있습니다.');
-  interaction = {
+  if (options.kind === 'move-folded' && !context.note.window.folded) throw new TypeError('접힌 메모만 이 방식으로 옮길 수 있습니다.');
+  activateNote(context);
+  context.interaction = {
     id: randomUUID(), kind: options.kind, edge: options.edge,
     screenX: options.screenX, screenY: options.screenY,
-    bounds: mainWindow.getBounds(), displayId: state.window.displayId,
-    workArea: { ...activeDisplay().workArea },
+    bounds: context.window.getBounds(), displayId: context.note.window.displayId,
+    workArea: { ...activeDisplay(context).workArea },
   };
-  return interaction.id;
+  return context.interaction.id;
 }
 
-function requireInteraction(options) {
-  if (!interaction || typeof options?.id !== 'string' || options.id !== interaction.id) {
+function requireInteraction(context, options) {
+  if (!context.interaction || typeof options?.id !== 'string' || options.id !== context.interaction.id) {
     throw new Error('진행 중인 창 동작이 아닙니다.');
   }
-  return interaction;
+  return context.interaction;
 }
 
-function updateInteraction(options) {
-  const current = requireInteraction(options);
+function updateInteraction(context, options) {
+  const current = requireInteraction(context, options);
   validatePointer(options);
   const deltaX = options.screenX - current.screenX;
   const deltaY = options.screenY - current.screenY;
@@ -322,35 +370,53 @@ function updateInteraction(options) {
     display = selectDisplay(screen.getAllDisplays(), proposed);
     bounds = moveBounds(current.bounds, deltaX, deltaY, display.workArea);
   }
-  if (state.window.folded) state.window.foldedBounds = bounds;
-  else state.window.expandedBounds = bounds;
-  state.window.displayId = display.id;
-  setWindowBounds(bounds, state.window.folded);
+  if (context.note.window.folded) context.note.window.foldedBounds = bounds;
+  else context.note.window.expandedBounds = bounds;
+  context.note.window.displayId = display.id;
+  setWindowBounds(context, bounds, context.note.window.folded);
   persistWindow();
-  return mainWindow.getBounds();
+  return context.window.getBounds();
 }
 
-function endInteraction(options) {
-  const current = requireInteraction(options);
+function endInteraction(context, options) {
+  const current = requireInteraction(context, options);
   if (options.cancel !== undefined && typeof options.cancel !== 'boolean') throw new TypeError('취소 여부가 올바르지 않습니다.');
-  interaction = null;
+  context.interaction = null;
   if (options.cancel === true) {
-    state.window.displayId = current.displayId;
-    if (state.window.folded) state.window.foldedBounds = current.bounds;
-    else state.window.expandedBounds = current.bounds;
-    setWindowBounds(current.bounds, state.window.folded);
+    context.note.window.displayId = current.displayId;
+    if (context.note.window.folded) context.note.window.foldedBounds = current.bounds;
+    else context.note.window.expandedBounds = current.bounds;
+    setWindowBounds(context, current.bounds, context.note.window.folded);
   }
-  captureWindowBounds();
-  emitState();
-  return publicState();
+  captureWindowBounds(context);
+  emitState(context);
+  return publicState(context);
+}
+
+function cancelAllTranslations() {
+  for (const context of noteWindows.values()) context.translationService.cancelCurrent();
+}
+
+async function mutateTranslationKey(operation) {
+  pendingKeyMutations += 1;
+  cancelAllTranslations();
+  try {
+    return await operation();
+  } finally {
+    // No sibling request may survive a key change or use an old key during it.
+    cancelAllTranslations();
+    pendingKeyMutations -= 1;
+  }
 }
 
 async function finishQuit() {
   if (quitPending || quitReady) return;
   quitPending = true;
-  translationService?.cancelCurrent();
+  cancelAllTranslations();
   try {
-    captureWindowBounds();
+    // Wait for an in-progress addition so its record cannot race the final save.
+    await creationQueue;
+    for (const context of noteWindows.values()) captureWindowBounds(context);
     const finalSave = schedulePersist();
     await Promise.all([flushPersist(), finalSave]);
     quitReady = true;
@@ -368,40 +434,98 @@ function quitFromMenu() {
   });
 }
 
+function createNote(source) {
+  const operation = creationQueue.then(async () => {
+    if (quitPending || quitReady) throw new Error('앱을 종료하고 있습니다.');
+    if (state.notes.length >= MAX_NOTES) throw new Error('메모를 더 만들 수 없습니다.');
+    const origin = source && !source.window.isDestroyed() ? source : noteWindows.get(state.activeNoteId);
+    const display = origin ? activeDisplay(origin) : screen.getPrimaryDisplay();
+    const sourceBounds = origin?.window.getBounds();
+    const size = origin?.note.window.expandedBounds;
+    const deltaX = sourceBounds && sourceBounds.x + 28 + size.width > display.workArea.x + display.workArea.width ? -28 : 28;
+    const deltaY = sourceBounds && sourceBounds.y + 28 + size.height > display.workArea.y + display.workArea.height ? -28 : 28;
+    const bounds = sourceBounds ? clampBounds({
+      x: sourceBounds.x + deltaX, y: sourceBounds.y + deltaY, width: size.width, height: size.height,
+    }, display.workArea) : undefined;
+    const note = createEmptyNote({ expandedBounds: bounds });
+    note.window.displayId = display.id;
+    state.notes.push(note);
+    const priorActiveId = state.activeNoteId;
+    markNoteActive(state, note.id);
+    let context;
+    try {
+      context = await createWindow(note);
+      const saved = schedulePersist();
+      await Promise.all([flushPersist(), saved]);
+      context.window.show();
+      activateNote(context, { forceRaise: true });
+      context.window.focus();
+      emitAllStates();
+      updateTrayMenu();
+      return publicState(context);
+    } catch (error) {
+      if (context && !context.window.isDestroyed()) context.window.destroy();
+      state.notes = state.notes.filter(item => item.id !== note.id);
+      state.noteOrder = state.noteOrder.filter(id => id !== note.id);
+      if (state.activeNoteId === note.id) {
+        state.activeNoteId = state.notes.some(item => item.id === priorActiveId) ? priorActiveId : state.noteOrder.at(-1);
+      }
+      emitAllStates();
+      updateTrayMenu();
+      throw error;
+    }
+  });
+  creationQueue = operation.catch(() => {});
+  return operation;
+}
+
 function registerIpc() {
   const handle = (channel, callback) => ipcMain.handle(`corner-note:${channel}`, (event, argument) => {
-    if (!mainWindow || event.sender !== mainWindow.webContents
-      || event.senderFrame !== mainWindow.webContents.mainFrame) {
+    const context = contextsByWebContents.get(event.sender.id);
+    if (!context || context.window.isDestroyed() || event.sender !== context.window.webContents
+      || event.senderFrame !== context.window.webContents.mainFrame) {
       throw new Error('허용되지 않은 요청입니다.');
     }
-    return callback(argument);
+    // Window identity comes exclusively from the authenticated sender, never IPC data.
+    return callback(context, argument);
   });
   handle('get-state', publicState);
-  handle('save-note', async note => {
+  handle('create-note', createNote);
+  handle('activate-note', context => activateNote(context));
+  handle('save-note', async (context, note) => {
     if (!note || typeof note.text !== 'string' || note.text.length > MAX_TEXT_LENGTH || !COLORS.has(note.color)) {
       throw new TypeError('저장할 메모나 색상이 올바르지 않습니다.');
     }
-    state.text = note.text;
-    state.color = note.color;
-    state.savedAt = new Date().toISOString();
-    const savedAt = state.savedAt;
+    context.note.text = note.text;
+    context.note.color = note.color;
+    context.note.savedAt = new Date().toISOString();
+    const savedAt = context.note.savedAt;
+    // Autosave can arrive after another note was clicked. Activation is driven
+    // by native focus and the renderer's immediate pointer/input events instead.
+    updateTrayMenu();
     await schedulePersist();
     return { savedAt };
   });
-  handle('fold', options => foldWindow(options?.corner));
+  handle('fold', (context, options) => foldWindow(context, options?.corner));
+  handle('return-folded-note', returnFoldedNote);
   handle('unfold', unfoldWindow);
   handle('begin-interaction', beginInteraction);
   handle('update-interaction', updateInteraction);
   handle('end-interaction', endInteraction);
-  handle('set-always-on-top', async enabled => {
+  handle('set-always-on-top', async (context, enabled) => {
     if (typeof enabled !== 'boolean') throw new TypeError('항상 위 표시 여부가 올바르지 않습니다.');
-    state.window.alwaysOnTop = enabled;
-    keepOnTop();
-    emitState();
+    state.alwaysOnTop = enabled;
+    activateNote(context);
+    for (const note of orderedNotes(state)) {
+      const sibling = noteWindows.get(note.id);
+      if (sibling) applyWindowLayer(sibling);
+    }
+    activateNote(context, { forceRaise: true });
+    emitAllStates();
     await schedulePersist();
-    return publicState();
+    return publicState(context);
   });
-  handle('update-preferences', async preferences => {
+  handle('update-preferences', async (context, preferences) => {
     if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
       throw new TypeError('앱 설정이 올바르지 않습니다.');
     }
@@ -417,49 +541,52 @@ function registerIpc() {
       next.tutorialCompleted = preferences.tutorialCompleted;
     }
     state.settings = next;
-    emitState();
+    emitAllStates();
     await schedulePersist();
-    return publicState();
+    return publicState(context);
   });
   handle('get-translation-settings', () => translationKeyStore.status());
-  handle('set-translation-key', async options => {
-    translationService.cancelCurrent();
-    return translationKeyStore.setKey(options);
+  handle('set-translation-key', (_context, options) => mutateTranslationKey(() => translationKeyStore.setKey(options)));
+  handle('clear-translation-key', () => mutateTranslationKey(() => translationKeyStore.clear()));
+  handle('translate', (context, options) => {
+    if (pendingKeyMutations) throw new Error('API 키 설정을 저장하고 있습니다. 잠시 후 다시 시도해 주세요.');
+    return context.translationService.translate(options);
   });
-  handle('clear-translation-key', async () => {
-    translationService.cancelCurrent();
-    return translationKeyStore.clear();
-  });
-  handle('translate', options => translationService.translate(options));
-  handle('cancel-translation', requestId => translationService.cancel(requestId));
-  handle('copy-text', text => {
+  handle('cancel-translation', (context, requestId) => context.translationService.cancel(requestId));
+  handle('copy-text', (_context, text) => {
     if (typeof text !== 'string' || text.length > 65_536) throw new TypeError('복사할 글의 양이 너무 많거나 올바르지 않습니다.');
     clipboard.writeText(text);
   });
-  handle('hide', () => { interaction = null; mainWindow.hide(); });
+  handle('hide', hideNote);
   handle('quit', finishQuit);
 }
 
-async function createWindow() {
-  const display = activeDisplay();
-  state.window.displayId = display.id;
-  const expanded = state.window.expandedBounds;
-  state.window.expandedBounds = Number.isFinite(expanded.x) && Number.isFinite(expanded.y)
+async function createWindow(note) {
+  const context = { note, applyingBounds: false, interaction: null };
+  const display = activeDisplay(context);
+  note.window.displayId = display.id;
+  const expanded = note.window.expandedBounds;
+  note.window.expandedBounds = Number.isFinite(expanded.x) && Number.isFinite(expanded.y)
     ? clampBounds(expanded, display.workArea)
-    : cornerBounds(display.workArea, state.window.corner, fitSize(expanded, display.workArea));
-  const bounds = state.window.folded
-    ? (state.window.foldedBounds
-      ? clampBounds(state.window.foldedBounds, display.workArea, { width: 1, height: 1 })
-      : cornerBounds(display.workArea, state.window.corner))
-    : state.window.expandedBounds;
-  if (state.window.folded) state.window.foldedBounds = bounds;
-  mainWindow = new BrowserWindow({
+    : cornerBounds(display.workArea, note.window.corner, fitSize(expanded, display.workArea));
+  const bounds = note.window.folded
+    ? (note.window.foldedBounds
+      ? clampBounds(note.window.foldedBounds, display.workArea, { width: 1, height: 1 })
+      : cornerBounds(display.workArea, note.window.corner))
+    : note.window.expandedBounds;
+  if (note.window.folded) {
+    note.window.foldedBounds = bounds;
+    const anchor = resolveFoldedAnchor(note.window, screen.getAllDisplays());
+    note.window.foldedAnchorBounds = { ...anchor.bounds };
+    note.window.foldedAnchorDisplayId = anchor.displayId;
+  }
+  const window = new BrowserWindow({
     ...bounds,
-    minWidth: state.window.folded ? 1 : Math.min(MIN_SIZE.width, display.workArea.width),
-    minHeight: state.window.folded ? 1 : Math.min(MIN_SIZE.height, display.workArea.height),
+    minWidth: note.window.folded ? 1 : Math.min(MIN_SIZE.width, display.workArea.width),
+    minHeight: note.window.folded ? 1 : Math.min(MIN_SIZE.height, display.workArea.height),
     title: '모서리 메모', icon: iconPath,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    hasShadow: true, show: false, alwaysOnTop: state.window.alwaysOnTop, skipTaskbar: state.window.alwaysOnTop,
+    hasShadow: true, show: false, alwaysOnTop: state.alwaysOnTop, skipTaskbar: state.alwaysOnTop,
     resizable: false, maximizable: false, fullscreenable: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -468,61 +595,92 @@ async function createWindow() {
       webSecurity: true, allowRunningInsecureContent: false,
     },
   });
-  lastSkipTaskbar = state.window.alwaysOnTop;
-  mainWindow.setMenu(null);
-  keepOnTop();
-  if (process.platform !== 'win32') mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  mainWindow.webContents.on('will-navigate', event => event.preventDefault());
-  mainWindow.webContents.on('will-redirect', event => event.preventDefault());
-  mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
-  mainWindow.on('close', event => {
+  context.window = window;
+  context.lastSkipTaskbar = state.alwaysOnTop;
+  context.translationService = createTranslationService({ fetch: (url, options) => net.fetch(url, options), getKey: translationKeyStore.getKey });
+  noteWindows.set(note.id, context);
+  contextsByWebContents.set(window.webContents.id, context);
+  window.setMenu(null);
+  applyWindowLayer(context);
+  if (process.platform !== 'win32') window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  window.webContents.on('will-navigate', event => event.preventDefault());
+  window.webContents.on('will-redirect', event => event.preventDefault());
+  window.webContents.on('will-attach-webview', event => event.preventDefault());
+  window.on('close', event => {
     if (!quitReady) {
       event.preventDefault();
-      interaction = null;
-      captureWindowBounds();
-      mainWindow.hide();
+      hideNote(context);
       void flushPersist().catch(reportError);
     }
   });
-  mainWindow.on('move', captureWindowBounds);
-  mainWindow.on('resize', captureWindowBounds);
-  mainWindow.on('blur', () => setImmediate(keepOnTop));
-  mainWindow.on('show', keepOnTop);
-  mainWindow.on('restore', keepOnTop);
-  mainWindow.once('ready-to-show', () => { mainWindow.show(); keepOnTop(); });
-  registerIpc();
-  await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  context.webContentsId = window.webContents.id;
+  window.on('closed', () => {
+    context.translationService.cancelCurrent();
+    contextsByWebContents.delete(context.webContentsId);
+    if (noteWindows.get(note.id) === context) noteWindows.delete(note.id);
+    updateTrayMenu();
+  });
+  window.on('move', () => captureWindowBounds(context));
+  window.on('resize', () => captureWindowBounds(context));
+  window.on('focus', () => activateNote(context));
+  window.on('blur', () => setImmediate(() => {
+    // Reassert only an unexpectedly lost topmost flag. Never raise a blurred sibling.
+    if (!window.isDestroyed() && state.alwaysOnTop && !window.isAlwaysOnTop()) applyWindowLayer(context);
+  }));
+  window.on('show', () => applyWindowLayer(context));
+  window.on('restore', () => applyWindowLayer(context));
+  try {
+    await window.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  } catch (error) {
+    window.destroy();
+    throw error;
+  }
+  return context;
+}
+
+function updateTrayMenu() {
+  if (!tray || tray.isDestroyed()) return;
+  const notes = state.notes.map((note, index) => {
+    const context = noteWindows.get(note.id);
+    const preview = note.text.replace(/\s+/g, ' ').trim().slice(0, 28) || '빈 메모';
+    const marker = context && !context.window.isDestroyed() && context.window.isVisible() ? '' : ' · 숨김';
+    return { label: `${index + 1}. ${preview}${marker}`, click: () => { void showNote(note).catch(reportError); } };
+  });
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '새 메모', click: () => { void createNote(noteWindows.get(state.activeNoteId)).catch(reportError); } },
+    { label: '모든 메모 보기', click: showAllNotes },
+    { label: '메모 선택', submenu: notes },
+    { label: '모든 메모 숨기기', click: () => { for (const context of noteWindows.values()) hideNote(context); } },
+    { type: 'separator' },
+    { label: '종료', click: quitFromMenu },
+  ]));
 }
 
 function createTray() {
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 20, height: 20 });
   tray = new Tray(icon);
   tray.setToolTip('모서리 메모');
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '메모 펼치기', click: showWindow },
-    { label: '메모 숨기기', click: () => mainWindow.hide() },
-    { type: 'separator' },
-    { label: '종료', click: quitFromMenu },
-  ]));
-  tray.on('click', showWindow);
-  tray.on('double-click', showWindow);
+  updateTrayMenu();
+  tray.on('click', showAllNotes);
+  tray.on('double-click', showAllNotes);
 }
 
 async function smokeTest() {
   const assert = require('node:assert/strict');
-  assert.equal(mainWindow.isAlwaysOnTop(), true);
-  assert.equal(mainWindow.webContents.getLastWebPreferences().sandbox, true);
-  const originalSize = { width: mainWindow.getBounds().width, height: mainWindow.getBounds().height };
-  foldWindow('bottom-right');
-  assert.equal(state.window.folded, true);
-  assert.deepEqual(mainWindow.getBounds(), cornerBounds(activeDisplay().workArea, 'bottom-right'));
-  unfoldWindow();
-  assert.equal(state.window.folded, false);
-  assert.equal(mainWindow.getBounds().width, originalSize.width);
-  assert.equal(mainWindow.getBounds().height, originalSize.height);
-  const bridgeAvailable = await mainWindow.webContents.executeJavaScript('typeof window.cornerNote?.getState === "function"');
-  assert.equal(bridgeAvailable, true);
+  const context = noteWindows.get(state.activeNoteId);
+  const window = context.window;
+  assert.equal(window.isAlwaysOnTop(), true);
+  assert.equal(window.webContents.getLastWebPreferences().sandbox, true);
+  const originalSize = { width: window.getBounds().width, height: window.getBounds().height };
+  foldWindow(context, 'bottom-right');
+  assert.equal(context.note.window.folded, true);
+  assert.deepEqual(window.getBounds(), cornerBounds(activeDisplay(context).workArea, 'bottom-right'));
+  unfoldWindow(context);
+  assert.equal(context.note.window.folded, false);
+  assert.equal(window.getBounds().width, originalSize.width);
+  assert.equal(window.getBounds().height, originalSize.height);
+  assert.equal(await window.webContents.executeJavaScript('typeof window.cornerNote?.createNote === "function"'), true);
   console.log(JSON.stringify({
     smokeTest: 'passed', alwaysOnTop: true, sandboxConfigured: true,
     runtimeSandboxDisabled: app.commandLine.hasSwitch('no-sandbox'), foldAndUnfold: true,
@@ -533,8 +691,8 @@ async function smokeTest() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', showWindow);
-  app.on('activate', showWindow);
+  app.on('second-instance', showAllNotes);
+  app.on('activate', showAllNotes);
   app.on('before-quit', event => {
     if (!quitReady) {
       event.preventDefault();
@@ -543,7 +701,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.on('will-quit', () => {
     clearTimeout(persistTimer);
-    translationService?.cancelCurrent();
+    cancelAllTranslations();
     if (tray) tray.destroy();
   });
   app.whenReady().then(async () => {
@@ -552,18 +710,20 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
     await loadState();
+    tutorialNoteId = state.activeNoteId;
     try {
       systemLanguage = canonicalLanguage(app.getPreferredSystemLanguages()[0] || app.getLocale());
     } catch {
       try { systemLanguage = canonicalLanguage(app.getLocale()); } catch { systemLanguage = 'en-US'; }
     }
-    translationKeyStore = createTranslationKeyStore({
-      safeStorage, filePath: path.join(app.getPath('userData'), 'translation-key.json'),
-    });
+    translationKeyStore = createTranslationKeyStore({ safeStorage, filePath: path.join(app.getPath('userData'), 'translation-key.json') });
     await translationKeyStore.load().catch(reportError);
-    translationService = createTranslationService({ fetch: (url, options) => net.fetch(url, options), getKey: translationKeyStore.getKey });
-    await createWindow();
+    registerIpc();
+    restoringWindows = true;
+    for (const note of orderedNotes(state)) await createWindow(note);
+    restoringWindows = false;
     createTray();
+    showAllNotes();
     screen.on('display-added', reconcileDisplays);
     screen.on('display-removed', reconcileDisplays);
     screen.on('display-metrics-changed', reconcileDisplays);
