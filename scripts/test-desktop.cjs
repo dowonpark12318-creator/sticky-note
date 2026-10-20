@@ -696,4 +696,11 @@ async function main() {
     await fs.rm(directory, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
   }
 }
-main().catch(error => {console.error(error); process.exitCode = 1;});
+main().catch(error => {
+  console.error(error);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const message = String(error?.stack || error).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    console.error(`::error title=Windows desktop test failed::${message}`);
+  }
+  process.exitCode = 1;
+});

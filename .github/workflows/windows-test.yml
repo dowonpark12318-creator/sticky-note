@@ -34,7 +34,6 @@ jobs:
 
       - name: Test the Windows desktop app
         id: desktop
-        continue-on-error: true
         timeout-minutes: 5
         env:
           ELECTRON_TEST_NO_SANDBOX: '0'
@@ -94,5 +93,12 @@ jobs:
         if: always() && steps.desktop.outcome == 'failure'
         shell: pwsh
         run: |
-          Write-Error 'Windows desktop tests failed. The portable app artifact is available if packaging succeeded; inspect Windows-desktop-test-log before testing.'
+          $log = Join-Path $env:RUNNER_TEMP 'windows-desktop-test.log'
+          '### Windows desktop test failure' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          '```text' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          if (Test-Path -LiteralPath $log) {
+            Get-Content -LiteralPath $log -Tail 160 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          Write-Error 'Windows desktop tests failed. Inspect Windows-desktop-test-log and the job summary before testing.'
           exit 1
