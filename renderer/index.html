@@ -32,6 +32,9 @@
             <button id="hide-button" data-testid="hide-button" class="icon-button" type="button" aria-label="트레이로 숨기기" title="트레이로 숨기기">
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
+            <button id="delete-note-button" data-testid="delete-note-button" class="icon-button delete-note-button" type="button" aria-label="이 메모 삭제" title="이 메모 삭제" disabled>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
           </nav>
         </header>
 
@@ -97,6 +100,14 @@
         <span class="sr-only">Enter 키로 메모 펼치기</span>
       </div>
       <div id="toast" class="toast" role="status" hidden></div>
+      <dialog id="delete-note-dialog" data-testid="delete-note-dialog" class="delete-note-dialog" aria-labelledby="delete-note-title">
+        <h2 id="delete-note-title">정말 메모를 삭제할까요?</h2>
+        <p id="delete-note-error" data-testid="delete-note-error" class="delete-note-error" role="alert" hidden></p>
+        <div class="delete-note-actions">
+          <button id="delete-note-cancel" data-testid="delete-note-cancel" type="button" autofocus>아니요</button>
+          <button id="delete-note-confirm" data-testid="delete-note-confirm" class="delete-note-confirm" type="button">네</button>
+        </div>
+      </dialog>
     </main>
   </body>
 </html>

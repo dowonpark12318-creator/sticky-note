@@ -121,9 +121,13 @@ function normalizeState(saved) {
     };
   }
   if (saved.version !== 2 || !Array.isArray(saved.notes)
-    || !saved.notes.length || saved.notes.length > MAX_NOTES) throw damagedData();
+    || saved.notes.length > MAX_NOTES) throw damagedData();
   const notes = saved.notes.map(note => normalizeNote(note));
   if (new Set(notes.map(note => note.id)).size !== notes.length) throw damagedData();
+  if (!notes.length) return {
+    version: 2, notes: [], settings: normalizeSettings(saved.settings),
+    alwaysOnTop: saved.alwaysOnTop !== false, activeNoteId: null, noteOrder: [],
+  };
   const noteOrder = normalizedOrder(notes, saved.noteOrder);
   const activeNoteId = noteOrder.includes(saved.activeNoteId) ? saved.activeNoteId : noteOrder.at(-1);
   // The active note is also the frontmost member of the saved stack.

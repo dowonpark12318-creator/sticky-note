@@ -175,7 +175,7 @@ async function main() {
     assert.equal(await page.evaluate(() => typeof require), 'undefined');
     pass('actual Electron window is topmost with isolated renderer, sandbox and custom resize borders');
 
-    assert.deepEqual(await page.locator('.window-controls > button').evaluateAll(buttons => buttons.map(button => button.id)), ['help-button', 'add-note-button', 'hide-button']);
+    assert.deepEqual(await page.locator('.window-controls > button').evaluateAll(buttons => buttons.map(button => button.id)), ['help-button', 'add-note-button', 'hide-button', 'delete-note-button']);
     assert.equal(await page.getByTestId('add-note-button').count(), 1);
     assert.equal(await page.getByTestId('add-note-button').isVisible(), true);
     assert.equal(await page.getByTestId('add-note-button').isEnabled(), true);
@@ -702,6 +702,92 @@ async function main() {
     const restoredThree = reopened.find(note => note === page) || reopened[0];
     await quit(restoredThree);
     pass('quit and restart restore all three independent notes, shared settings, exact overlapping bounds and the last active layer');
+
+    page = await launch();
+    await eventually(() => application.windows().length === 3, 'restore notes for deletion');
+    const deletionWindows = await Promise.all(application.windows().map(readyWindow));
+    const deletionById = new Map(await Promise.all(deletionWindows.map(async note => [(await stateFor(note)).noteId, note])));
+    const deletionTarget = deletionById.get(idThree);
+    await deletionTarget.getByTestId('delete-note-button').click();
+    await deletionTarget.getByTestId('delete-note-dialog').waitFor({state: 'visible'});
+    assert.equal(await deletionTarget.locator('#delete-note-title').textContent(), '정말 메모를 삭제할까요?');
+    await deletionTarget.getByTestId('delete-note-cancel').click();
+    await deletionTarget.getByTestId('delete-note-dialog').waitFor({state: 'hidden'});
+    assert.equal(application.windows().length, 3);
+    assert.equal(await deletionTarget.getByTestId('note-editor').inputValue(), concurrentThree);
+    assert.equal((await readSaved()).notes.some(note => note.id === idThree), true);
+    async function deleteThroughConfirmation(note) {
+      if ((await stateFor(note)).folded) await note.evaluate(() => window.cornerNote.unfold());
+      await note.getByTestId('delete-note-button').click();
+      await note.getByTestId('delete-note-dialog').waitFor({state: 'visible'});
+      await Promise.all([note.waitForEvent('close'), note.getByTestId('delete-note-confirm').click()]);
+    }
+    await deleteThroughConfirmation(deletionTarget);
+    await eventually(async () => {
+      const data = await readSaved();
+      return data.notes.length === 2 && !data.notes.some(note => note.id === idThree) && !data.noteOrder.includes(idThree);
+    }, 'persist removal of exactly the confirmed memo');
+    assert.equal(application.windows().length, 2);
+    for (const id of [idOne, idTwo]) {
+      const current = await stateFor(deletionById.get(id));
+      const expected = beforeRestart.get(id);
+      for (const key of ['text', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(current[key], expected[key], `${id}: deletion preserves sibling ${key}`);
+      assert.equal(current.noteCount, 2);
+    }
+    await quit(deletionById.get(idOne));
+    page = await launch();
+    await eventually(() => application.windows().length === 2, 'restart after deleting one memo');
+    const survivors = await Promise.all(application.windows().map(readyWindow));
+    const survivorIds = [];
+    for (const note of survivors) {
+      const current = await stateFor(note);
+      survivorIds.push(current.noteId);
+      assert.ok([idOne, idTwo].includes(current.noteId));
+      assert.equal(current.text, beforeRestart.get(current.noteId).text);
+      assert.equal(current.color, beforeRestart.get(current.noteId).color);
+    }
+    assert.deepEqual(new Set(survivorIds), new Set([idOne, idTwo]));
+    pass('No preserves the memo; Yes removes only its window and saved identity while sibling content and positions survive restart');
+
+    for (const note of survivors) await deleteThroughConfirmation(note);
+    await eventually(() => application.windows().length === 0, 'close the final deleted memo while retaining the tray process');
+    saved = await readSaved();
+    assert.deepEqual(saved.notes, []);
+    assert.equal(saved.activeNoteId, null);
+    assert.deepEqual(saved.noteOrder, []);
+    assert.deepEqual(saved.settings, {translationLanguages: ['fr', 'ja'], tutorialCompleted: true});
+    const recoveredWindow = application.waitForEvent('window');
+    await application.evaluate(({app}) => {
+      for (let index = 0; index < 6; index += 1) app.emit('activate');
+    });
+    const recovered = await readyWindow(await recoveredWindow);
+    const recoveredState = await stateFor(recovered);
+    assert.equal(recoveredState.noteCount, 1);
+    assert.equal(recoveredState.text, '');
+    assert.equal([idOne, idTwo, idThree].includes(recoveredState.noteId), false);
+    await eventually(async () => (await readSaved()).notes.length === 1, 'persist one recovered blank memo after repeated activation');
+    assert.equal(application.windows().length, 1);
+    assert.deepEqual((await readSaved()).notes.map(note => note.id), [recoveredState.noteId]);
+    assert.deepEqual(recoveredState.settings, saved.settings);
+    await deleteThroughConfirmation(recovered);
+    await eventually(() => application.windows().length === 0, 'delete the single recovery memo');
+    saved = await readSaved();
+    assert.deepEqual(saved.notes, []);
+    assert.equal(saved.activeNoteId, null);
+    assert.deepEqual(saved.noteOrder, []);
+    pass('repeated app activation after deleting every memo creates exactly one blank window and one saved note');
+    await Promise.all([application.waitForEvent('close'), application.evaluate(({app}) => app.quit()).catch(() => {})]);
+    application = null;
+    page = await launch();
+    const fresh = await stateFor(page);
+    assert.equal(fresh.noteCount, 1);
+    assert.equal(fresh.text, '');
+    assert.equal([idOne, idTwo, idThree, recoveredState.noteId].includes(fresh.noteId), false);
+    assert.deepEqual(fresh.settings, saved.settings);
+    assert.equal(await page.getByTestId('note-editor').inputValue(), '');
+    await quit(page);
+    assert.equal((await readSaved()).notes.length, 1);
+    pass('deleting the last memo persists an empty save; restart opens a new blank memo without resurrecting deleted text or identities');
 
     const legacy = {
       version: 1, text: '기존 버전의 메모와 설정', color: 'sky', savedAt: '2026-10-19T12:00:00.000Z',

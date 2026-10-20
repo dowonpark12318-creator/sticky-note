@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('cornerNote', Object.freeze({
   getState: () => ipcRenderer.invoke('corner-note:get-state'),
   createNote: () => ipcRenderer.invoke('corner-note:create-note'),
+  deleteNote: () => ipcRenderer.invoke('corner-note:delete-note'),
   activateNote: () => ipcRenderer.invoke('corner-note:activate-note'),
   saveNote: note => ipcRenderer.invoke('corner-note:save-note', { text: note?.text, color: note?.color }),
   fold: options => ipcRenderer.invoke('corner-note:fold', { corner: options?.corner }),

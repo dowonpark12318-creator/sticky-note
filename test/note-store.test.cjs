@@ -172,12 +172,27 @@ test('one invalid note rejects the entire save so the caller can preserve the or
   }
 });
 
-test('unsupported versions, empty saves, and excessive note counts are rejected', () => {
+test('unsupported versions and excessive note counts are rejected', () => {
   for (const invalid of [null, [], {}, { version: 0 }, { version: 3 },
-    { version: 1, text: 5, color: 'butter' }, { version: 2, notes: [] },
+    { version: 1, text: 5, color: 'butter' },
     { version: 2, notes: Array.from({ length: MAX_NOTES + 1 }, (_, index) => createEmptyNote({ id: `note-${index}` })) }]) {
     assert.throws(() => normalizeState(invalid), /Unsupported or damaged note data/);
   }
+});
+
+test('deleting the last note permits an empty save and preserves shared preferences', () => {
+  const state = normalizeState({
+    version: 2, notes: [], alwaysOnTop: false,
+    settings: {translationLanguages: ['ja'], tutorialCompleted: true},
+    activeNoteId: 'deleted-note', noteOrder: ['deleted-note'],
+  });
+  assert.deepEqual(state.notes, []);
+  assert.equal(state.activeNoteId, null);
+  assert.deepEqual(state.noteOrder, []);
+  assert.equal(state.alwaysOnTop, false);
+  assert.deepEqual(state.settings, {translationLanguages: ['ja'], tutorialCompleted: true});
+  assert.deepEqual(orderedNotes(state), []);
+  assert.equal(markNoteActive(state, 'deleted-note'), false);
 });
 
 test('invalid or duplicate stable identities reject a save rather than silently replace notes', () => {

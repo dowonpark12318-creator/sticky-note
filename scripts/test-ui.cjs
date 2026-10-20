@@ -46,6 +46,31 @@ function installDelayedFoldedBridge() {
   window.__delayedFoldedFixture = {calls, releaseEnd, state: () => copy(state), anchor};
 }
 
+function installDeleteBridge() {
+  const state = {
+    noteId: 'delete-fixture', noteCount: 1, text: '삭제 확인 전에는 이 메모를 보존해요.',
+    color: 'butter', folded: false, corner: 'top-left', alwaysOnTop: true,
+    bounds: {x: 0, y: 0, width: 392, height: 460},
+    settings: {translationLanguages: [], tutorialCompleted: true}, savedAt: null,
+  };
+  let fail = true;
+  let release;
+  const calls = {deletes: 0};
+  window.cornerNote = {
+    async getState() { return structuredClone(state); },
+    async getTranslationSettings() { return {configured: false, canRememberKey: false}; },
+    async saveNote(value) { Object.assign(state, value); return {savedAt: new Date().toISOString()}; },
+    async activateNote() {},
+    async deleteNote() {
+      calls.deletes += 1;
+      if (fail) throw new Error('fixture: disk write failed');
+      return new Promise(resolve => { release = () => resolve({deleted: true}); });
+    },
+    onState() { return () => {}; },
+  };
+  window.__deleteFixture = {calls, succeed: () => { fail = false; }, release: () => release()};
+}
+
 async function main() {
   const renderer = path.resolve(__dirname, '..', 'renderer');
   const server = http.createServer((request, response) => {
@@ -73,7 +98,7 @@ async function main() {
     await byId('tutorial-skip').waitFor({state: 'visible'});
     await byId('tutorial-skip').click();
     await byId('note-editor').waitFor({state: 'visible'});
-    assert.deepEqual(await page.locator('.window-controls > button').evaluateAll(buttons => buttons.map(button => button.id)), ['help-button', 'add-note-button', 'hide-button']);
+    assert.deepEqual(await page.locator('.window-controls > button').evaluateAll(buttons => buttons.map(button => button.id)), ['help-button', 'add-note-button', 'hide-button', 'delete-note-button']);
     assert.equal(await byId('add-note-button').count(), 1);
     const plusPlacement = await byId('add-note-button').evaluate(button => {
       const bounds = button.getBoundingClientRect();
@@ -297,6 +322,60 @@ async function main() {
       assert.deepEqual(errors, [], 'delayed gesture completion does not throw renderer errors');
       pass('double-click waits for a delayed folded movement to finish and returns without a clipped notification');
     } finally { await delayedContext.close(); }
+    const deleteContext = await browser.newContext({viewport: {width: 392, height: 460}});
+    await deleteContext.addInitScript(installDeleteBridge);
+    const deleting = await deleteContext.newPage();
+    deleting.on('pageerror', error => errors.push(error.message));
+    try {
+      await deleting.goto(`http://127.0.0.1:${server.address().port}/`);
+      await deleting.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+      const control = id => deleting.getByTestId(id);
+      const originalText = await control('note-editor').inputValue();
+      const placement = await control('delete-note-button').evaluate(button => {
+        const bounds = button.getBoundingClientRect();
+        const hide = document.querySelector('#hide-button').getBoundingClientRect();
+        const top = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        return {rightOfHide: hide.right <= bounds.left, uncovered: button === top || button.contains(top), enabled: !button.disabled};
+      });
+      assert.deepEqual(placement, {rightOfHide: true, uncovered: true, enabled: true});
+      await control('delete-note-button').click();
+      await control('delete-note-dialog').waitFor({state: 'visible'});
+      assert.equal(await deleting.locator('#delete-note-title').textContent(), '정말 메모를 삭제할까요?');
+      assert.equal(await deleting.evaluate(() => document.activeElement.id), 'delete-note-cancel');
+      fs.mkdirSync(path.resolve(__dirname, '..', 'test-results'), {recursive: true});
+      await deleting.screenshot({path: path.resolve(__dirname, '..', 'test-results', 'delete-note-dialog.png')});
+      await control('delete-note-cancel').click();
+      await control('delete-note-dialog').waitFor({state: 'hidden'});
+      await control('delete-note-button').click();
+      await control('delete-note-dialog').waitFor({state: 'visible'});
+      await deleting.keyboard.press('Escape');
+      await control('delete-note-dialog').waitFor({state: 'hidden'});
+      await control('delete-note-button').click();
+      await control('delete-note-dialog').waitFor({state: 'visible'});
+      await deleting.mouse.click(10, 10);
+      await control('delete-note-dialog').waitFor({state: 'hidden'});
+      assert.equal(await deleting.evaluate(() => window.__deleteFixture.calls.deletes), 0);
+      assert.equal(await control('note-editor').inputValue(), originalText);
+      pass('delete button sits after hide, asks the exact question, and No, Escape or backdrop preserve the memo');
+
+      await control('delete-note-button').click();
+      await control('delete-note-confirm').click();
+      await control('delete-note-error').waitFor({state: 'visible'});
+      assert.equal(await control('delete-note-dialog').isVisible(), true);
+      assert.equal(await control('note-editor').inputValue(), originalText);
+      assert.equal(await deleting.evaluate(() => window.__deleteFixture.calls.deletes), 1);
+      await deleting.evaluate(() => window.__deleteFixture.succeed());
+      await control('delete-note-confirm').click();
+      await deleting.waitForFunction(() => window.__deleteFixture.calls.deletes === 2);
+      assert.equal(await control('delete-note-confirm').isDisabled(), true);
+      assert.equal(await control('delete-note-cancel').isDisabled(), true);
+      await control('delete-note-confirm').dispatchEvent('click');
+      assert.equal(await deleting.evaluate(() => window.__deleteFixture.calls.deletes), 2);
+      await deleting.evaluate(() => window.__deleteFixture.release());
+      await deleting.waitForFunction(() => document.querySelector('#app').hidden);
+      assert.deepEqual(errors, [], 'delete confirmation and retry do not throw renderer errors');
+      pass('failed deletion keeps the memo and offers retry; pending confirmation cannot delete twice, and success hides the window content');
+    } finally { await deleteContext.close(); }
     console.log(`UI checks: ${passed} passed`);
   } finally {
     await browser.close();

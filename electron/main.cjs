@@ -33,6 +33,7 @@ let persistTimer;
 let pendingSaves = [];
 let writeQueue = Promise.resolve();
 let creationQueue = Promise.resolve();
+let emptyNoteOpening;
 let writeBlocker;
 let translationKeyStore;
 let pendingKeyMutations = 0;
@@ -116,8 +117,8 @@ async function flushPersist() {
   persistTimer = null;
   if (!pendingSaves.length) return writeQueue;
   const waiters = pendingSaves.splice(0);
-  const serialized = `${JSON.stringify(state, null, 2)}\n`;
-  const operation = writeQueue.then(() => atomicWrite(serialized));
+  // Snapshot when the write executes so a queued save cannot restore a deleted note.
+  const operation = writeQueue.then(() => atomicWrite(`${JSON.stringify(state, null, 2)}\n`));
   writeQueue = operation.catch(() => {});
   operation.then(
     () => waiters.forEach(waiter => waiter.resolve()),
@@ -161,6 +162,7 @@ function applyWindowLayer(context) {
 
 function activateNote(context, { forceRaise = false } = {}) {
   if (!context || context.window.isDestroyed()) return;
+  if (context.deleting) return publicState(context);
   if (restoringWindows) return publicState(context);
   const changed = markNoteActive(state, context.note.id);
   if ((changed || forceRaise) && context.window.isVisible()) {
@@ -193,7 +195,7 @@ function setWindowBounds(context, bounds, folded) {
 }
 
 function captureWindowBounds(context) {
-  if (context.applyingBounds || context.window.isDestroyed()) return;
+  if (context.deleting || context.applyingBounds || context.window.isDestroyed()) return;
   const bounds = context.window.getBounds();
   if (context.note.window.folded) context.note.window.foldedBounds = bounds;
   else context.note.window.expandedBounds = bounds;
@@ -278,6 +280,12 @@ async function showNote(note) {
 }
 
 function showAllNotes() {
+  if (!state.notes.length) {
+    if (!emptyNoteOpening) {
+      emptyNoteOpening = createNote().catch(reportError).finally(() => { emptyNoteOpening = null; });
+    }
+    return emptyNoteOpening;
+  }
   // Hidden notes are intentionally shown again on restart or tray activation.
   // Their folded state and the saved order are preserved.
   restoringWindows = true;
@@ -479,6 +487,44 @@ function createNote(source) {
   return operation;
 }
 
+function deleteNote(context) {
+  if (context.deleting) throw new Error('메모를 삭제하고 있습니다.');
+  context.deleting = true;
+  const operation = creationQueue.then(async () => {
+    if (quitPending || quitReady || !state.notes.includes(context.note)) throw new Error('메모를 삭제할 수 없습니다.');
+    context.translationService.cancelCurrent();
+    context.interaction = null;
+    await flushPersist();
+    const id = context.note.id;
+    const deletion = writeQueue.then(async () => {
+      const order = state.noteOrder.filter(noteId => noteId !== id);
+      const candidate = {
+        ...state, notes: state.notes.filter(note => note.id !== id), noteOrder: order,
+        activeNoteId: state.activeNoteId === id ? order.at(-1) || null : state.activeNoteId,
+      };
+      await atomicWrite(`${JSON.stringify(candidate, null, 2)}\n`);
+      // Retain sibling edits/activity that arrived during the atomic write.
+      state.notes = state.notes.filter(note => note.id !== id);
+      state.noteOrder = state.noteOrder.filter(noteId => noteId !== id);
+      if (state.activeNoteId === id) state.activeNoteId = state.noteOrder.at(-1) || null;
+      noteWindows.delete(id);
+      contextsByWebContents.delete(context.webContentsId);
+    });
+    writeQueue = deletion.catch(() => {});
+    await deletion;
+    emitAllStates();
+    updateTrayMenu();
+    const result = { deleted: true, noteId: id, noteCount: state.notes.length };
+    setTimeout(() => { if (!context.window.isDestroyed()) context.window.destroy(); }, 50);
+    return result;
+  }).catch(error => {
+    context.deleting = false;
+    throw error;
+  });
+  creationQueue = operation.catch(() => {});
+  return operation;
+}
+
 function registerIpc() {
   const handle = (channel, callback) => ipcMain.handle(`corner-note:${channel}`, (event, argument) => {
     const context = contextsByWebContents.get(event.sender.id);
@@ -486,11 +532,13 @@ function registerIpc() {
       || event.senderFrame !== context.window.webContents.mainFrame) {
       throw new Error('허용되지 않은 요청입니다.');
     }
+    if (context.deleting && channel !== 'get-state') throw new Error('메모를 삭제하고 있습니다.');
     // Window identity comes exclusively from the authenticated sender, never IPC data.
     return callback(context, argument);
   });
   handle('get-state', publicState);
   handle('create-note', createNote);
+  handle('delete-note', deleteNote);
   handle('activate-note', context => activateNote(context));
   handle('save-note', async (context, note) => {
     if (!note || typeof note.text !== 'string' || note.text.length > MAX_TEXT_LENGTH || !COLORS.has(note.color)) {
@@ -610,6 +658,7 @@ async function createWindow(note) {
   window.on('close', event => {
     if (!quitReady) {
       event.preventDefault();
+      if (context.deleting) return;
       hideNote(context);
       void flushPersist().catch(reportError);
     }
@@ -691,6 +740,7 @@ async function smokeTest() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  app.on('window-all-closed', () => {});
   app.on('second-instance', showAllNotes);
   app.on('activate', showAllNotes);
   app.on('before-quit', event => {

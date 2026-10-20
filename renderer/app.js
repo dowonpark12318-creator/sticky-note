@@ -14,6 +14,11 @@
   const helpPanel = document.querySelector('#help-panel');
   const helpButton = document.querySelector('#help-button');
   const addNoteButton = document.querySelector('#add-note-button');
+  const deleteNoteButton = document.querySelector('#delete-note-button');
+  const deleteNoteDialog = document.querySelector('#delete-note-dialog');
+  const deleteNoteConfirm = document.querySelector('#delete-note-confirm');
+  const deleteNoteCancel = document.querySelector('#delete-note-cancel');
+  const deleteNoteError = document.querySelector('#delete-note-error');
   const pinButton = document.querySelector('#always-on-top-button');
   const pinLabel = document.querySelector('#pin-label');
   const unfoldHandle = document.querySelector('#unfold-handle');
@@ -38,6 +43,7 @@
   let actionBusy = false;
   let pinBusy = false;
   let creatingNote = false;
+  let deletingNote = false;
 
   function normalizeState(value) {
     const source = value && typeof value === 'object' ? value : {};
@@ -92,6 +98,7 @@
     return {
       async getState() { return { ...browserState }; },
       async createNote() { throw new Error('새 메모는 Windows 앱에서 만들 수 있어요.'); },
+      async deleteNote() { throw new Error('메모 삭제는 Windows 앱에서 사용할 수 있어요.'); },
       async activateNote() { return { ...browserState }; },
       async saveNote(value) {
         const next = { ...browserState, text: value.text, color: value.color, savedAt: new Date().toISOString() };
@@ -480,6 +487,47 @@
     finally { pinBusy = false; pinButton.disabled = false; }
   });
   helpButton.addEventListener('click', () => setHelp(helpPanel.hidden));
+  deleteNoteButton.addEventListener('click', async () => {
+    if (!ready || actionBusy || deletingNote || deleteNoteDialog.open) return;
+    actionBusy = true;
+    deleteNoteButton.disabled = true;
+    try {
+      await finishInteraction(false);
+      if (!await persistNow()) return;
+      setHelp(false, false);
+      deleteNoteError.hidden = true;
+      deleteNoteDialog.showModal();
+    } catch { showToast('삭제 확인창을 열지 못했어요. 다시 시도해 주세요.'); }
+    finally { actionBusy = false; deleteNoteButton.disabled = false; }
+  });
+  deleteNoteCancel.addEventListener('click', () => { if (!deletingNote) deleteNoteDialog.close(); });
+  deleteNoteDialog.addEventListener('cancel', event => { if (deletingNote) event.preventDefault(); });
+  deleteNoteDialog.addEventListener('click', event => {
+    if (deletingNote || event.target !== deleteNoteDialog) return;
+    const bounds = deleteNoteDialog.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) deleteNoteDialog.close();
+  });
+  deleteNoteDialog.addEventListener('close', () => { if (!deletingNote && !app.hidden) deleteNoteButton.focus({ preventScroll: true }); });
+  deleteNoteConfirm.addEventListener('click', async () => {
+    if (deletingNote || !deleteNoteDialog.open) return;
+    deletingNote = true;
+    deleteNoteConfirm.disabled = true;
+    deleteNoteCancel.disabled = true;
+    deleteNoteError.hidden = true;
+    try {
+      const result = await bridge.deleteNote();
+      if (result?.deleted !== true) throw new Error('Deletion did not complete.');
+      app.hidden = true;
+      deleteNoteDialog.close();
+    } catch {
+      deleteNoteError.textContent = '메모를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.';
+      deleteNoteError.hidden = false;
+    } finally {
+      deletingNote = false;
+      deleteNoteConfirm.disabled = false;
+      deleteNoteCancel.disabled = false;
+    }
+  });
   addNoteButton.addEventListener('click', async () => {
     if (!ready || creatingNote) return;
     creatingNote = true;
@@ -585,6 +633,7 @@
     applyState(initial, true);
     ready = true;
     addNoteButton.disabled = false;
+    deleteNoteButton.disabled = false;
     textarea.disabled = false;
     pinButton.disabled = false;
     app.classList.remove('is-loading');

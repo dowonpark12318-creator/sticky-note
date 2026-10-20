@@ -34,6 +34,15 @@ button:disabled { cursor: default; opacity: .5; }
 .icon-button { display: grid; width: 27px; height: 27px; place-items: center; padding: 4px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); }
 .icon-button svg { width: 18px; height: 18px; }
 .icon-button:hover, .icon-button[aria-expanded="true"] { background: color-mix(in srgb, var(--accent), transparent 90%); color: var(--ink); }
+.delete-note-button:hover { background: #a23d3320; color: #963c32; }
+.delete-note-dialog { width: min(290px, calc(100vw - 40px)); max-height: calc(100vh - 40px); overflow: auto; margin: auto; padding: 22px 20px 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper-light); color: var(--ink); box-shadow: 0 8px 28px #30291138; -webkit-app-region: no-drag; }
+.delete-note-dialog::backdrop { background: #30291140; }
+.delete-note-dialog h2 { margin: 0; font-size: 16px; line-height: 1.7; letter-spacing: -.4px; }
+.delete-note-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.delete-note-actions button { min-width: 67px; min-height: 34px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); font-size: 12px; }
+.delete-note-actions .delete-note-confirm { border-color: var(--accent); background: var(--accent); color: var(--paper-light); }
+.delete-note-actions button:hover:not(:disabled) { filter: brightness(1.06); }
+.delete-note-error { margin: 12px 0 0; color: #963c32; font-size: 11px; line-height: 1.7; }
 .note-body { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: 8px 27px 17px; }
 .note-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; font-size: 10px; letter-spacing: -.15px; color: var(--muted); user-select: none; }
 .today { font-variant-numeric: tabular-nums; }
