@@ -28,9 +28,10 @@ button:disabled { cursor: default; opacity: .5; }
 .app.browser-preview { position: fixed; top: 0; left: 0; width: min(392px, 100vw); height: min(460px, 100vh); }
 .note { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--line), transparent 22%); border-radius: 15px; background: linear-gradient(148deg, var(--paper-light) -55%, var(--paper) 72%); box-shadow: 0 3px 7px #30291116, 0 1px 2px #30291114; }
 .titlebar { display: flex; align-items: center; justify-content: space-between; min-height: 55px; padding: 8px 18px 0 25px; -webkit-app-region: drag; user-select: none; }
-.brand { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: -.3px; }
-.brand-icon { width: 21px; height: 21px; color: var(--accent); }
-.window-controls { display: flex; align-items: center; gap: 1px; }
+.brand { min-width: 0; display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: -.3px; }
+.brand-icon { flex-shrink: 0; width: 21px; height: 21px; color: var(--accent); }
+.brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.window-controls { flex-shrink: 0; display: flex; align-items: center; gap: 1px; }
 .icon-button { display: grid; width: 27px; height: 27px; place-items: center; padding: 4px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); }
 .icon-button svg { width: 18px; height: 18px; }
 .icon-button:hover, .icon-button[aria-expanded="true"] { background: color-mix(in srgb, var(--accent), transparent 90%); color: var(--ink); }
@@ -67,8 +68,8 @@ button:disabled { cursor: default; opacity: .5; }
 .color-swatch svg { width: 12px; height: 12px; opacity: 0; }
 .color-swatch[aria-pressed="true"] svg { opacity: 1; }
 .color-swatch:hover { transform: translateY(-2px); }
-.fold-tip { font-size: 9px; color: var(--muted); letter-spacing: -.25px; }
-.fold-tip span { margin-left: 3px; font-size: 16px; color: var(--accent); }
+.fold-tip { max-width: 110px; line-height: 1.4; text-align: right; font-size: 9px; color: var(--muted); letter-spacing: -.25px; }
+.fold-tip span[aria-hidden] { margin-left: 3px; font-size: 16px; color: var(--accent); }
 .note-footer { display: flex; align-items: center; justify-content: space-between; min-height: 24px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--line), transparent 50%); font-size: 9px; color: var(--muted); user-select: none; }
 .save-status { display: inline-flex; align-items: center; gap: 5px; }
 .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: .7; }
@@ -102,7 +103,7 @@ button:disabled { cursor: default; opacity: .5; }
 .help-heading { display: flex; align-items: center; justify-content: space-between; gap: 3px; }
 .help-heading h1 { margin: 0; font-size: 14px; letter-spacing: -.5px; }
 .help-heading .icon-button { flex: 0 0 23px; width: 23px; height: 23px; }
-.help-panel p { margin: 7px 0 0; font-size: 10px; line-height: 1.8; color: var(--muted); letter-spacing: -.25px; }
+.help-panel p { white-space: pre-line; margin: 7px 0 0; font-size: 10px; line-height: 1.8; color: var(--muted); letter-spacing: -.25px; }
 .help-panel h2 { margin: 12px 0 0; font-size: 11px; letter-spacing: -.3px; }
 .gesture-example { display: flex; justify-content: center; align-items: flex-end; gap: 19px; margin: 11px 0 4px; height: 44px; }
 .example-sheet { width: 40px; height: 44px; padding: 10px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); box-shadow: 1px 2px 0 var(--paper-deep); transform: rotate(-6deg); }
@@ -114,6 +115,7 @@ button:disabled { cursor: default; opacity: .5; }
 .fold-actions button { min-height: 28px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); font-size: 10px; }
 .fold-actions button span { margin-right: 5px; color: var(--accent); }
 .fold-actions button:hover { background: var(--paper-deep); }
+.help-footer > span { white-space: pre-line; }
 .help-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 8px; color: var(--muted); }
 .help-footer button { flex-shrink: 0; padding: 3px 0 3px 5px; border: none; background: transparent; font-size: 9px; color: var(--muted); }
 .help-footer button:hover { color: var(--ink); text-decoration: underline; }

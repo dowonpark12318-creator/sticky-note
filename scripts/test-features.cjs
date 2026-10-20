@@ -21,7 +21,7 @@ function installMockBridge(options) {
     text: '', color: 'butter', folded: false, corner: 'top-right',
     alwaysOnTop: true, bounds: { x: 0, y: 0, width: 392, height: 460 },
     settings: { translationLanguages: [], tutorialCompleted: false },
-    systemLanguage: 'ko-KR', savedAt: null, ...options.initialState,
+    systemLanguage: 'ko-KR', uiLocale: 'ko-KR', savedAt: null, ...options.initialState,
   };
   if (sessionStorage.getItem(statusKey) === null) {
     sessionStorage.setItem(statusKey, String(options.configured !== false));

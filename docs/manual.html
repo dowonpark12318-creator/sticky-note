@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'"><title>Corner Note — User guide</title><link rel="stylesheet" href="manual.css"><script src="i18n.js" defer></script><script src="manual.js" defer></script></head><body><main>
+<section data-language="en"><h1>Corner Note · User guide</h1><pre>Corner Note
+Version 1.5.0
+
+GETTING STARTED
+1. Extract the entire ZIP to a new folder and run CornerNote.exe. Keep the executable and other files together.
+2. Windows 10/11 64-bit is required. No account or Node.js installation is needed for taking notes.
+3. Before updating, right-click the tray icon and choose Quit. The minus button only hides a note; it does not quit the app.
+4. The app follows your Windows preferred language: Korean or English. Other languages currently fall back to English. Your note text is never translated automatically.
+
+WRITING AND ARRANGING NOTES
+- The titlebar buttons are Help (?), New note (+), Hide (-), and Delete (x).
+- Click + to open another blank note. Notes may overlap. The last note you click or edit comes to the front.
+- Each note saves its text, color, size, position, and folded state automatically on your computer.
+- Drag the titlebar to move an unfolded note. Drag any of the four edges to resize it. Corners are used for folding.
+- Drag a corner toward the opposite corner by at least one third of the diagonal and release. The note folds into that corner of the screen.
+- Release sooner or press Escape while dragging to cancel folding.
+- Drag the body of a folded note to move it anywhere. Double-click its body to return it to the original folded corner without unfolding it.
+- Pull the small diagonal grip inward, or focus it and press Enter, to unfold.
+- Always on top applies to every note. When enabled, notes stay above other apps and are excluded from the taskbar. When disabled, use the taskbar or Alt+Tab to switch to them normally.
+- Click - to hide only that note. The tray menu lets you show individual notes, show all notes, or create a new one. Look in the taskbar&#x27;s hidden icon area if necessary.
+- Click x to ask whether to delete the current note. No cancels; Yes deletes that note and its saved text. Other notes are kept. Deleted notes do not return after restarting.
+- After the last note is deleted, the tray can open a new blank note. Restarting the app also creates a new blank note.
+- Choose Quit from the tray menu to close the app. Remaining notes and their window states return next time.
+
+FIRST-RUN GUIDE
+The five-step guide introduces moving, resizing, folding/unfolding, moving folded notes, and AI translation. Finish or skip it. To replay it, open Help (?) and select Take the tour again.
+
+TRANSLATING SELECTED TEXT
+Basic notes work offline without an API key. AI translation requires internet access and your own OpenAI API key. Open Help (?) &gt; AI translation settings to connect it. OpenAI API usage is billed separately from a ChatGPT subscription.
+
+1. Write some text. A Translate button appears in the center of the bottom toolbar.
+2. Drag to select the text you want to translate, click Translate, then choose a target language. The initial targets are your computer&#x27;s actual language and English, without duplicates.
+3. Use Add to search for additional language names or codes. Added languages are shared between notes and remembered.
+4. While a request is running, a spinner is shown. You can cancel the translation.
+5. Review the result, then Copy it or explicitly choose Replace selection. The original is never replaced automatically. If you edited the note during translation, copy the result instead.
+
+Only the selected text is sent to OpenAI, up to 6,000 characters per request.
+
+API KEY AND DATA
+The API connection, target-language list, guide completion, and always-on-top setting are shared between notes. Your API key is used only for the current session unless you explicitly choose Remember key on this computer. Remembered keys are encrypted using Electron safeStorage on Windows and stored separately from notes. If secure storage is unavailable, use the key for the current session only. Disconnect clears both the current and remembered key.
+
+Notes and shared preferences are stored in note-state.json in the app&#x27;s user data directory. The portable app normally uses %APPDATA%\Corner Note. A remembered encrypted key is in translation-key.json. Basic notes are not sent to a server. Deleting the portable program folder does not delete the saved notes. Store MSIX uses Windows package data rules; existing portable data migration must be checked before public release.
+
+WINDOWS AND BUILD INFORMATION
+The portable ZIP is an unsigned test build and may show Windows SmartScreen warnings. It does not request administrator privileges. Windows secure desktops, some exclusive full-screen apps, and other topmost windows may appear above notes.
+
+A Development MSIX is an unsigned build for validation, not a Microsoft Store release or a normal double-click installer. A Store build requires your Partner Center package identity. Microsoft signs the MSIX after certification; a local development installation requires a separately trusted test certificate.
+</pre></section>
+<section data-language="ko" hidden><h1>모서리 메모 · 사용 안내</h1><pre>모서리 메모 · Corner Note
+버전 1.5.0
+
+실행
+1. ZIP 파일을 폴더에 모두 풀어 주세요.
+2. CornerNote.exe를 실행하세요. 실행 파일만 따로 이동하면 실행되지 않습니다.
+3. Windows 10/11 64비트용입니다. 설치나 계정이 필요하지 않습니다.
+4. 업데이트할 때는 이전 버전을 트레이 메뉴에서 &#x27;종료&#x27;한 뒤, 새 ZIP을 새 폴더에 모두 풀고 그 안의 CornerNote.exe를 실행하세요. 기존 메모는 유지됩니다.
+
+사용
+• Windows 기본 설정 언어에 따라 한국어 또는 영어로 표시됩니다. 다른 언어는 현재 영어로 표시합니다. 작성한 메모는 자동 번역하지 않습니다.
+• 제목 표시줄의 &#x27;?&#x27;와 &#x27;−&#x27; 사이 &#x27;+&#x27;를 누르면 현재 메모 근처에 빈 메모가 추가됩니다.
+• 여러 메모를 자유롭게 겹쳐 놓을 수 있습니다. 마지막으로 클릭하거나 편집한 메모가 다른 메모 위로 올라옵니다.
+• 각 메모의 글·색상·크기·접힌 상태·위치는 따로 자동 저장됩니다. 한글 입력을 지원합니다.
+• 윗부분을 잡아 메모 창을 이동할 수 있습니다.
+• 네 변의 테두리를 잡아 끌면 메모 크기를 조절합니다. 모서리는 접기에 사용합니다.
+• 모서리를 잡고 반대편 방향으로 대각선 거리의 1/3 이상 끈 뒤 놓으면, 도착 방향의 화면 모서리에 접혀 고정됩니다. 1/3 미만에서 놓거나 Esc를 누르면 취소됩니다.
+• 접힌 메모의 몸체를 끌면 자유롭게 이동합니다. 다시 실행해도 이동한 위치가 유지됩니다.
+• 메모가 겹쳐 있어도 자동으로 흩어 놓거나 정렬하지 않습니다. 접기를 완료하는 순간에만 해당 방향의 화면 구석에 붙습니다.
+• 옮긴 접힌 메모의 몸체를 두 번 클릭하면 처음 접혔던 위치로 돌아옵니다. 계속 접힌 상태이며, 처음 위치도 재실행 후 유지됩니다.
+• 접힌 메모의 대각선 가장자리 손잡이를 화면 안쪽으로 당기거나, 키보드로 선택 후 Enter를 누르면 펼쳐집니다.
+• &#x27;항상 위&#x27;는 모든 메모에 함께 적용됩니다. 켜면 다른 앱 위에 고정되고 작업 표시줄에서 제외됩니다.
+• &#x27;항상 위&#x27;를 끄면 일반 창처럼 작업 표시줄과 Alt+Tab으로 전환할 수 있고 다른 창 뒤에 가려질 수 있습니다. 두 모드 모두 마지막으로 선택한 메모가 다른 메모 위로 올라옵니다. 이 설정도 자동 저장됩니다.
+• 제목 표시줄은 &#x27;? + − ×&#x27; 순서입니다. &#x27;−&#x27; 오른쪽의 &#x27;×&#x27;를 누르면 &#x27;정말 메모를 삭제할까요?&#x27;가 나옵니다. &#x27;아니요&#x27;는 취소하고, &#x27;네&#x27;는 해당 메모와 저장된 내용을 삭제합니다. 다른 메모는 유지됩니다.
+• 마지막 메모를 삭제해도 트레이에서 새 메모를 만들 수 있습니다. 다음 실행에는 새 빈 메모가 열립니다.
+• &#x27;−&#x27;는 현재 메모만 트레이로 숨깁니다. 작업 표시줄의 숨겨진 아이콘 영역도 확인하세요.
+• 트레이의 메모 아이콘 메뉴에서 각 메모를 다시 열거나, 모두 표시하거나, 새 메모를 만들 수 있습니다.
+• 트레이의 &#x27;종료&#x27;는 모든 메모 창을 닫습니다. 다시 실행하면 메모별 내용과 창 상태를 이어서 사용합니다.
+
+처음 실행 안내
+처음에는 이동, 크기 조절, 접기·펼치기, 접힌 메모 이동, AI 번역의 다섯 단계 안내가 나옵니다.
+완료하거나 건너뛸 수 있습니다. &#x27;?&#x27; 도움말의 &#x27;기능 둘러보기 다시 보기&#x27;에서 언제든 다시 열 수 있습니다.
+
+선택한 글 AI 번역
+메모 작성과 저장은 인터넷이나 API 키 없이 사용할 수 있습니다.
+AI 번역에는 인터넷과 본인의 OpenAI API 키가 필요합니다.
+OpenAI API 사용료는 ChatGPT 구독과 별도로 본인 API 계정에 청구됩니다.
+
+1. 앱의 &#x27;?&#x27; 도움말 → &#x27;AI 연결 설정&#x27;에서 본인의 OpenAI API 키를 입력해 연결하세요. 처음 번역할 때도 연결 안내를 받을 수 있습니다.
+2. 메모에 글을 입력하고 번역할 부분을 드래그해 선택하세요. 글이 있으면 아래 도구 모음 가운데에 &#x27;번역&#x27; 버튼이 나타납니다.
+3. &#x27;번역&#x27;을 누르고 언어를 선택하세요. 처음 목록에는 PC 언어(지역·문자 체계 포함)와 영어가 나옵니다. PC 언어가 영어이면 중복으로 표시하지 않습니다.
+4. &#x27;추가&#x27;에서 다른 언어를 찾아 넣을 수 있습니다. 추가한 목록은 다시 실행해도 유지됩니다.
+5. 번역 중에는 회전 표시가 나타납니다. 완료되면 결과를 미리 보고 &#x27;복사&#x27;하거나 &#x27;선택 부분 바꾸기&#x27;를 직접 누르세요. 메모는 자동으로 바뀌지 않습니다.
+
+번역을 요청할 때 선택한 글만 OpenAI로 전송됩니다. 한 번에 최대 6,000자까지 선택할 수 있습니다.
+번역 중 메모를 수정하면 원문 보호를 위해 &#x27;선택 부분 바꾸기&#x27;가 비활성화됩니다. 결과를 복사해 원하는 곳에 붙여 넣으세요.
+
+API 키 관리
+AI 연결, 추가한 언어 목록, 안내 완료 여부는 모든 메모가 공유합니다.
+기본값은 이번 실행에서만 사용하기입니다. 앱을 종료하면 키가 지워집니다.
+&#x27;이 컴퓨터에서 키 기억하기&#x27;를 직접 선택하면 Windows의 Electron safeStorage로 암호화해 별도로 보관합니다.
+안전한 저장을 사용할 수 없는 환경에서는 이번 실행에서만 사용합니다.
+API 키는 메모 파일(note-state.json)에 저장하지 않습니다.
+&#x27;?&#x27; 도움말 → &#x27;AI 연결 설정&#x27; → &#x27;연결 해제&#x27;를 누르면 실행 중인 키와 기억해 둔 키가 지워집니다.
+
+저장
+모든 메모와 공통 설정은 %APPDATA%\Corner Note\note-state.json 에 자동 저장됩니다.
+각 메모의 글·색상·크기·접힌 상태·위치는 따로 저장하며, &#x27;항상 위&#x27;·추가한 언어·안내 완료 여부는 공통 설정입니다.
+이전 버전의 단일 메모는 자동으로 새 형식으로 옮기므로 따로 복사할 필요가 없습니다.
+기본 메모 기능은 서버로 메모를 전송하지 않습니다. AI 번역을 요청할 때만 선택한 글이 OpenAI로 전송됩니다.
+기억하도록 선택한 키는 같은 폴더의 translation-key.json 에 암호화해 보관합니다.
+
+참고
+이 포터블 배포본은 코드 서명되지 않아 Windows SmartScreen 경고가 표시될 수 있습니다.
+앱 코드로 이 경고를 관리자 승인창으로 바꿀 수 없습니다. 앱은 관리자 권한을 요청하지 않습니다.
+관리자 권한을 요청하는 UAC 창은 실제 권한 상승을 위한 것이며 SmartScreen 경고를 해결하지 않습니다.
+공개 배포의 경고를 줄이려면 신원이 검증된 코드 서명과 배포 평판이 필요합니다. 서명한 새 파일도 처음에는 경고가 나올 수 있습니다.
+Microsoft Store의 MSIX 배포도 별도 선택지입니다. Microsoft 공식 안내:
+https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation
+Windows 보안 화면(UAC/잠금 화면), 일부 독점 전체 화면 앱, 다른 최상위 창보다 위에 표시되는 것은 보장하지 않습니다.
+
+MSIX 개발 빌드
+Development MSIX는 검증용 서명되지 않은 패키지이며 Microsoft Store에 출시된 앱이 아닙니다. 일반 더블클릭 설치에는 별도로 신뢰한 테스트 인증서가 필요합니다. Store 제출용 빌드에는 Partner Center 앱 식별정보가 필요하며, 심사를 통과하면 Microsoft가 배포용 MSIX에 서명합니다. Store 설치판에서 기존 포터블 메모를 가져오는 동작은 공개 출시 전에 별도로 검증해야 합니다.
+</pre></section>
+</main></body></html>

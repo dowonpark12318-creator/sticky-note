@@ -5,107 +5,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <meta name="color-scheme" content="light">
-    <title>모서리 메모</title>
+    <title data-i18n="appTitle">모서리 메모</title>
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="translation.css">
     <link rel="stylesheet" href="tutorial.css">
+    <script src="i18n.js" defer></script>
+    <script src="app-messages.js" defer></script>
     <script src="translation.js" defer></script>
     <script src="tutorial.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body data-color="butter">
     <main id="app" class="app is-loading">
-      <article id="note" class="note" aria-label="모서리 메모">
+      <article id="note" class="note" data-i18n-aria-label="appTitle" aria-label="모서리 메모">
         <header class="titlebar">
           <div class="brand">
             <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h14v10L14 20H5z" fill="currentColor"/><path d="M14 20v-5.5h5" stroke="var(--paper)" stroke-width="1.5"/><path d="M8.5 9h7M8.5 12h5" stroke="var(--paper)" stroke-width="1.5" stroke-linecap="round"/></svg>
-            <span>모서리 메모</span>
+            <span data-i18n="appTitle">모서리 메모</span>
           </div>
-          <nav class="window-controls" aria-label="메모 창">
-            <button id="help-button" data-testid="help-button" class="icon-button" type="button" aria-label="사용 방법과 메뉴" aria-expanded="false" aria-controls="help-panel" title="사용 방법과 메뉴">
+          <nav class="window-controls" data-i18n-aria-label="windowControls" aria-label="메모 창">
+            <button id="help-button" data-testid="help-button" class="icon-button" type="button" data-i18n-aria-label="helpMenu" aria-label="사용 방법과 메뉴" aria-expanded="false" aria-controls="help-panel" data-i18n-title="helpMenu" title="사용 방법과 메뉴">
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.6" stroke="currentColor" stroke-width="1.3"/><path d="M8.3 7.7a1.8 1.8 0 0 1 3.5.6c0 1.4-1.8 1.4-1.8 2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="13.7" r=".8" fill="currentColor"/></svg>
             </button>
-            <button id="add-note-button" data-testid="add-note-button" class="icon-button" type="button" aria-label="새 메모 만들기" title="새 메모 만들기" disabled>
+            <button id="add-note-button" data-testid="add-note-button" class="icon-button" type="button" data-i18n-aria-label="newNote" aria-label="새 메모 만들기" data-i18n-title="newNote" title="새 메모 만들기" disabled>
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4.5v11M4.5 10h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
-            <button id="hide-button" data-testid="hide-button" class="icon-button" type="button" aria-label="트레이로 숨기기" title="트레이로 숨기기">
+            <button id="hide-button" data-testid="hide-button" class="icon-button" type="button" data-i18n-aria-label="hideNote" aria-label="트레이로 숨기기" data-i18n-title="hideNote" title="트레이로 숨기기">
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
-            <button id="delete-note-button" data-testid="delete-note-button" class="icon-button delete-note-button" type="button" aria-label="이 메모 삭제" title="이 메모 삭제" disabled>
+            <button id="delete-note-button" data-testid="delete-note-button" class="icon-button delete-note-button" type="button" data-i18n-aria-label="deleteNote" aria-label="이 메모 삭제" data-i18n-title="deleteNote" title="이 메모 삭제" disabled>
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5.5 5.5 9 9m0-9-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
           </nav>
         </header>
 
-        <section class="note-body" aria-label="메모 작성">
+        <section class="note-body" data-i18n-aria-label="noteWriting" aria-label="메모 작성">
           <div class="note-meta">
             <time id="today" class="today"></time>
-            <button id="always-on-top-button" data-testid="always-on-top-button" class="pinned" type="button" aria-pressed="true" title="항상 위 표시 끄기" disabled><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m5 2 5 2-1.5 2.2.7 2.6-2.5-.5L4.6 10 4.3 7.5 2 6.4 4.5 5zM6.3 8.5 4 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="pin-label">항상 위</span></button>
+            <button id="always-on-top-button" data-testid="always-on-top-button" class="pinned" type="button" aria-pressed="true" data-i18n-title="pinTurnOff" title="항상 위 표시 끄기" disabled><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m5 2 5 2-1.5 2.2.7 2.6-2.5-.5L4.6 10 4.3 7.5 2 6.4 4.5 5zM6.3 8.5 4 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="pin-label" data-i18n="pinOn">항상 위</span></button>
           </div>
-          <label for="note-text" class="sr-only">메모 내용</label>
-          <textarea id="note-text" data-testid="note-editor" spellcheck="false" placeholder="잊지 않고 싶은 생각을&#10;여기에 적어 보세요." aria-describedby="save-status" disabled></textarea>
+          <label for="note-text" class="sr-only" data-i18n="noteContent">메모 내용</label>
+          <textarea id="note-text" data-testid="note-editor" spellcheck="false" data-i18n-placeholder="placeholder" placeholder="잊지 않고 싶은 생각을&#10;여기에 적어 보세요." aria-describedby="save-status" disabled></textarea>
           <div class="note-tools">
-            <div class="palette" role="group" aria-label="메모 색상">
-              <button class="color-swatch" data-testid="color-butter" data-color="butter" type="button" aria-label="버터 노랑" aria-pressed="true" title="버터 노랑"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-              <button class="color-swatch" data-testid="color-rose" data-color="rose" type="button" aria-label="로즈 분홍" aria-pressed="false" title="로즈 분홍"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-              <button class="color-swatch" data-testid="color-mint" data-color="mint" type="button" aria-label="민트 초록" aria-pressed="false" title="민트 초록"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-              <button class="color-swatch" data-testid="color-sky" data-color="sky" type="button" aria-label="하늘 파랑" aria-pressed="false" title="하늘 파랑"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <div class="palette" role="group" data-i18n-aria-label="colors" aria-label="메모 색상">
+              <button class="color-swatch" data-testid="color-butter" data-color="butter" type="button" data-i18n-aria-label="color.butter" aria-label="버터 노랑" aria-pressed="true" data-i18n-title="color.butter" title="버터 노랑"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button class="color-swatch" data-testid="color-rose" data-color="rose" type="button" data-i18n-aria-label="color.rose" aria-label="로즈 분홍" aria-pressed="false" data-i18n-title="color.rose" title="로즈 분홍"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button class="color-swatch" data-testid="color-mint" data-color="mint" type="button" data-i18n-aria-label="color.mint" aria-label="민트 초록" aria-pressed="false" data-i18n-title="color.mint" title="민트 초록"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button class="color-swatch" data-testid="color-sky" data-color="sky" type="button" data-i18n-aria-label="color.sky" aria-label="하늘 파랑" aria-pressed="false" data-i18n-title="color.sky" title="하늘 파랑"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 8 2.3 2.3 4.7-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             </div>
-            <span class="fold-tip">모서리를 당겨 접기 <span aria-hidden="true">↘</span></span>
+            <span class="fold-tip"><span class="fold-tip-label" data-i18n="foldTip">모서리를 당겨 접기</span> <span aria-hidden="true">↘</span></span>
           </div>
           <footer class="note-footer">
-            <span id="save-status" data-testid="save-status" class="save-status" role="status"><span class="status-dot" aria-hidden="true"></span><span id="save-label">불러오는 중…</span></span>
-            <span id="character-count" class="character-count" aria-label="글자 수">0자</span>
+            <span id="save-status" data-testid="save-status" class="save-status" role="status"><span class="status-dot" aria-hidden="true"></span><span id="save-label" data-i18n="loading">불러오는 중…</span></span>
+            <span id="character-count" class="character-count" data-i18n-aria-label="characterCountLabel" aria-label="글자 수">0자</span>
           </footer>
         </section>
 
-        <button class="resize-edge resize-left" data-testid="resize-left" data-edge="left" type="button" aria-label="왼쪽 변 크기 조절: 좌우 방향키로도 조절" title="드래그하여 너비 조절 · ← → 키"></button>
-        <button class="resize-edge resize-right" data-testid="resize-right" data-edge="right" type="button" aria-label="오른쪽 변 크기 조절: 좌우 방향키로도 조절" title="드래그하여 너비 조절 · ← → 키"></button>
-        <button class="resize-edge resize-top" data-testid="resize-top" data-edge="top" type="button" aria-label="위쪽 변 크기 조절: 위아래 방향키로도 조절" title="드래그하여 높이 조절 · ↑ ↓ 키"></button>
-        <button class="resize-edge resize-bottom" data-testid="resize-bottom" data-edge="bottom" type="button" aria-label="아래쪽 변 크기 조절: 위아래 방향키로도 조절" title="드래그하여 높이 조절 · ↑ ↓ 키"></button>
+        <button class="resize-edge resize-left" data-testid="resize-left" data-edge="left" type="button" data-i18n-aria-label="resize.left" aria-label="왼쪽 변 크기 조절: 좌우 방향키로도 조절" data-i18n-title="resizeWidth" title="드래그하여 너비 조절 · ← → 키"></button>
+        <button class="resize-edge resize-right" data-testid="resize-right" data-edge="right" type="button" data-i18n-aria-label="resize.right" aria-label="오른쪽 변 크기 조절: 좌우 방향키로도 조절" data-i18n-title="resizeWidth" title="드래그하여 너비 조절 · ← → 키"></button>
+        <button class="resize-edge resize-top" data-testid="resize-top" data-edge="top" type="button" data-i18n-aria-label="resize.top" aria-label="위쪽 변 크기 조절: 위아래 방향키로도 조절" data-i18n-title="resizeHeight" title="드래그하여 높이 조절 · ↑ ↓ 키"></button>
+        <button class="resize-edge resize-bottom" data-testid="resize-bottom" data-edge="bottom" type="button" data-i18n-aria-label="resize.bottom" aria-label="아래쪽 변 크기 조절: 위아래 방향키로도 조절" data-i18n-title="resizeHeight" title="드래그하여 높이 조절 · ↑ ↓ 키"></button>
 
-        <button class="corner-handle top-left" data-testid="fold-handle-top-left" data-corner="top-left" type="button" aria-label="왼쪽 위 모서리: 오른쪽 아래로 끌어 접기" title="오른쪽 아래로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
-        <button class="corner-handle top-right" data-testid="fold-handle-top-right" data-corner="top-right" type="button" aria-label="오른쪽 위 모서리: 왼쪽 아래로 끌어 접기" title="왼쪽 아래로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
-        <button class="corner-handle bottom-left" data-testid="fold-handle-bottom-left" data-corner="bottom-left" type="button" aria-label="왼쪽 아래 모서리: 오른쪽 위로 끌어 접기" title="오른쪽 위로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
-        <button class="corner-handle bottom-right" data-testid="fold-handle-bottom-right" data-corner="bottom-right" type="button" aria-label="오른쪽 아래 모서리: 왼쪽 위로 끌어 접기" title="왼쪽 위로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+        <button class="corner-handle top-left" data-testid="fold-handle-top-left" data-corner="top-left" type="button" data-i18n-aria-label="fold.top-left" aria-label="왼쪽 위 모서리: 오른쪽 아래로 끌어 접기" data-i18n-title="foldToward.bottom-right" title="오른쪽 아래로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+        <button class="corner-handle top-right" data-testid="fold-handle-top-right" data-corner="top-right" type="button" data-i18n-aria-label="fold.top-right" aria-label="오른쪽 위 모서리: 왼쪽 아래로 끌어 접기" data-i18n-title="foldToward.bottom-left" title="왼쪽 아래로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+        <button class="corner-handle bottom-left" data-testid="fold-handle-bottom-left" data-corner="bottom-left" type="button" data-i18n-aria-label="fold.bottom-left" aria-label="왼쪽 아래 모서리: 오른쪽 위로 끌어 접기" data-i18n-title="foldToward.top-right" title="오른쪽 위로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+        <button class="corner-handle bottom-right" data-testid="fold-handle-bottom-right" data-corner="bottom-right" type="button" data-i18n-aria-label="fold.bottom-right" aria-label="오른쪽 아래 모서리: 왼쪽 위로 끌어 접기" data-i18n-title="foldToward.top-left" title="왼쪽 위로 끌어 접기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14V5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
 
         <div id="fold-preview" class="fold-preview" aria-hidden="true"></div>
         <div id="gesture-hint" class="gesture-hint" role="status" hidden>
-          <span id="gesture-label">대각선 거리의 1/3만 당겨 주세요</span>
+          <span id="gesture-label" data-i18n="foldThreshold">대각선 거리의 1/3만 당겨 주세요</span>
           <span class="gesture-track"><span id="gesture-progress"></span></span>
         </div>
 
         <section id="help-panel" class="help-panel" role="dialog" aria-labelledby="help-title" hidden>
-          <div class="help-heading"><h1 id="help-title">작은 메모, 늘 이 자리에.</h1><button id="close-help" class="icon-button" type="button" aria-label="메뉴 닫기"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button></div>
-          <p class="help-intro">+로 새 메모를 만들고 자유롭게 겹쳐 놓으세요.<br>마지막으로 클릭하거나 편집한 메모가 위로 올라와요.<br>‘항상 위’ 설정은 모든 메모에 함께 적용돼요.</p>
+          <div class="help-heading"><h1 id="help-title" data-i18n="helpTitle">작은 메모, 늘 이 자리에.</h1><button id="close-help" class="icon-button" type="button" data-i18n-aria-label="closeMenu" aria-label="메뉴 닫기"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button></div>
+          <p class="help-intro" data-i18n="helpIntro">+로 새 메모를 만들고 자유롭게 겹쳐 놓으세요.<br>마지막으로 클릭하거나 편집한 메모가 위로 올라와요.<br>‘항상 위’ 설정은 모든 메모에 함께 적용돼요.</p>
           <div class="gesture-example" aria-hidden="true"><span class="example-sheet"><span></span><span></span><span></span></span><span class="example-arrow">↘</span><span class="example-corner"></span></div>
-          <h2>당겨서 접고, 당겨서 펴세요</h2>
-          <p>메모 모서리를 대각선 거리의 1/3만 당기면<br>그쪽 화면 구석에 접어 둘 수 있어요.</p>
-          <p>접힌 메모를 끌면 원하는 위치로 옮겨져요.<br>두 번 클릭하면 처음 접힌 위치로 돌아가요.<br>대각선 손잡이를 안쪽으로 당기거나 Enter를 누르면 펴져요.</p>
-          <div class="fold-actions" role="group" aria-label="화면 구석으로 접기">
-            <button type="button" data-fold-to="top-left"><span aria-hidden="true">↖</span> 왼쪽 위</button>
-            <button type="button" data-fold-to="top-right"><span aria-hidden="true">↗</span> 오른쪽 위</button>
-            <button type="button" data-fold-to="bottom-left"><span aria-hidden="true">↙</span> 왼쪽 아래</button>
-            <button type="button" data-fold-to="bottom-right"><span aria-hidden="true">↘</span> 오른쪽 아래</button>
+          <h2 data-i18n="helpFoldTitle">당겨서 접고, 당겨서 펴세요</h2>
+          <p data-i18n="helpFold">메모 모서리를 대각선 거리의 1/3만 당기면<br>그쪽 화면 구석에 접어 둘 수 있어요.</p>
+          <p data-i18n="helpMove">접힌 메모를 끌면 원하는 위치로 옮겨져요.<br>두 번 클릭하면 처음 접힌 위치로 돌아가요.<br>대각선 손잡이를 안쪽으로 당기거나 Enter를 누르면 펴져요.</p>
+          <div class="fold-actions" role="group" data-i18n-aria-label="foldActions" aria-label="화면 구석으로 접기">
+            <button type="button" data-fold-to="top-left"><span aria-hidden="true">↖</span> <span data-i18n="corner.top-left">왼쪽 위</span></button>
+            <button type="button" data-fold-to="top-right"><span aria-hidden="true">↗</span> <span data-i18n="corner.top-right">오른쪽 위</span></button>
+            <button type="button" data-fold-to="bottom-left"><span aria-hidden="true">↙</span> <span data-i18n="corner.bottom-left">왼쪽 아래</span></button>
+            <button type="button" data-fold-to="bottom-right"><span aria-hidden="true">↘</span> <span data-i18n="corner.bottom-right">오른쪽 아래</span></button>
           </div>
-          <div class="help-footer"><span>각 메모는 자동 저장돼요.<br>−로 숨겨도 트레이에서 다시 열 수 있어요.</span><button id="quit-button" type="button">앱 종료</button></div>
+          <div class="help-footer"><span data-i18n="helpFooter">각 메모는 자동 저장돼요.<br>−로 숨겨도 트레이에서 다시 열 수 있어요.</span><button id="quit-button" type="button" data-i18n="quit">앱 종료</button></div>
         </section>
       </article>
 
-      <div id="folded-note" data-testid="folded-note" class="folded-note" role="button" tabindex="0" data-corner="top-right" aria-label="접힌 메모: 끌어서 이동, 두 번 클릭하여 처음 접힌 위치로 복귀, Enter로 펼치기" title="끌어서 이동 · 두 번 클릭하여 처음 접힌 위치로 복귀 · Enter로 펼치기" hidden>
+      <div id="folded-note" data-testid="folded-note" class="folded-note" role="button" tabindex="0" data-corner="top-right" aria-label="접힌 메모: 끌어서 이동, 두 번 클릭하여 처음 접힌 위치로 복귀, Enter로 펼치기" data-i18n-title="foldedTitle" title="끌어서 이동 · 두 번 클릭하여 처음 접힌 위치로 복귀 · Enter로 펼치기" hidden>
         <svg class="folded-lines" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M5 7h17M5 13h13M5 19h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span class="folded-dot" aria-hidden="true"></span>
-        <span id="unfold-handle" data-testid="unfold-handle" class="unfold-handle" role="button" tabindex="0" aria-label="접힌 메모 펼치기: 화면 안쪽으로 끌거나 Enter" title="안쪽으로 당겨 펼치기 · Enter"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 6-6m-3 10 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-        <span class="sr-only">Enter 키로 메모 펼치기</span>
+        <span id="unfold-handle" data-testid="unfold-handle" class="unfold-handle" role="button" tabindex="0" aria-label="접힌 메모 펼치기: 화면 안쪽으로 끌거나 Enter" data-i18n-title="unfoldTitle" title="안쪽으로 당겨 펼치기 · Enter"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 6-6m-3 10 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="sr-only" data-i18n="unfoldKeyboard">Enter 키로 메모 펼치기</span>
       </div>
       <div id="toast" class="toast" role="status" hidden></div>
       <dialog id="delete-note-dialog" data-testid="delete-note-dialog" class="delete-note-dialog" aria-labelledby="delete-note-title">
-        <h2 id="delete-note-title">정말 메모를 삭제할까요?</h2>
+        <h2 id="delete-note-title" data-i18n="deleteQuestion">정말 메모를 삭제할까요?</h2>
         <p id="delete-note-error" data-testid="delete-note-error" class="delete-note-error" role="alert" hidden></p>
         <div class="delete-note-actions">
-          <button id="delete-note-cancel" data-testid="delete-note-cancel" type="button" autofocus>아니요</button>
-          <button id="delete-note-confirm" data-testid="delete-note-confirm" class="delete-note-confirm" type="button">네</button>
+          <button id="delete-note-cancel" data-testid="delete-note-cancel" type="button" autofocus data-i18n="no">아니요</button>
+          <button id="delete-note-confirm" data-testid="delete-note-confirm" class="delete-note-confirm" type="button" data-i18n="yes">네</button>
         </div>
       </dialog>
     </main>

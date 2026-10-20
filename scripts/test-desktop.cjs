@@ -30,13 +30,13 @@ async function main() {
     await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
     return page;
   }
-  async function launch() {
+  async function launch(locale = 'ko-KR') {
     application = await electron.launch({
       executablePath: require('electron'),
       chromiumSandbox: process.env.ELECTRON_TEST_NO_SANDBOX !== '1',
-      args: [root, `--user-data-dir=${directory}`, '--disable-gpu',
+      args: [root, `--user-data-dir=${directory}`, '--disable-gpu', `--test-system-language=${locale}`,
         ...(process.env.ELECTRON_TEST_NO_SANDBOX === '1' ? ['--no-sandbox'] : [])],
-      env: {...process.env, XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || path.join(directory, 'cache')},
+      env: {...process.env, CORNER_NOTE_E2E: '1', XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || path.join(directory, 'cache')},
       timeout: 30000
     });
     const page = await application.firstWindow();
@@ -832,6 +832,24 @@ async function main() {
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
     assert.equal(saved.notes[0].text, '복구한 새 메모');
     pass('damaged save is preserved for recovery and the app can save again');
+    page = await launch('en-US');
+    const englishState = await stateFor(page);
+    assert.equal(englishState.systemLanguage, 'en-US');
+    assert.match(englishState.uiLocale, /^en(?:-|$)/);
+    assert.match(await page.locator('html').getAttribute('lang'), /^en(?:-|$)/);
+    assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), 'Corner Note');
+    assert.equal(await page.getByTestId('note-editor').inputValue(), '복구한 새 메모');
+    await page.getByTestId('help-button').click();
+    assert.equal(await page.locator('#help-title').textContent(), 'A little note, right where you need it.');
+    await page.locator('#close-help').click();
+    await page.getByTestId('delete-note-button').click();
+    await page.getByTestId('delete-note-dialog').waitFor({state: 'visible'});
+    assert.equal(await page.locator('#delete-note-title').textContent(), 'Delete this note?');
+    assert.equal(await page.getByTestId('delete-note-cancel').textContent(), 'No');
+    await page.getByTestId('delete-note-cancel').click();
+    await quit(page);
+    assert.equal((await readSaved()).notes[0].text, '복구한 새 메모');
+    pass('the Windows system-language preference localizes native title, menu/help and deletion UI without translating stored memo content');
     console.log(`Desktop checks: ${passed} passed`);
   } finally {
     if (application) await application.close().catch(() => {});

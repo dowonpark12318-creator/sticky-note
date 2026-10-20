@@ -9,7 +9,7 @@
     translate: `<svg viewBox="0 0 260 130" fill="none" aria-hidden="true"><rect x="35" y="12" width="147" height="105" rx="9" class="ct-art-paper"/><rect x="48" y="31" width="99" height="18" rx="3" class="ct-art-highlight"/><text x="55" y="44" class="ct-art-text">오늘도 좋은 하루</text><path d="M49 62h84m-84 12h107" class="ct-art-ink"/><rect x="111" y="83" width="55" height="24" rx="7" class="ct-art-button"/><text x="122" y="99" class="ct-art-button-text">✦ 번역</text><rect x="167" y="33" width="70" height="73" rx="8" class="ct-art-menu"/><text x="179" y="51" class="ct-art-menu-text">한국어</text><path d="M176 59h51" class="ct-art-rule"/><text x="179" y="74" class="ct-art-menu-text">English</text><text x="179" y="96" class="ct-art-menu-add">＋ 추가</text></svg>`,
   };
 
-  const STEPS = [
+  const STEPS = { ko: [
     {
       label: '나만의 자리', title: '메모를 원하는 곳으로', art: 'move',
       body: '제목 표시줄을 끌어 옮기고, +로 새 메모를 만들어요. 겹친 메모는 마지막으로 클릭한 것이 위로 올라와요.',
@@ -35,7 +35,50 @@
       body: '글을 쓰면 아래 가운데에 ‘번역’ 버튼이 나타나요. 번역할 글을 드래그해 선택한 뒤 버튼과 언어를 차례로 눌러요.',
       detail: '컴퓨터 기본 언어·영어 외에도 ‘추가’로 언어를 넣을 수 있어요. 처음에는 내 OpenAI API 키를 설정해 주세요. 선택한 글만 전송되며 API 이용료가 발생할 수 있어요.',
     },
-  ];
+  ], en: [
+    {
+      label: 'Your own space', title: 'Put notes where you need them', art: 'move',
+      body: 'Drag the title bar to move a note. Use + to make another note. When notes overlap, the one you last click comes to the front.',
+      detail: 'Always on top applies to all your notes. Turn it off to switch back to your notes with Alt + Tab, just like other windows.',
+    },
+    {
+      label: 'Just the right size', title: 'Drag an edge to resize', art: 'resize',
+      body: 'Move the pointer over the top, bottom, left or right edge of a note to see the resize cursor.',
+      detail: 'Drag an edge to make the note larger or smaller. Use the corners to fold it instead.',
+    },
+    {
+      label: 'Fold it away', title: 'Fold and unfold diagonally', art: 'fold',
+      body: 'Drag a note corner one third of the way across its diagonal, then release it. The note folds into that corner of the screen.',
+      detail: 'Pull the small diagonal grip toward the middle of the screen, or press Enter, to unfold the note.',
+    },
+    {
+      label: 'Move freely, even folded', title: 'Move a folded note', art: 'foldedMove',
+      body: 'A note first folds into a screen corner. After that, drag the folded note itself anywhere you like.',
+      detail: 'Double-click a moved folded note to return it to its original corner. Its position and text are saved automatically.',
+    },
+    {
+      label: 'Your thoughts in another language', title: 'Translate selected text with AI', art: 'translate',
+      body: 'After you write something, Translate appears in the middle of the bottom toolbar. Select the text you want, click Translate, then choose a language.',
+      detail: 'Your computer language and English are listed first. Use Add for more languages. Connect your own OpenAI API key to begin. Only selected text is sent, and API usage may cost money.',
+    },
+  ] };
+
+  const MESSAGES = {
+    ko: {
+      brand: '모서리 메모 시작하기', skip: '건너뛰기', skipTitle: '안내를 마치고 메모로 돌아가기',
+      progress: '튜토리얼 진행 상황', back: '이전', next: '다음', finish: '메모 시작하기',
+      step: '{number}단계', reopen: '기능 둘러보기 다시 보기',
+      saveError: '안내 설정을 저장하지 못했어요. 다음 실행 때 다시 표시될 수 있어요.',
+      sample: '오늘도 좋은 하루', translate: '✦ 번역', language: '한국어', english: 'English', add: '＋ 추가',
+    },
+    en: {
+      brand: 'Getting started with Corner Note', skip: 'Skip', skipTitle: 'Finish the tour and return to your note',
+      progress: 'Tutorial progress', back: 'Back', next: 'Next', finish: 'Start writing',
+      step: 'Step {number}', reopen: 'Show the feature tour again',
+      saveError: 'Could not save your tour preference. The tour may appear again next time.',
+      sample: 'A lovely day', translate: '✦ Translate', language: 'Korean', english: 'English', add: '＋ Add',
+    },
+  };
 
   function init({ bridge, textarea, note, showToast = () => {}, initialState = {} }) {
     const app = document.querySelector('#app');
@@ -43,6 +86,9 @@
     const existing = app.querySelector('.corner-tutorial-shell');
     if (existing) return existing._cornerTutorial;
 
+    const i18n = window.CornerI18n.createI18n(initialState.uiLocale || initialState.systemLanguage || navigator.languages, MESSAGES);
+    const { t, locale } = i18n;
+    const steps = STEPS[i18n.language] || STEPS.en;
     const helpPanel = document.querySelector('#help-panel');
     const helpButton = document.querySelector('#help-button');
     const shell = document.createElement('section');
@@ -51,8 +97,8 @@
     shell.innerHTML = `
       <section class="corner-tutorial-dialog" role="dialog" aria-modal="true" aria-labelledby="corner-tutorial-title" aria-describedby="corner-tutorial-body corner-tutorial-detail" data-testid="tutorial-dialog">
         <header class="corner-tutorial-header">
-          <span class="corner-tutorial-brand"><span aria-hidden="true">✦</span> 모서리 메모 시작하기</span>
-          <button class="corner-tutorial-skip" type="button" data-testid="tutorial-skip" title="안내를 마치고 메모로 돌아가기">건너뛰기</button>
+          <span class="corner-tutorial-brand"><span aria-hidden="true">✦</span> ${t('brand')}</span>
+          <button class="corner-tutorial-skip" type="button" data-testid="tutorial-skip" title="${t('skipTitle')}">${t('skip')}</button>
         </header>
         <div class="corner-tutorial-content">
           <div class="corner-tutorial-illustration"></div>
@@ -62,12 +108,12 @@
           <p id="corner-tutorial-detail" class="corner-tutorial-detail"></p>
         </div>
         <footer class="corner-tutorial-footer">
-          <div class="corner-tutorial-progress" role="group" aria-label="튜토리얼 진행 상황"></div>
+          <div class="corner-tutorial-progress" role="group" aria-label="${t('progress')}"></div>
           <span class="corner-tutorial-step-count" role="status" aria-live="polite" aria-atomic="true"></span>
           <div class="corner-tutorial-actions">
-            <button class="corner-tutorial-back" type="button" data-testid="tutorial-back">이전</button>
-            <button class="corner-tutorial-next" type="button" data-testid="tutorial-next">다음 <span aria-hidden="true">→</span></button>
-            <button class="corner-tutorial-finish" type="button" data-testid="tutorial-finish" hidden>메모 시작하기 <span aria-hidden="true">✓</span></button>
+            <button class="corner-tutorial-back" type="button" data-testid="tutorial-back">${t('back')}</button>
+            <button class="corner-tutorial-next" type="button" data-testid="tutorial-next">${t('next')} <span aria-hidden="true">→</span></button>
+            <button class="corner-tutorial-finish" type="button" data-testid="tutorial-finish" hidden>${t('finish')} <span aria-hidden="true">✓</span></button>
           </div>
         </footer>
       </section>`;
@@ -80,10 +126,10 @@
     const backButton = shell.querySelector('[data-testid="tutorial-back"]');
     const finishButton = shell.querySelector('[data-testid="tutorial-finish"]');
     const progress = shell.querySelector('.corner-tutorial-progress');
-    const dots = STEPS.map((_, index) => {
+    const dots = steps.map((_, index) => {
       const dot = document.createElement('span');
       dot.className = 'corner-tutorial-dot';
-      dot.setAttribute('aria-label', `${index + 1}단계`);
+      dot.setAttribute('aria-label', t('step', { number: new Intl.NumberFormat(locale).format(index + 1) }));
       progress.append(dot);
       return dot;
     });
@@ -113,17 +159,27 @@
     }
 
     function render(focusTitle = true) {
-      const step = STEPS[stepIndex];
+      const step = steps[stepIndex];
       shell.dataset.step = String(stepIndex + 1);
       shell.querySelector('.corner-tutorial-illustration').innerHTML = ILLUSTRATIONS[step.art];
+      if (step.art === 'translate') {
+        const labels = ['sample', 'translate', 'language', 'english', 'add'];
+        shell.querySelectorAll('.corner-tutorial-illustration text').forEach((text, index) => {
+          text.textContent = t(labels[index]);
+          if (index === 1 && i18n.language !== 'ko') {
+            text.setAttribute('textLength', '40');
+            text.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+          }
+        });
+      }
       shell.querySelector('.corner-tutorial-eyebrow').textContent = step.label;
       title.textContent = step.title;
       shell.querySelector('.corner-tutorial-body').textContent = step.body;
       shell.querySelector('.corner-tutorial-detail').textContent = step.detail;
-      shell.querySelector('.corner-tutorial-step-count').textContent = `${stepIndex + 1} / ${STEPS.length}`;
+      shell.querySelector('.corner-tutorial-step-count').textContent = `${new Intl.NumberFormat(locale).format(stepIndex + 1)} / ${new Intl.NumberFormat(locale).format(steps.length)}`;
       backButton.disabled = stepIndex === 0;
-      nextButton.hidden = stepIndex === STEPS.length - 1;
-      finishButton.hidden = stepIndex !== STEPS.length - 1;
+      nextButton.hidden = stepIndex === steps.length - 1;
+      finishButton.hidden = stepIndex !== steps.length - 1;
       dots.forEach((dot, index) => {
         dot.classList.toggle('is-current', index === stepIndex);
         if (index === stepIndex) dot.setAttribute('aria-current', 'step');
@@ -172,12 +228,12 @@
         const result = await bridge.updatePreferences({ tutorialCompleted: true });
         if (result && typeof result === 'object') currentState = result;
       } catch {
-        showToast('안내 설정을 저장하지 못했어요. 다음 실행 때 다시 표시될 수 있어요.');
+        showToast(t('saveError'));
       } finally { finishing = false; }
     }
 
     nextButton.addEventListener('click', () => {
-      if (stepIndex < STEPS.length - 1) { stepIndex += 1; render(); }
+      if (stepIndex < steps.length - 1) { stepIndex += 1; render(); }
     });
     backButton.addEventListener('click', () => {
       if (stepIndex > 0) { stepIndex -= 1; render(); }
@@ -213,7 +269,7 @@
     reopenButton.type = 'button';
     reopenButton.className = 'corner-tutorial-reopen';
     reopenButton.dataset.testid = 'tutorial-reopen';
-    reopenButton.innerHTML = '<span aria-hidden="true">✦</span> 기능 둘러보기 다시 보기 <span aria-hidden="true">→</span>';
+    reopenButton.innerHTML = `<span aria-hidden="true">✦</span> ${t('reopen')} <span aria-hidden="true">→</span>`;
     reopenButton.addEventListener('click', open);
     if (helpPanel) {
       const footer = helpPanel.querySelector('.help-footer');

@@ -86,7 +86,7 @@ async function main() {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const executablePath = process.env.CHROMIUM_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
   const browser = await chromium.launch({headless: true, executablePath});
-  const context = await browser.newContext({viewport: {width: 392, height: 460}});
+  const context = await browser.newContext({viewport: {width: 392, height: 460}, locale: 'ko-KR'});
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -290,7 +290,7 @@ async function main() {
     assert.deepEqual(errors, [], 'new interactions do not throw renderer errors');
     pass('moved folded note survives reload, double-click returns to its first anchor without unfolding or changing content, and Enter unfolds');
 
-    const delayedContext = await browser.newContext({viewport: {width: 88, height: 88}});
+    const delayedContext = await browser.newContext({viewport: {width: 88, height: 88}, locale: 'ko-KR'});
     await delayedContext.addInitScript(installDelayedFoldedBridge);
     const delayed = await delayedContext.newPage();
     delayed.on('pageerror', error => errors.push(error.message));
@@ -322,7 +322,7 @@ async function main() {
       assert.deepEqual(errors, [], 'delayed gesture completion does not throw renderer errors');
       pass('double-click waits for a delayed folded movement to finish and returns without a clipped notification');
     } finally { await delayedContext.close(); }
-    const deleteContext = await browser.newContext({viewport: {width: 392, height: 460}});
+    const deleteContext = await browser.newContext({viewport: {width: 392, height: 460}, locale: 'ko-KR'});
     await deleteContext.addInitScript(installDeleteBridge);
     const deleting = await deleteContext.newPage();
     deleting.on('pageerror', error => errors.push(error.message));

@@ -23,7 +23,12 @@ async function main() {
     download: {cacheRoot: process.env.ELECTRON_CACHE || path.join(root, '.cache', 'electron')}
   });
   const appPath = output[0];
-  await fs.copyFile(path.join(root, 'WINDOWS-사용방법.txt'), path.join(appPath, '먼저 읽어주세요.txt'));
+  const helpPath = path.join(appPath, 'Help');
+  await fs.mkdir(helpPath, { recursive: true });
+  for (const filename of ['manual.html', 'manual.js', 'manual.css', 'manual.en.txt', 'manual.ko.txt']) {
+    await fs.copyFile(path.join(root, 'docs', filename), path.join(helpPath, filename));
+  }
+  await fs.copyFile(path.join(root, 'renderer', 'i18n.js'), path.join(helpPath, 'i18n.js'));
   const zipPath = path.join(root, 'dist', 'CornerNote-Windows-x64.zip');
   await fs.rm(zipPath, {force: true});
   if (process.platform === 'win32') {

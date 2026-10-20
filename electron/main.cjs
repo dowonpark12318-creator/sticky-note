@@ -5,6 +5,8 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { createI18n } = require('../renderer/i18n.js');
+const nativeMessages = require('./native-messages.cjs');
 const { canonicalLanguage, createTranslationService } = require('./translation.cjs');
 const { createTranslationKeyStore } = require('./translation-key-store.cjs');
 const { COLORS, MAX_TEXT_LENGTH, MAX_NOTES, createEmptyNote, createDefaultState, normalizeState, markNoteActive, orderedNotes, resolveFoldedAnchor } = require('./note-store.cjs');
@@ -38,6 +40,8 @@ let writeBlocker;
 let translationKeyStore;
 let pendingKeyMutations = 0;
 let systemLanguage = 'en-US';
+let ui = createI18n(['en-US'], nativeMessages);
+const t = (key, values) => ui.t(key, values);
 let state = createDefaultState();
 let tutorialNoteId = state.activeNoteId;
 
@@ -50,7 +54,7 @@ function publicState(context) {
     folded: note.window.folded, corner: note.window.corner, savedAt: note.savedAt,
     alwaysOnTop: state.alwaysOnTop,
     settings: { ...state.settings, translationLanguages: [...state.settings.translationLanguages] },
-    systemLanguage,
+    systemLanguage, uiLocale: ui.locale,
     bounds: !context.window.isDestroyed() ? context.window.getBounds() : null,
   };
 }
@@ -438,7 +442,7 @@ async function finishQuit() {
 function quitFromMenu() {
   void finishQuit().catch(error => {
     reportError(error);
-    dialog.showErrorBox('메모를 저장할 수 없습니다', '메모가 아직 저장되지 않아 앱을 열어 두었습니다. 저장 폴더의 권한과 여유 공간을 확인해 주세요.');
+    dialog.showErrorBox(t('메모를 저장할 수 없습니다'), t('메모가 아직 저장되지 않아 앱을 열어 두었습니다. 저장 폴더의 권한과 여유 공간을 확인해 주세요.'));
   });
 }
 
@@ -526,15 +530,22 @@ function deleteNote(context) {
 }
 
 function registerIpc() {
-  const handle = (channel, callback) => ipcMain.handle(`corner-note:${channel}`, (event, argument) => {
-    const context = contextsByWebContents.get(event.sender.id);
-    if (!context || context.window.isDestroyed() || event.sender !== context.window.webContents
-      || event.senderFrame !== context.window.webContents.mainFrame) {
-      throw new Error('허용되지 않은 요청입니다.');
+  const handle = (channel, callback) => ipcMain.handle(`corner-note:${channel}`, async (event, argument) => {
+    try {
+      const context = contextsByWebContents.get(event.sender.id);
+      if (!context || context.window.isDestroyed() || event.sender !== context.window.webContents
+        || event.senderFrame !== context.window.webContents.mainFrame) {
+        throw new Error('허용되지 않은 요청입니다.');
+      }
+      if (context.deleting && channel !== 'get-state') throw new Error('메모를 삭제하고 있습니다.');
+      // Window identity comes exclusively from the authenticated sender, never IPC data.
+      return await callback(context, argument);
+    } catch (error) {
+      // IPC only exposes known human messages, translated in the desktop process.
+      // Preserve error codes for the translation flow without sending any keys.
+      if (error instanceof Error) error.message = t(error.message);
+      throw error;
     }
-    if (context.deleting && channel !== 'get-state') throw new Error('메모를 삭제하고 있습니다.');
-    // Window identity comes exclusively from the authenticated sender, never IPC data.
-    return callback(context, argument);
   });
   handle('get-state', publicState);
   handle('create-note', createNote);
@@ -632,7 +643,7 @@ async function createWindow(note) {
     ...bounds,
     minWidth: note.window.folded ? 1 : Math.min(MIN_SIZE.width, display.workArea.width),
     minHeight: note.window.folded ? 1 : Math.min(MIN_SIZE.height, display.workArea.height),
-    title: '모서리 메모', icon: iconPath,
+    title: t('모서리 메모'), icon: iconPath,
     frame: false, transparent: true, backgroundColor: '#00000000',
     hasShadow: true, show: false, alwaysOnTop: state.alwaysOnTop, skipTaskbar: state.alwaysOnTop,
     resizable: false, maximizable: false, fullscreenable: false,
@@ -692,24 +703,24 @@ function updateTrayMenu() {
   if (!tray || tray.isDestroyed()) return;
   const notes = state.notes.map((note, index) => {
     const context = noteWindows.get(note.id);
-    const preview = note.text.replace(/\s+/g, ' ').trim().slice(0, 28) || '빈 메모';
-    const marker = context && !context.window.isDestroyed() && context.window.isVisible() ? '' : ' · 숨김';
+    const preview = note.text.replace(/\s+/g, ' ').trim().slice(0, 28) || t('빈 메모');
+    const marker = context && !context.window.isDestroyed() && context.window.isVisible() ? '' : t(' · 숨김');
     return { label: `${index + 1}. ${preview}${marker}`, click: () => { void showNote(note).catch(reportError); } };
   });
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '새 메모', click: () => { void createNote(noteWindows.get(state.activeNoteId)).catch(reportError); } },
-    { label: '모든 메모 보기', click: showAllNotes },
-    { label: '메모 선택', submenu: notes },
-    { label: '모든 메모 숨기기', click: () => { for (const context of noteWindows.values()) hideNote(context); } },
+    { label: t('새 메모'), click: () => { void createNote(noteWindows.get(state.activeNoteId)).catch(reportError); } },
+    { label: t('모든 메모 보기'), click: showAllNotes },
+    { label: t('메모 선택'), submenu: notes },
+    { label: t('모든 메모 숨기기'), click: () => { for (const context of noteWindows.values()) hideNote(context); } },
     { type: 'separator' },
-    { label: '종료', click: quitFromMenu },
+    { label: t('종료'), click: quitFromMenu },
   ]));
 }
 
 function createTray() {
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 20, height: 20 });
   tray = new Tray(icon);
-  tray.setToolTip('모서리 메모');
+  tray.setToolTip(t('모서리 메모'));
   updateTrayMenu();
   tray.on('click', showAllNotes);
   tray.on('double-click', showAllNotes);
@@ -730,10 +741,18 @@ async function smokeTest() {
   assert.equal(window.getBounds().width, originalSize.width);
   assert.equal(window.getBounds().height, originalSize.height);
   assert.equal(await window.webContents.executeJavaScript('typeof window.cornerNote?.createNote === "function"'), true);
-  console.log(JSON.stringify({
+  const report = {
     smokeTest: 'passed', alwaysOnTop: true, sandboxConfigured: true,
     runtimeSandboxDisabled: app.commandLine.hasSwitch('no-sandbox'), foldAndUnfold: true,
-  }));
+    packagedIdentity: process.windowsStore === true, uiLocale: ui.locale, systemLanguage,
+  };
+  console.log(JSON.stringify(report));
+  const reportArgument = process.argv.find(argument => argument.startsWith('--smoke-report='));
+  if (reportArgument) {
+    const reportPath = path.resolve(reportArgument.slice('--smoke-report='.length));
+    await fsp.mkdir(path.dirname(reportPath), { recursive: true });
+    await fsp.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+  }
   await finishQuit();
 }
 
@@ -755,17 +774,25 @@ if (!app.requestSingleInstanceLock()) {
     if (tray) tray.destroy();
   });
   app.whenReady().then(async () => {
-    if (process.platform === 'win32') app.setAppUserModelId('com.cornernote.app');
+    if (process.platform === 'win32' && !process.windowsStore) app.setAppUserModelId('com.cornernote.app');
     Menu.setApplicationMenu(null);
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
+    let languages;
+    try {
+      languages = app.getPreferredSystemLanguages();
+      if (!languages.length) languages = [app.getLocale()];
+    } catch {
+      try { languages = [app.getLocale()]; } catch { languages = ['en-US']; }
+    }
+    const testLanguage = process.argv.find(argument => argument.startsWith('--test-system-language='));
+    if (testLanguage && (process.env.CORNER_NOTE_E2E === '1' || process.argv.includes('--smoke-test'))) {
+      languages = [testLanguage.slice('--test-system-language='.length)];
+    }
+    try { systemLanguage = canonicalLanguage(languages[0]); } catch { systemLanguage = 'en-US'; }
+    ui = createI18n(languages, nativeMessages);
     await loadState();
     tutorialNoteId = state.activeNoteId;
-    try {
-      systemLanguage = canonicalLanguage(app.getPreferredSystemLanguages()[0] || app.getLocale());
-    } catch {
-      try { systemLanguage = canonicalLanguage(app.getLocale()); } catch { systemLanguage = 'en-US'; }
-    }
     translationKeyStore = createTranslationKeyStore({ safeStorage, filePath: path.join(app.getPath('userData'), 'translation-key.json') });
     await translationKeyStore.load().catch(reportError);
     registerIpc();
@@ -773,7 +800,7 @@ if (!app.requestSingleInstanceLock()) {
     for (const note of orderedNotes(state)) await createWindow(note);
     restoringWindows = false;
     createTray();
-    showAllNotes();
+    await showAllNotes();
     screen.on('display-added', reconcileDisplays);
     screen.on('display-removed', reconcileDisplays);
     screen.on('display-metrics-changed', reconcileDisplays);

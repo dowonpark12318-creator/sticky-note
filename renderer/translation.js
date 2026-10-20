@@ -1,30 +1,110 @@
 (() => {
   'use strict';
 
+  const ENGLISH_MESSAGES = {
+  "번역": "Translate",
+  "번역할 언어": "Translation languages",
+  "번역 창 닫기": "Close translation panel",
+  "닫기": "Close",
+  "선택한 글을 어떤 언어로 바꿀까요?": "Choose a language for the selected text.",
+  "번역 언어": "Translation languages",
+  "추가": "Add",
+  "AI 연결 설정": "AI translation settings",
+  "언어 이름 또는 코드로 검색": "Search by language name or code",
+  "예: 일본어, French, fr": "e.g. Japanese, French, fr",
+  "추가할 언어": "Languages to add",
+  "찾는 언어의 이름이나 언어 코드를 입력해 주세요.": "Enter a language name or language code.",
+  "← 번역 언어로 돌아가기": "← Back to translation languages",
+  "내 OpenAI API 키를 연결하면 선택한 글을 번역할 수 있어요.": "Connect your OpenAI API key to translate selected text.",
+  "선택한 글만 OpenAI로 전송돼요.": "Only the selected text is sent to OpenAI.",
+  "API 사용료는 본인 계정에 청구됩니다.": "API usage is billed to your OpenAI account.",
+  "OpenAI API 키": "OpenAI API key",
+  "API 키 입력": "Enter API key",
+  "이 컴퓨터에서 키 기억하기": "Remember key on this computer",
+  "이 컴퓨터에서는 앱을 종료하면 키가 지워져요.": "On this computer, the key is cleared when you exit the app.",
+  "연결하기": "Connect",
+  "연결 해제": "Disconnect",
+  "선택한 글을": "Translating the selected text into",
+  "로 번역하고 있어요.": ".",
+  "다른 글을 수정해도 괜찮아요.": "You can keep editing your note.",
+  "완료된 번역은 직접 확인하고 적용할 수 있어요.": "Review the finished translation before applying it.",
+  "번역 취소": "Cancel translation",
+  "번역 결과": "Translation result",
+  "메모가 바뀌었어요. 번역을 복사해서 원하는 곳에 붙여 넣어 주세요.": "The note has changed. Copy the translation and paste it where you want.",
+  "선택 부분 바꾸기": "Replace selection",
+  "복사": "Copy",
+  "번역 중…": "Translating…",
+  "선택한 글 번역하기": "Translate selected text",
+  "번역할 글을 먼저 드래그해 선택해 주세요": "Drag to select the text you want to translate first",
+  "선택한 글 번역": "Translate selection",
+  "번역할 글을 먼저 선택해 주세요": "Select some text to translate first",
+  "{language}를 번역 언어에 추가했어요.": "Added {language} to translation languages.",
+  "언어를 저장하지 못했어요. 다시 시도해 주세요.": "Could not save the language. Please try again.",
+  "AI 연결 확인 중…": "Checking AI connection…",
+  "API 키 등록됨 · gpt-4.1-mini": "API key connected · gpt-4.1-mini",
+  "아직 연결된 API 키가 없어요.": "No API key is connected yet.",
+  "연결 중…": "Connecting…",
+  "키 변경하기": "Change key",
+  "연결하고 번역하기": "Connect and translate",
+  "번역이 끝난 뒤 AI 연결을 변경해 주세요.": "Wait for the translation to finish before changing the AI connection.",
+  "AI 번역 연결": "AI translation connection",
+  "OpenAI API 키를 입력해 주세요.": "Enter your OpenAI API key.",
+  "API 키를 연결하지 못했어요. 키를 확인해 주세요.": "Could not connect the API key. Check your key and try again.",
+  "AI 번역을 연결했어요.": "AI translation is connected.",
+  "AI 연결을 해제했어요.": "AI translation is disconnected.",
+  "연결을 해제하지 못했어요. 다시 시도해 주세요.": "Could not disconnect. Please try again.",
+  "번역을 취소했어요.": "Translation cancelled.",
+  "번역 시간이 오래 걸려 중단했어요. 네트워크 연결을 확인하고 다시 시도해 주세요.": "Translation took too long and was stopped. Check your internet connection and try again.",
+  "번역 결과가 비어 있어요. 다시 시도해 주세요.": "The translation result was empty. Please try again.",
+  "번역하지 못했어요. API 키와 사용 한도, 네트워크 연결을 확인해 주세요.": "Could not translate. Check your API key, usage limit and internet connection.",
+  "선택한 부분을 번역으로 바꿨어요.": "Replaced the selected text with the translation.",
+  "번역을 복사했어요.": "Translation copied.",
+  "복사하지 못했어요. 번역 결과를 직접 선택해 복사해 주세요.": "Could not copy. Select the translation result and copy it manually.",
+  "번역 언어 추가": "Add translation language",
+  "번역 결과 접미사": " translation"
+};
+  const MESSAGES = { ko: { ...Object.fromEntries(Object.keys(ENGLISH_MESSAGES).map(key => [key, key])), "번역 결과 접미사": " 번역" }, en: ENGLISH_MESSAGES };
+
   const COMMON_LANGUAGES = ['ko', 'en', 'ja', 'zh-Hans', 'zh-Hant', 'es', 'fr', 'de', 'it', 'pt', 'pt-BR', 'ru', 'ar', 'hi', 'vi', 'th', 'id', 'ms', 'tr', 'uk', 'pl', 'nl', 'sv', 'da', 'fi', 'nb', 'el', 'cs', 'ro', 'hu', 'he', 'fa', 'bn', 'ur', 'ta', 'te', 'fil', 'sw', 'af', 'am', 'az', 'bg', 'ca', 'et', 'eu', 'gl', 'hr', 'is', 'ka', 'km', 'lo', 'lt', 'lv', 'mk', 'mn', 'my', 'ne', 'si', 'sk', 'sl', 'sr', 'tl', 'uz', 'zu'];
-  const koreanNames = new Intl.DisplayNames(['ko'], { type: 'language', fallback: 'none' });
   const englishNames = new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' });
 
   function canonicalLanguage(value) {
     if (typeof value !== 'string' || value.length > 48 || !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(value.trim())) return null;
     try {
       const locale = new Intl.Locale(value.trim());
-      if (!koreanNames.of(locale.language)) return null;
+      if (!englishNames.of(locale.language)) return null;
       return locale.toString();
     } catch { return null; }
   }
 
-  function languageLabel(code) {
-    try { return koreanNames.of(code) || code; }
-    catch { return code; }
-  }
-
   function init({ bridge, textarea, note, showToast = () => {}, initialState = {} }) {
+    const i18n = window.CornerI18n.createI18n(initialState.uiLocale || initialState.systemLanguage || navigator.languages, MESSAGES);
+    const { t } = i18n;
+    const displayNames = new Intl.DisplayNames([i18n.locale], { type: 'language', fallback: 'none' });
+    function languageLabel(code) {
+      try { return displayNames.of(code) || code; }
+      catch { return code; }
+    }
+    // Only the freshly created static panel is walked; note text and AI output are never translated.
+    function localizeStatic(container) {
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        const key = node.textContent.trim();
+        if (Object.hasOwn(ENGLISH_MESSAGES, key)) node.textContent = node.textContent.replace(key, t(key));
+      }
+      for (const element of container.querySelectorAll('[aria-label], [title], [placeholder]')) {
+        for (const attribute of ['aria-label', 'title', 'placeholder']) {
+          const key = element.getAttribute(attribute);
+          if (key && Object.hasOwn(ENGLISH_MESSAGES, key)) element.setAttribute(attribute, t(key));
+        }
+      }
+    }
     const tools = note.querySelector('.note-tools');
     if (!tools || !textarea || tools.querySelector('[data-testid="translate-button"]')) return null;
     let snapshot = null;
     let savedLanguages = [];
-    let systemLanguage = 'ko';
+    let systemLanguage = initialState.systemLanguage || navigator.languages?.[0] || navigator.language || 'en';
     let view = null;
     let pendingTranslation = null;
     let activeRequest = null;
@@ -43,6 +123,7 @@
     button.className = 'ct-translate';
     button.dataset.testid = 'translate-button';
     button.innerHTML = '<span class="ct-translate-icon" aria-hidden="true">文</span><span class="ct-button-label">번역</span><span class="ct-spinner" aria-hidden="true" hidden></span>';
+    localizeStatic(button);
     button.setAttribute('aria-haspopup', 'dialog');
     button.setAttribute('aria-expanded', 'false');
     button.setAttribute('aria-controls', 'ct-panel');
@@ -92,15 +173,17 @@
           <button class="ct-text-button ct-cancel" data-testid="translation-cancel" type="button">번역 취소</button>
         </section>
         <section class="ct-view ct-result" data-testid="translation-result" hidden>
-          <p class="ct-description"><strong class="ct-result-language"></strong> 번역</p>
+          <p class="ct-description"><strong class="ct-result-language"></strong><span class="ct-result-suffix"></span></p>
           <div class="ct-result-text" data-testid="translation-result-text" tabindex="0" role="textbox" aria-readonly="true" aria-multiline="true" aria-label="번역 결과"></div>
           <p class="ct-stale-hint" hidden>메모가 바뀌었어요. 번역을 복사해서 원하는 곳에 붙여 넣어 주세요.</p>
           <div class="ct-actions"><button class="ct-primary ct-apply" data-testid="translation-apply" type="button">선택 부분 바꾸기</button><button class="ct-secondary ct-copy" data-testid="translation-copy" type="button">복사</button></div>
         </section>
         <p class="ct-error" data-testid="translation-error" role="alert" hidden></p>
       </div>`;
+    localizeStatic(panel);
     note.append(panel);
     const element = (selector) => panel.querySelector(selector);
+    element('.ct-result-suffix').textContent = t('번역 결과 접미사');
     const errorElement = element('.ct-error');
     const keyInput = element('#ct-api-key');
     const rememberInput = element('[data-testid="translation-remember-key"]');
@@ -114,7 +197,7 @@
     function readPreferences(value) {
       if (value?.systemLanguage) {
         try { systemLanguage = new Intl.Locale(value.systemLanguage).baseName; }
-        catch { systemLanguage = 'ko'; }
+        catch { systemLanguage = 'en'; }
       }
       if (Array.isArray(value?.settings?.translationLanguages)) {
         savedLanguages = [...new Set(value.settings.translationLanguages.map(canonicalLanguage).filter(Boolean))];
@@ -137,9 +220,9 @@
       button.hidden = !textarea.value.trim();
       button.disabled = busy || !hasSelection();
       button.setAttribute('aria-busy', String(busy));
-      button.title = busy ? '번역 중…' : hasSelection() ? '선택한 글 번역하기' : '번역할 글을 먼저 드래그해 선택해 주세요';
-      button.setAttribute('aria-label', busy ? '번역 중…' : hasSelection() ? '선택한 글 번역' : '번역할 글을 먼저 선택해 주세요');
-      buttonLabel.textContent = busy ? '번역 중…' : '번역';
+      button.title = busy ? t("번역 중…") : hasSelection() ? t("선택한 글 번역하기") : t("번역할 글을 먼저 드래그해 선택해 주세요");
+      button.setAttribute('aria-label', busy ? t("번역 중…") : hasSelection() ? t("선택한 글 번역") : t("번역할 글을 먼저 선택해 주세요"));
+      buttonLabel.textContent = busy ? t("번역 중…") : t("번역");
       spinner.hidden = !busy;
       button.querySelector('.ct-translate-icon').hidden = busy;
     }
@@ -153,7 +236,7 @@
       const message = typeof error?.message === 'string' ? error.message : '';
       // Never echo an entered credential, even if a bridge implementation includes it in an error.
       if (/sk-|Bearer\s|api[_ -]?key\s*[:=]/i.test(message)) return fallback;
-      return /[가-힣]/.test(message) ? message.slice(0, 240) : fallback;
+      return (i18n.language === 'ko' ? /[가-힣]/.test(message) : /[A-Za-z]/.test(message) && !/[가-힣]/.test(message)) ? message.slice(0, 240) : fallback;
     }
 
     function positionPanel() {
@@ -218,15 +301,15 @@
       if (!hasSelection() || activeRequest) return;
       pendingTranslation = null;
       renderLanguages();
-      switchView('languages', '번역할 언어');
+      switchView('languages', t("번역할 언어"));
     }
 
     function renderLanguageChoices() {
-      const query = languageSearch.value.trim().toLocaleLowerCase();
+      const query = languageSearch.value.trim().toLocaleLowerCase(i18n.locale);
       const existing = new Set(targetLanguages());
       const typed = canonicalLanguage(query);
       const codes = [...new Set([...(typed ? [typed] : []), ...COMMON_LANGUAGES])];
-      const matches = codes.filter((code) => !existing.has(code) && (!query || `${languageLabel(code)} ${englishNames.of(code) || ''} ${code}`.toLocaleLowerCase().includes(query)));
+      const matches = codes.filter((code) => !existing.has(code) && (!query || `${languageLabel(code)} ${englishNames.of(code) || ''} ${code}`.toLocaleLowerCase(i18n.locale).includes(query)));
       const list = element('.ct-language-choices');
       list.replaceChildren(...matches.map((code) => {
         const item = makeLanguageButton(code, 'language-choice', addLanguage);
@@ -248,20 +331,20 @@
         readPreferences(saved);
         if (view === 'picker' && !destroyed) {
           renderLanguages();
-          switchView('languages', '번역할 언어');
-          showToast(`${languageLabel(code)}를 번역 언어에 추가했어요.`);
+          switchView('languages', t("번역할 언어"));
+          showToast(t('{language}를 번역 언어에 추가했어요.', {language: languageLabel(code)}));
         }
       } catch (error) {
-        showError(messageForError(error, '언어를 저장하지 못했어요. 다시 시도해 주세요.'));
+        showError(messageForError(error, t("언어를 저장하지 못했어요. 다시 시도해 주세요.")));
       } finally { pickerBusy = false; if (view === 'picker') renderLanguageChoices(); }
     }
 
     function renderSettings() {
-      element('.ct-connection-status').textContent = !settingsReady ? 'AI 연결 확인 중…' : settings.configured ? 'API 키 등록됨 · gpt-4.1-mini' : '아직 연결된 API 키가 없어요.';
+      element('.ct-connection-status').textContent = !settingsReady ? t("AI 연결 확인 중…") : settings.configured ? t("API 키 등록됨 · gpt-4.1-mini") : t("아직 연결된 API 키가 없어요.");
       element('.ct-remember').hidden = !settings.canRememberKey;
       element('.ct-session-only').hidden = !settingsReady || settings.canRememberKey;
       element('.ct-clear-key').hidden = !settings.configured;
-      element('.ct-save-key').textContent = settingsBusy ? '연결 중…' : settings.configured ? '키 변경하기' : pendingTranslation ? '연결하고 번역하기' : '연결하기';
+      element('.ct-save-key').textContent = settingsBusy ? t("연결 중…") : settings.configured ? t("키 변경하기") : pendingTranslation ? t("연결하고 번역하기") : t("연결하기");
       keyInput.disabled = settingsBusy;
       rememberInput.disabled = settingsBusy;
       element('.ct-save-key').disabled = settingsBusy || !settingsReady;
@@ -286,13 +369,13 @@
     }
 
     async function openSettings(options = {}) {
-      if (activeRequest) { showToast('번역이 끝난 뒤 AI 연결을 변경해 주세요.'); return; }
+      if (activeRequest) { showToast(t("번역이 끝난 뒤 AI 연결을 변경해 주세요.")); return; }
       if (settingsBusy) return;
       if (!options.keepPending) pendingTranslation = null;
       keyInput.value = '';
       rememberInput.checked = false;
       const refresh = loadSettings();
-      switchView('settings', 'AI 번역 연결', keyInput);
+      switchView('settings', t("AI 번역 연결"), keyInput);
       await refresh;
       if (view === 'settings') renderSettings();
     }
@@ -313,7 +396,7 @@
       event.preventDefault();
       if (settingsBusy || !settingsReady) return;
       let apiKey = keyInput.value.trim();
-      if (!apiKey) { showError('OpenAI API 키를 입력해 주세요.'); keyInput.focus(); return; }
+      if (!apiKey) { showError(t("OpenAI API 키를 입력해 주세요.")); keyInput.focus(); return; }
       const remember = settings.canRememberKey && rememberInput.checked;
       keyInput.value = '';
       settingsBusy = true;
@@ -323,12 +406,12 @@
       try {
         const status = await bridge.setTranslationKey({ apiKey, remember });
         settings = { configured: status?.configured === true, canRememberKey: status?.canRememberKey === true };
-        if (!settings.configured) throw new Error('API 키를 연결하지 못했어요. 키를 확인해 주세요.');
+        if (!settings.configured) throw new Error(t("API 키를 연결하지 못했어요. 키를 확인해 주세요."));
         const job = pendingTranslation;
         pendingTranslation = null;
         if (job && !panel.hidden) runTranslation(job);
-        else { showToast('AI 번역을 연결했어요.'); if (!panel.hidden) closePanel(false); }
-      } catch (error) { showError(messageForError(error, 'API 키를 연결하지 못했어요. 키를 확인해 주세요.')); }
+        else { showToast(t("AI 번역을 연결했어요.")); if (!panel.hidden) closePanel(false); }
+      } catch (error) { showError(messageForError(error, t("API 키를 연결하지 못했어요. 키를 확인해 주세요."))); }
       finally { apiKey = ''; settingsBusy = false; keyInput.value = ''; renderSettings(); }
     }
 
@@ -342,9 +425,9 @@
       try {
         const status = await bridge.clearTranslationKey();
         settings = { configured: status?.configured === true, canRememberKey: status?.canRememberKey === true };
-        showToast('AI 연결을 해제했어요.');
+        showToast(t("AI 연결을 해제했어요."));
         showError('');
-      } catch (error) { showError(messageForError(error, '연결을 해제하지 못했어요. 다시 시도해 주세요.')); }
+      } catch (error) { showError(messageForError(error, t("연결을 해제하지 못했어요. 다시 시도해 주세요."))); }
       finally { settingsBusy = false; renderSettings(); }
     }
 
@@ -357,8 +440,8 @@
       updateButton();
       if (notify) {
         renderLanguages();
-        switchView('languages', '번역할 언어');
-        showToast('번역을 취소했어요.');
+        switchView('languages', t("번역할 언어"));
+        showToast(t("번역을 취소했어요."));
       }
     }
 
@@ -367,29 +450,29 @@
       const request = { id: `translation-${Date.now()}-${++requestSequence}`, job, timer: null };
       activeRequest = request;
       updateButton();
-      switchView('progress', '번역 중…');
+      switchView('progress', t("번역 중…"));
       element('.ct-target-label').textContent = languageLabel(job.targetLanguage);
       request.timer = setTimeout(() => {
         if (activeRequest !== request) return;
         cancelActiveTranslation(false);
         renderLanguages();
-        switchView('languages', '번역할 언어');
-        showError('번역 시간이 오래 걸려 중단했어요. 네트워크 연결을 확인하고 다시 시도해 주세요.');
+        switchView('languages', t("번역할 언어"));
+        showError(t("번역 시간이 오래 걸려 중단했어요. 네트워크 연결을 확인하고 다시 시도해 주세요."));
       }, 55000);
       try {
         const response = await bridge.translate({ text: job.snapshot.text, targetLanguage: job.targetLanguage, requestId: request.id });
         if (activeRequest !== request || destroyed) return;
-        if (!response || typeof response.text !== 'string' || !response.text.trim()) throw new Error('번역 결과가 비어 있어요. 다시 시도해 주세요.');
+        if (!response || typeof response.text !== 'string' || !response.text.trim()) throw new Error(t("번역 결과가 비어 있어요. 다시 시도해 주세요."));
         result = { text: response.text, targetLanguage: job.targetLanguage, snapshot: job.snapshot };
         element('.ct-result-text').textContent = response.text;
         element('.ct-result-language').textContent = languageLabel(job.targetLanguage);
-        switchView('result', '번역 결과');
+        switchView('result', t("번역 결과"));
         updateApplyState();
       } catch (error) {
         if (activeRequest !== request || destroyed) return;
         renderLanguages();
-        switchView('languages', '번역할 언어');
-        showError(messageForError(error, '번역하지 못했어요. API 키와 사용 한도, 네트워크 연결을 확인해 주세요.'));
+        switchView('languages', t("번역할 언어"));
+        showError(messageForError(error, t("번역하지 못했어요. API 키와 사용 한도, 네트워크 연결을 확인해 주세요.")));
       } finally {
         clearTimeout(request.timer);
         if (activeRequest === request) { activeRequest = null; updateButton(); }
@@ -410,7 +493,7 @@
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       captureSelection();
       closePanel(false);
-      showToast('선택한 부분을 번역으로 바꿨어요.');
+      showToast(t("선택한 부분을 번역으로 바꿨어요."));
     }
 
     async function copyTranslation() {
@@ -418,8 +501,8 @@
       try {
         if (typeof bridge.copyText === 'function') await bridge.copyText(result.text);
         else await navigator.clipboard.writeText(result.text);
-        showToast('번역을 복사했어요.');
-      } catch { showError('복사하지 못했어요. 번역 결과를 직접 선택해 복사해 주세요.'); }
+        showToast(t("번역을 복사했어요."));
+      } catch { showError(t("복사하지 못했어요. 번역 결과를 직접 선택해 복사해 주세요.")); }
     }
 
     listen(textarea, 'select', captureSelection);
@@ -434,9 +517,9 @@
     listen(element('.ct-add-language'), 'click', () => {
       languageSearch.value = '';
       renderLanguageChoices();
-      switchView('picker', '번역 언어 추가', languageSearch);
+      switchView('picker', t("번역 언어 추가"), languageSearch);
     });
-    listen(element('.ct-back'), 'click', () => { renderLanguages(); switchView('languages', '번역할 언어'); });
+    listen(element('.ct-back'), 'click', () => { renderLanguages(); switchView('languages', t("번역할 언어")); });
     listen(languageSearch, 'input', renderLanguageChoices);
     listen(element('.ct-key-form'), 'submit', saveKey);
     listen(element('.ct-clear-key'), 'click', clearKey);

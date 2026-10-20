@@ -5,7 +5,9 @@
   const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
   const FOLD_THRESHOLD = 1 / 3;
   const OPPOSITE = { 'top-left': 'bottom-right', 'top-right': 'bottom-left', 'bottom-left': 'top-right', 'bottom-right': 'top-left' };
-  const CORNER_LABELS = { 'top-left': '왼쪽 위', 'top-right': '오른쪽 위', 'bottom-left': '왼쪽 아래', 'bottom-right': '오른쪽 아래' };
+  let i18n = window.CornerI18n.createI18n(navigator.languages || [navigator.language], window.CornerAppMessages);
+  const t = (key, values) => i18n.t(key, values);
+  const cornerLabel = (corner) => t(`corner.${corner}`);
   const STORAGE_KEY = 'corner-note-v1';
   const app = document.querySelector('#app');
   const note = document.querySelector('#note');
@@ -59,6 +61,7 @@
         tutorialCompleted: source.settings?.tutorialCompleted === true,
       },
       systemLanguage: typeof source.systemLanguage === 'string' ? source.systemLanguage : navigator.language || 'en',
+      uiLocale: typeof source.uiLocale === 'string' ? source.uiLocale : i18n.locale,
       bounds: source.bounds && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(source.bounds[key])) ? { ...source.bounds } : null,
       savedAt: source.savedAt || null,
       noteId: typeof source.noteId === 'string' ? source.noteId : '',
@@ -74,7 +77,8 @@
     const listeners = new Set();
     try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
     catch { stored = {}; }
-    browserState = normalizeState(stored);
+    // Display language follows this computer, never a stale saved note locale.
+    browserState = normalizeState({ ...stored, systemLanguage: navigator.language, uiLocale: i18n.locale });
     const limit = (value, min, max) => Math.min(Math.max(value, min), max);
     function clamp(bounds, folded = browserState.folded) {
       const width = limit(bounds.width, Math.min(folded ? 1 : 300, innerWidth), innerWidth);
@@ -92,13 +96,13 @@
     const emit = () => listeners.forEach((listener) => listener({ ...browserState }));
     const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...browserState, expandedBounds, foldedAnchorBounds }));
     function requireInteraction(id) {
-      if (!interaction || interaction.id !== id) throw new Error('The interaction has ended.');
+      if (!interaction || interaction.id !== id) throw new Error(t('browser.interactionEnded'));
       return interaction;
     }
     return {
       async getState() { return { ...browserState }; },
-      async createNote() { throw new Error('새 메모는 Windows 앱에서 만들 수 있어요.'); },
-      async deleteNote() { throw new Error('메모 삭제는 Windows 앱에서 사용할 수 있어요.'); },
+      async createNote() { throw new Error(t('browser.newNote')); },
+      async deleteNote() { throw new Error(t('browser.delete')); },
       async activateNote() { return { ...browserState }; },
       async saveNote(value) {
         const next = { ...browserState, text: value.text, color: value.color, savedAt: new Date().toISOString() };
@@ -139,12 +143,12 @@
         persist(); emit(); return { ...browserState };
       },
       async getTranslationSettings() { return { configured: false, canRememberKey: false, provider: 'openai', model: 'gpt-4.1-mini' }; },
-      async setTranslationKey() { throw new Error('AI 연결은 Windows 앱에서 설정해 주세요.'); },
+      async setTranslationKey() { throw new Error(t('browser.aiSettings')); },
       async clearTranslationKey() { return { configured: false, canRememberKey: false, provider: 'openai', model: 'gpt-4.1-mini' }; },
-      async translate() { throw new Error('AI 번역은 Windows 앱에서 API 키를 연결한 뒤 사용할 수 있어요.'); },
+      async translate() { throw new Error(t('browser.translate')); },
       async cancelTranslation() { return false; },
       async beginInteraction(value) {
-        if (interaction) throw new Error('An interaction is already active.');
+        if (interaction) throw new Error(t('browser.interactionActive'));
         interaction = { ...value, id: `browser-${++nextInteractionId}`, bounds: { ...browserState.bounds } };
         return interaction.id;
       },
@@ -178,8 +182,8 @@
         interaction = null;
         persist(); emit(); return { ...browserState };
       },
-      async hide() { showToast('Windows 앱에서는 트레이로 숨겨져요.'); },
-      async quit() { showToast('브라우저 미리보기에서는 탭을 닫아 주세요.'); },
+      async hide() { showToast(t('browser.hide')); },
+      async quit() { showToast(t('browser.quit')); },
       onState(callback) { listeners.add(callback); return () => listeners.delete(callback); },
     };
   }
@@ -189,16 +193,17 @@
 
   function setStatus(kind, savedAt) {
     saveStatus.dataset.status = kind;
-    saveLabel.textContent = { saved: '자동 저장됨', saving: '저장 중…', pending: '수정 중…', error: '저장 실패 · 다시 시도해 주세요' }[kind] || '';
+    saveLabel.textContent = ['saved', 'saving', 'pending', 'error'].includes(kind) ? t(`status.${kind}`) : kind === 'loading' ? t('loading') : '';
     if (kind === 'saved' && savedAt && Number.isFinite(new Date(savedAt).getTime())) {
-      saveStatus.title = `${new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit' }).format(new Date(savedAt))}에 저장됨`;
+      saveStatus.title = t('savedAt', { time: new Intl.DateTimeFormat(i18n.locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(savedAt)) });
     } else {
       saveStatus.removeAttribute('title');
     }
   }
 
   function updateCount() {
-    characterCount.textContent = `${Array.from(textarea.value).length.toLocaleString('ko-KR')}자`;
+    const count = Array.from(textarea.value).length;
+    characterCount.textContent = t(count === 1 ? 'characterCountOne' : 'characterCount', { count: count.toLocaleString(i18n.locale) });
   }
 
   function applyTheme(color) {
@@ -223,14 +228,15 @@
     state.alwaysOnTop = next.alwaysOnTop;
     state.settings = next.settings;
     state.systemLanguage = next.systemLanguage;
+    state.uiLocale = next.uiLocale;
     state.bounds = next.bounds;
     state.noteId = next.noteId;
     state.noteCount = next.noteCount;
     app.dataset.noteId = next.noteId;
-    addNoteButton.title = `새 메모 만들기 · 현재 ${next.noteCount}개`;
+    addNoteButton.title = t('newNoteCount', { count: next.noteCount.toLocaleString(i18n.locale) });
     pinButton.setAttribute('aria-pressed', String(next.alwaysOnTop));
-    pinLabel.textContent = next.alwaysOnTop ? '항상 위' : '항상 위 꺼짐';
-    pinButton.title = next.alwaysOnTop ? '모든 메모의 항상 위 표시 끄기' : '모든 메모의 항상 위 표시 켜기';
+    pinLabel.textContent = t(next.alwaysOnTop ? 'pinOn' : 'pinOff');
+    pinButton.title = t(next.alwaysOnTop ? 'pinTurnOff' : 'pinTurnOn');
     pinButton.setAttribute('aria-label', pinButton.title);
     if (app.classList.contains('browser-preview') && next.bounds) {
       Object.assign(app.style, { left: `${next.bounds.x}px`, top: `${next.bounds.y}px`, width: `${next.bounds.width}px`, height: `${next.bounds.height}px` });
@@ -241,8 +247,8 @@
     note.hidden = next.folded;
     foldedNote.hidden = !next.folded;
     foldedNote.dataset.corner = next.corner;
-    foldedNote.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양으로 접힌 메모: 끌어서 이동, 두 번 클릭하여 처음 접힌 위치로 복귀, Enter로 펼치기`);
-    unfoldHandle.setAttribute('aria-label', `${CORNER_LABELS[next.corner]} 모양의 메모 펼치기: 대각선 손잡이를 안쪽으로 끌거나 Enter`);
+    foldedNote.setAttribute('aria-label', t('foldedLabel', { corner: cornerLabel(next.corner) }));
+    unfoldHandle.setAttribute('aria-label', t('unfoldLabel', { corner: cornerLabel(next.corner) }));
     if (next.folded) {
       setHelp(false, false);
       clearTimeout(toastTimer);
@@ -286,7 +292,7 @@
       if (queuedVersion === version) queuedVersion = -1;
       if (editVersion === version) {
         setStatus('error');
-        showToast('메모를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+        showToast(t('error.save'));
       }
       return false;
     });
@@ -312,7 +318,7 @@
       const result = await bridge[method](args);
       if (result && typeof result.folded === 'boolean') applyState(result);
     } catch {
-      showToast('동작을 완료하지 못했어요. 다시 시도해 주세요.');
+      showToast(t('error.action'));
     } finally { actionBusy = false; }
   }
 
@@ -355,7 +361,7 @@
     };
     foldPreview.style.clipPath = polygons[corner];
     gestureProgress.style.width = `${Math.min(progress / FOLD_THRESHOLD, 1) * 100}%`;
-    gestureLabel.textContent = progress >= FOLD_THRESHOLD ? `놓으면 ${CORNER_LABELS[OPPOSITE[corner]]}에 접혀요` : '대각선 거리의 1/3만 당겨 주세요';
+    gestureLabel.textContent = progress >= FOLD_THRESHOLD ? t('foldRelease', { corner: cornerLabel(OPPOSITE[corner]) }) : t('foldThreshold');
   }
 
   function moveGesture(event) {
@@ -396,7 +402,7 @@
   function interactionError(interaction) {
     interaction.failed = true;
     if (activeInteraction === interaction && !interaction.ending) finishInteraction(true);
-    showToast('창의 크기나 위치를 변경하지 못했어요. 다시 시도해 주세요.');
+    showToast(t('error.bounds'));
   }
 
   function startInteraction(event, kind, edge) {
@@ -437,7 +443,7 @@
       if (!interaction.id) return;
       const result = await bridge.endInteraction({ id: interaction.id, cancel: cancel || interaction.failed });
       if (result && typeof result.folded === 'boolean') applyState(result);
-    }).catch(() => showToast('창 변경을 완료하지 못했어요. 다시 시도해 주세요.')).finally(() => {
+    }).catch(() => showToast(t('error.windowChange'))).finally(() => {
       if (activeInteraction === interaction) activeInteraction = null;
     });
     return interaction.completion;
@@ -456,7 +462,7 @@
       if (result && typeof result.folded === 'boolean') applyState(result);
     } catch {
       if (id) await bridge.endInteraction({ id, cancel: true }).catch(() => {});
-      showToast('창의 크기나 위치를 변경하지 못했어요. 다시 시도해 주세요.');
+      showToast(t('error.bounds'));
     } finally {
       if (activeInteraction === interaction) activeInteraction = null;
       resolveCompletion();
@@ -483,7 +489,7 @@
     try {
       const result = await bridge.setAlwaysOnTop(!state.alwaysOnTop);
       applyState(result);
-    } catch { showToast('항상 위 설정을 변경하지 못했어요. 다시 시도해 주세요.'); }
+    } catch { showToast(t('error.pin')); }
     finally { pinBusy = false; pinButton.disabled = false; }
   });
   helpButton.addEventListener('click', () => setHelp(helpPanel.hidden));
@@ -497,7 +503,7 @@
       setHelp(false, false);
       deleteNoteError.hidden = true;
       deleteNoteDialog.showModal();
-    } catch { showToast('삭제 확인창을 열지 못했어요. 다시 시도해 주세요.'); }
+    } catch { showToast(t('error.deleteDialog')); }
     finally { actionBusy = false; deleteNoteButton.disabled = false; }
   });
   deleteNoteCancel.addEventListener('click', () => { if (!deletingNote) deleteNoteDialog.close(); });
@@ -520,7 +526,7 @@
       app.hidden = true;
       deleteNoteDialog.close();
     } catch {
-      deleteNoteError.textContent = '메모를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.';
+      deleteNoteError.textContent = t('error.delete');
       deleteNoteError.hidden = false;
     } finally {
       deletingNote = false;
@@ -537,7 +543,7 @@
       // The returned state belongs to the new window, never to this editor.
       await bridge.createNote();
     } catch {
-      showToast(window.cornerNote ? '새 메모를 만들지 못했어요. 다시 시도해 주세요.' : '새 메모는 Windows 앱에서 만들 수 있어요.');
+      showToast(t(window.cornerNote ? 'error.newNote' : 'browser.newNote'));
     } finally {
       creatingNote = false;
       addNoteButton.disabled = false;
@@ -623,13 +629,30 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden && ready) persistNow(); });
 
-  const today = new Date();
-  const todayElement = document.querySelector('#today');
-  todayElement.dateTime = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  todayElement.textContent = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(today);
+  function applyLanguage(preferredLanguages) {
+    i18n = window.CornerI18n.createI18n(preferredLanguages, window.CornerAppMessages);
+    document.documentElement.lang = i18n.locale;
+    for (const element of document.querySelectorAll('[data-i18n]')) {
+      element.textContent = t(element.dataset.i18n);
+    }
+    for (const attribute of ['aria-label', 'title', 'placeholder']) {
+      for (const element of document.querySelectorAll(`[data-i18n-${attribute}]`)) {
+        element.setAttribute(attribute, t(element.getAttribute(`data-i18n-${attribute}`)));
+      }
+    }
+    const today = new Date();
+    const todayElement = document.querySelector('#today');
+    todayElement.dateTime = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    todayElement.textContent = new Intl.DateTimeFormat(i18n.locale, { month: 'long', day: 'numeric', weekday: 'long' }).format(today);
+    foldedNote.setAttribute('aria-label', t('foldedLabel', { corner: cornerLabel(state.corner) }));
+    unfoldHandle.setAttribute('aria-label', t('unfoldLabel', { corner: cornerLabel(state.corner) }));
+    updateCount();
+  }
+  applyLanguage(navigator.languages || [navigator.language]);
 
   if (typeof bridge.onState === 'function') bridge.onState((next) => { if (ready) applyState(next); });
   bridge.getState().then((initial) => {
+    applyLanguage(initial?.uiLocale || initial?.systemLanguage || navigator.languages || [navigator.language]);
     applyState(initial, true);
     ready = true;
     addNoteButton.disabled = false;
@@ -644,6 +667,6 @@
   }).catch(() => {
     app.classList.remove('is-loading');
     setStatus('error');
-    showToast('메모를 불러오지 못했어요. 앱을 다시 열어 주세요.');
+    showToast(t('error.load'));
   });
 })();
