@@ -117,6 +117,53 @@ async function main() {
       styles: Object.fromEntries(notes.map(note => [note.noteId, observed.styles[note.handle]])),
     };
   }
+  async function clickExposedNote(note) {
+    if (process.platform !== 'win32') {
+      await note.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+      return;
+    }
+    const window = await application.browserWindow(note);
+    const nativeHandle = await window.evaluate(window => {
+      const bytes = window.getNativeWindowHandle();
+      return (bytes.length === 8 ? bytes.readBigUInt64LE() : BigInt(bytes.readUInt32LE())).toString();
+    });
+    assert.match(nativeHandle, /^\d+$/);
+    // CDP dispatches events directly into a renderer even when its native window
+    // is covered. Use a real exposed desktop point so Windows grants focus in
+    // exactly the way an actual user click does; never force window.focus().
+    const script = `
+      $ErrorActionPreference = 'Stop';
+      Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CornerNoteRealMouse { [StructLayout(LayoutKind.Sequential)] public struct Point { public int X; public int Y; public Point(int x, int y) { X = x; Y = y; } } [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left; public int Top; public int Right; public int Bottom; } [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rectangle); [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(Point point); [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr window, uint flags); [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra); }';
+      $target = [IntPtr]::new([Int64]::Parse('${nativeHandle}'));
+      $rectangle = New-Object CornerNoteRealMouse+Rect;
+      if (-not [CornerNoteRealMouse]::GetWindowRect($target, [ref]$rectangle)) { throw 'Cannot inspect target note rectangle.'; }
+      $width = $rectangle.Right - $rectangle.Left;
+      $height = $rectangle.Bottom - $rectangle.Top;
+      $xs = @(18, 24, ($width - 18), ($width - 24), [int]($width / 2), 48, ($width - 48));
+      $ys = @([int]($height / 2), 96, 48, 18, 24, ($height - 18), ($height - 24), ($height - 48));
+      $point = $null;
+      foreach ($x in $xs) {
+        foreach ($y in $ys) {
+          if ($x -lt 0 -or $x -ge $width -or $y -lt 0 -or $y -ge $height) { continue; }
+          if (($x -lt 40 -or $x -gt ($width - 40)) -and ($y -lt 40 -or $y -gt ($height - 40))) { continue; }
+          $candidate = [CornerNoteRealMouse+Point]::new($rectangle.Left + $x, $rectangle.Top + $y);
+          $root = [CornerNoteRealMouse]::GetAncestor([CornerNoteRealMouse]::WindowFromPoint($candidate), 2);
+          if ($root -eq $target) { $point = $candidate; break; }
+        }
+        if ($null -ne $point) { break; }
+      }
+      if ($null -eq $point) { throw 'Target note has no exposed desktop point; cannot test an actual user click.'; }
+      if (-not [CornerNoteRealMouse]::SetCursorPos($point.X, $point.Y)) { throw 'Cannot move desktop pointer.'; }
+      $clickedRoot = [CornerNoteRealMouse]::GetAncestor([CornerNoteRealMouse]::WindowFromPoint($point), 2);
+      if ($clickedRoot -ne $target) { throw 'Another native window covers the intended click point.'; }
+      [CornerNoteRealMouse]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero);
+      Start-Sleep -Milliseconds 35;
+      [CornerNoteRealMouse]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero);
+      ConvertTo-Json -Compress -InputObject @{ root = $clickedRoot.ToInt64().ToString(); x = $point.X; y = $point.Y };
+    `;
+    const {stdout} = await execFileAsync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {timeout: 15000, windowsHide: true});
+    assert.equal(JSON.parse(stdout.trim()).root, nativeHandle, 'the actual mouse click reaches the intended native note');
+  }
   try {
     let page = await launch();
     const preferences = await application.evaluate(({BrowserWindow}) => {
@@ -527,6 +574,10 @@ async function main() {
     await nativeFor(noteThree, 'setBounds', overlap);
     assert.deepEqual((await nativeFor(noteOne)).bounds, overlap);
     assert.deepEqual((await nativeFor(noteThree)).bounds, overlap);
+    // First prove exact overlap is allowed. Then expose a strip of each note so
+    // either can actually be clicked on the desktop without forcing OS focus.
+    const overlapThree = desiredBounds(108, 350);
+    await nativeFor(noteThree, 'setBounds', overlapThree);
     async function assertActive(note, id) {
       await note.waitForFunction(async expected => (await window.cornerNote.getState()).activeNoteId === expected, id);
       // The Linux CI smoke display intentionally has no window manager, so it
@@ -541,10 +592,10 @@ async function main() {
       const native = await windowsNativeState();
       if (native) assert.equal(native.order[0], id, 'last activated note is actually highest in Windows User32 stacking order');
     }
-    await noteOne.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await clickExposedNote(noteOne);
     await noteOne.getByTestId('note-editor').fill(`${first}\n겹친 상태에서 첫 메모 편집`);
     await assertActive(noteOne, idOne);
-    await noteThree.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await clickExposedNote(noteThree);
     await assertActive(noteThree, idThree);
     // A delayed sibling blur used to raise older always-on-top windows again.
     // Re-delivering that native event must leave focus AND real Windows order.
@@ -552,9 +603,10 @@ async function main() {
     await nativeFor(noteTwo, 'blur');
     await assertActive(noteThree, idThree);
     assert.deepEqual((await nativeFor(noteOne)).bounds, overlap);
-    assert.deepEqual((await nativeFor(noteThree)).bounds, overlap);
+    assert.deepEqual((await nativeFor(noteThree)).bounds, overlapThree);
     pass(`overlapping notes are allowed; clicking or editing activates the latest note and sibling blur preserves it${process.platform === 'win32' ? ' with actual Windows focus and stacking order' : ' (Linux smoke display; native focus/stacking are checked on Windows)'}`);
 
+    await clickExposedNote(noteOne);
     await noteOne.getByTestId('always-on-top-button').click();
     for (const note of [noteOne, noteTwo, noteThree]) {
       await note.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === false);
@@ -568,7 +620,7 @@ async function main() {
         assert.equal(nativeWindows.styles[id].owner, '0', 'independent notes must not be owned tool windows');
       }
     }
-    await noteThree.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await clickExposedNote(noteThree);
     await assertActive(noteThree, idThree);
     await noteThree.getByTestId('always-on-top-button').click();
     for (const note of [noteOne, noteTwo, noteThree]) {
@@ -615,7 +667,7 @@ async function main() {
     assert.deepEqual((await nativeFor(noteTwo)).bounds, secondMoved.bounds);
     pass('hiding one note leaves its siblings visible and app activation recovers it with its folded position intact');
 
-    await noteThree.getByTestId('note-editor').click({position: {x: 20, y: 20}});
+    await clickExposedNote(noteThree);
     await assertActive(noteThree, idThree);
     const beforeRestart = new Map(await Promise.all([noteOne, noteTwo, noteThree].map(async note => {
       const state = await stateFor(note);
