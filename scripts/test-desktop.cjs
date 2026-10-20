@@ -286,6 +286,7 @@ async function main() {
     await page.getByTestId('always-on-top-button').click();
     await page.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === false);
     assert.equal(await nativeTopmost(), false);
+    await page.waitForFunction(() => document.querySelector('[data-testid="always-on-top-button"]').getAttribute('aria-pressed') === 'false');
     assert.equal(await page.getByTestId('always-on-top-button').getAttribute('aria-pressed'), 'false');
     await blur();
     assert.equal(await nativeTopmost(), false);
