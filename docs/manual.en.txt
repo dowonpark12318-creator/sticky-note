@@ -26,7 +26,7 @@ FIRST-RUN GUIDE
 The five-step guide introduces moving, resizing, folding/unfolding, moving folded notes, and AI translation. Finish or skip it. To replay it, open Help (?) and select Take the tour again.
 
 TRANSLATING SELECTED TEXT
-Basic notes work offline without an API key. AI translation requires internet access and your own OpenAI API key. Open Help (?) > AI translation settings to connect it. OpenAI API usage is billed separately from a ChatGPT subscription.
+Basic notes work offline without an API key. AI translation requires internet access and your own OpenAI API key. Write some text, select it, click Translate, and open AI translation settings in the language menu to connect it. OpenAI API usage is billed separately from a ChatGPT subscription.
 
 1. Write some text. A Translate button appears in the center of the bottom toolbar.
 2. Drag to select the text you want to translate, click Translate, then choose a target language. The initial targets are your computer's actual language and English, without duplicates.

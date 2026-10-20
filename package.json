@@ -17,7 +17,10 @@
     "pack:win": "node scripts/package-windows.cjs",
     "test:locales": "node scripts/test-locales.cjs",
     "pack:msix": "node scripts/package-msix.cjs --store",
-    "pack:msix:dev": "node scripts/package-msix.cjs --development"
+    "pack:msix:dev": "node scripts/package-msix.cjs --development",
+    "store:screenshots": "node scripts/capture-store-screenshots.cjs",
+    "store:materials": "node scripts/package-store-materials.cjs",
+    "store:check": "node scripts/package-store-materials.cjs --check-text"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",

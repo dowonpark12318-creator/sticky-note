@@ -1,0 +1,48 @@
+{
+  "locale": "zh-Hant",
+  "suggestedProductName": "Corner Note",
+  "productNameInstruction": "請選擇已在Partner Center保留的確切產品名稱。使用翻譯名稱前，請先保留該名稱。",
+  "shortDescription": "把靈感留在眼前，需要空間時就摺到螢幕角落。這款免費桌面便箋支援自由重疊、置頂切換，還能使用自己的OpenAI API金鑰翻譯選取的文字。",
+  "description": "把想記住的事留在眼前，需要更多空間時就輕輕摺起。Corner Note是一款免費的桌面便箋應用程式，適合記錄靈感、待辦事項，以及想隨時查看的文字。\n\n按+新增多張便箋，選擇顏色，拖曳邊緣調整大小。便箋可自由重疊，最後點選或編輯的便箋會顯示在最上方。「一律置頂」套用至所有便箋；關閉後，可透過工作列或Alt+Tab像一般視窗一樣切換。\n\n將便箋角沿對角線拖曳三分之一後放開，就會摺到對應的螢幕角落。摺疊後仍可自由移動。按兩下主體可回到最初摺疊的位置，向內拉動斜邊把手即可展開。內容與視窗狀態會自動儲存在電腦上。−會將便箋隱藏至系統匣；×會先詢問，再刪除目前的便箋。\n\n選用的AI翻譯使用即時生成式AI服務。選取文字並選擇目標語言，查看結果後再複製，或手動取代選取範圍。只有選取的文字會傳送給OpenAI，原文不會被自動覆寫。翻譯需要網際網路連線及你自己的OpenAI API金鑰。OpenAI API費用與ChatGPT訂閱分開計費。應用程式本身免費，基本書寫與儲存無需帳戶或API金鑰，離線也能使用。\n\n選單、說明與五步教學會跟隨電腦的慣用語言，並附有離線指南。支援韓文、英文、日文、簡體及繁體中文、西班牙文、法文、德文、葡萄牙文及義大利文；其他顯示語言使用英文。寫下的便箋不會被自動翻譯。\n\n適用於Windows 10版本2004（組建19041）以上，以及Windows 11的x64裝置。若要回報問題或不適當的AI結果，請聯絡dowonpark12318@gmail.com。請勿在回報中包含API金鑰或敏感文字。",
+  "features": [
+    "多張便箋可自由重疊，各自儲存文字、顏色、大小與位置",
+    "統一切換所有便箋的置頂狀態，關閉後可用Alt+Tab切換",
+    "拖曳便箋角至對角線的三分之一，即可摺到螢幕角落",
+    "摺疊後自由移動，按兩下回到最初的角落",
+    "自動儲存至本機、系統匣隱藏，以及確認後刪除",
+    "選取文字的AI翻譯，支援預覽、複製與手動取代",
+    "自動選擇十種顯示語言，並提供五步功能教學"
+  ],
+  "searchTerms": [
+    "便箋",
+    "桌面筆記",
+    "摺疊便箋",
+    "一律置頂",
+    "備忘錄",
+    "翻譯"
+  ],
+  "screenshotCaptions": {
+    "01-writing": "書寫便箋，調整大小與顏色，把需要的靈感留在身邊。",
+    "02-overlapping-notes": "自由重疊多張便箋，最後點選或編輯的便箋會移到最上方。",
+    "03-folding-guide": "透過內建教學了解如何摺疊、展開及移動摺疊後的便箋。",
+    "04-ai-settings": "選用的AI翻譯使用你自己的OpenAI API金鑰，API費用另計。"
+  },
+  "recommendedCategory": "Productivity",
+  "price": "Free",
+  "supportEmail": "dowonpark12318@gmail.com",
+  "firstSubmissionWhatsNew": "",
+  "releaseNotesForFuture": "支援十種顯示語言自動選擇、五步功能教學、多張便箋、角落摺疊，以及選取文字的AI翻譯。",
+  "additionalSystemRequirements": [
+    "Windows 10版本2004（組建19041）以上，或Windows 11；x64",
+    "只有AI翻譯需要網路連線與個人OpenAI API金鑰"
+  ],
+  "publisherDisplayName": "Dowon Park",
+  "packageIdentityName": "DowonPark.CornerNote",
+  "generativeAI": true,
+  "commercialDisclosure": {
+    "appPrice": "free",
+    "ownOpenAiApiKeyRequired": true,
+    "apiUsageBilledSeparately": true,
+    "chatGptSubscriptionDoesNotIncludeApiUsage": true
+  }
+}

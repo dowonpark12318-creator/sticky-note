@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "applicationVersion": "1.5.0",
+  "packageVersion": "1.5.0.0",
+  "identity": {
+    "name": "DowonPark.CornerNote",
+    "publisher": "CN=B3FCB264-7CC2-48BC-8B90-21070B7AFBD4",
+    "publisherDisplayName": "Dowon Park"
+  },
+  "price": {
+    "value": "Free",
+    "source": "publisher-confirmed",
+    "externalApiCharges": "Optional OpenAI API usage is billed separately to the user; a ChatGPT subscription does not include API usage."
+  },
+  "category": {
+    "recommended": "Productivity",
+    "deviceFamily": "Desktop"
+  },
+  "architecture": "x64",
+  "minimumWindowsVersion": "10.0.19041.0",
+  "supportedDisplayLanguages": [
+    "ko-KR",
+    "en-US",
+    "ja-JP",
+    "zh-Hans",
+    "zh-Hant",
+    "es",
+    "fr",
+    "de",
+    "pt",
+    "it"
+  ],
+  "unsupportedDisplayLanguageFallback": "en-US",
+  "supportEmail": "dowonpark12318@gmail.com",
+  "privacyPolicyUrls": {
+    "en": "https://github.com/dowonpark12318-creator/sticky-note/blob/codex/windows-test-build/store/listing/privacy/privacy-policy.en.md",
+    "ko": "https://github.com/dowonpark12318-creator/sticky-note/blob/codex/windows-test-build/store/listing/privacy/privacy-policy.ko.md"
+  },
+  "supportUrls": {
+    "en": "https://github.com/dowonpark12318-creator/sticky-note/blob/codex/windows-test-build/store/listing/support.en.md",
+    "ko": "https://github.com/dowonpark12318-creator/sticky-note/blob/codex/windows-test-build/store/listing/support.ko.md"
+  },
+  "productName": {
+    "action": "select_exact_reserved_name_in_Partner_Center",
+    "suggestedDisplayName": "Corner Note",
+    "reservationVerified": false,
+    "note": "Package identity and suggested localized display names do not reserve the Store listing name."
+  },
+  "declarations": {
+    "accessesOrTransmitsPersonalInformation": {
+      "value": true,
+      "reason": "The app accesses locally entered notes and an optional API key, and sends selected text to OpenAI when requested."
+    },
+    "incorporatesGenerativeAi": {
+      "value": true,
+      "reason": "Optional live text translation through the OpenAI Responses API."
+    },
+    "containsAdvertising": {
+      "value": false,
+      "reason": "No advertising integration in the current app."
+    },
+    "containsAppPurchaseCheckout": {
+      "value": false,
+      "reason": "The app is free and provides no in-app purchase checkout or credit sale."
+    },
+    "nonMicrosoftCommercePurchaseDeclaration": {
+      "value": "review_exact_portal_wording",
+      "reason": "No purchase transaction occurs in the app, but optional BYOK OpenAI service incurs separate external API charges. Keep that dependency explicit and review whether the displayed declaration includes this external-service case."
+    },
+    "testedToMeetAccessibilityGuidelines": {
+      "value": false,
+      "reason": "Full Narrator/high-contrast/Magnifier/high-DPI end-to-end verification has not been performed."
+    },
+    "supportsPenAndInk": {
+      "value": false,
+      "reason": "No drawing, handwriting or Windows Ink feature is implemented."
+    },
+    "gameRecordingAndBroadcast": {
+      "value": "not_applicable",
+      "reason": "This is a productivity app, not a game."
+    },
+    "alternateDriveInstallation": {
+      "value": "publisher_review_after_validation",
+      "reason": "Do not certify installation to alternate/removable drives before testing the packaged app there."
+    },
+    "windowsAutomaticDataBackup": {
+      "value": "publisher_review_after_validation",
+      "reason": "Backup and cross-device restore of Electron/MSIX app data and remembered encrypted keys have not been verified."
+    }
+  },
+  "capabilities": {
+    "runFullTrust": "Electron desktop windows, tray integration, local note storage, window management and optional Windows-protected key storage; no administrator elevation requested.",
+    "internetClient": "Optional direct HTTPS translation requests to OpenAI; basic note features work offline."
+  },
+  "iarc": {
+    "status": "publisher_must_complete_actual_questionnaire",
+    "assignedRating": null,
+    "facts": [
+      "No gambling or advertising functionality.",
+      "No app-operated social posting, public user-content hosting or chat service.",
+      "Private user-entered notes and live third-party AI translation are supported.",
+      "Internet access and external-service transmission exist for optional translation."
+    ],
+    "note": "Answer each exact question under its displayed definition; do not answer every question No or invent a rating."
+  },
+  "firstStoreSubmission": {
+    "whatsNew": "",
+    "instruction": "Leave What's new blank on the first Store submission; retain any prepared update text separately."
+  },
+  "validation": {
+    "windowsCiRun": "https://github.com/dowonpark12318-creator/sticky-note/actions/runs/39389998593",
+    "validatedCommit": "d9157ab",
+    "temporaryCertificateMsixInstallPassed": true,
+    "registeredStoreMsixBuildPassed": true,
+    "wackRun": false,
+    "liveOpenAiRequestTested": false,
+    "storeCertificationApproved": false,
+    "submittedByThisWork": false
+  },
+  "reviewerNotes": {
+    "englishFile": "certification-notes.en.md",
+    "koreanFile": "certification-notes.ko.md",
+    "credentialIncluded": false,
+    "credentialInstruction": "If review requires a dedicated test key, arrange a restricted credential through an appropriate private review channel. Never add it to this public file, Git, ZIP or screenshots."
+  }
+}

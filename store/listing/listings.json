@@ -1,0 +1,486 @@
+{
+  "appVersion": "1.5.0",
+  "listingCount": 10,
+  "listings": [
+    {
+      "locale": "en-US",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Select the exact product name already reserved in Partner Center. Reserve a translated name before using it.",
+      "shortDescription": "Keep ideas close with free desktop notes that fold into a screen corner. Arrange overlapping notes, choose always-on-top display, and optionally translate selected text with your own OpenAI API key.",
+      "description": "Keep a reminder in view, then fold it away when you need more room. Corner Note is a free desktop note app for ideas, tasks and small pieces of text you want nearby.\n\nCreate several notes with +, choose their colors, resize them by dragging an edge, and arrange them freely—even overlapping. The note you last click or edit comes to the front. Turn Always on top on for all notes, or turn it off to switch with the taskbar and Alt+Tab normally.\n\nDrag a corner one third of the way across the note’s diagonal to fold it into the matching screen corner. Move the folded note wherever you like. Double-click its body to return it to the original corner, or pull the diagonal grip inward to unfold it. Each note saves its content and window state on your computer. The − button hides a note to the tray; × asks for confirmation before deleting it.\n\nOptional AI translation uses a live generative AI service. Select text, choose a target language, and review the result before copying it or replacing the selection. Only selected text is sent to OpenAI; your original note is never replaced automatically. Translation requires internet access and your own OpenAI API key. OpenAI API usage is billed separately from a ChatGPT subscription. The note app itself is free, and basic writing and saving work offline without an account or API key.\n\nMenus, help and the five-step tutorial follow your computer’s preferred language. An offline user guide is also included. Display languages: Korean, English, Japanese, Simplified and Traditional Chinese, Spanish, French, German, Portuguese and Italian. Other display languages fall back to English. Your written notes are not translated automatically.\n\nFor Windows 10 version 2004 (build 19041) or later and Windows 11, x64. To report a problem or an inappropriate AI result, contact dowonpark12318@gmail.com. Do not include API keys or sensitive text in your report.",
+      "features": [
+        "Multiple overlapping notes with independent text, colors, sizes and positions",
+        "Always-on-top toggle shared across all notes; normal Alt+Tab switching when off",
+        "Fold a note after dragging a corner one third of its diagonal",
+        "Move folded notes freely and double-click to return to the original corner",
+        "Automatic local saving, tray hiding and confirmed note deletion",
+        "Optional selected-text AI translation with preview, copy and explicit replacement",
+        "Ten display languages, automatic language selection and a five-step tutorial"
+      ],
+      "searchTerms": [
+        "sticky notes",
+        "desktop notes",
+        "folding notes",
+        "always on top",
+        "memo",
+        "translation"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "Write and resize a note, choose a color, and keep your ideas nearby.",
+        "02-overlapping-notes": "Arrange several notes freely. The note you last click or edit comes to the front.",
+        "03-folding-guide": "The built-in guide explains folding, unfolding and moving folded notes.",
+        "04-ai-settings": "Optional AI translation uses your own OpenAI API key. API usage is billed separately."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "Automatic display-language selection for ten languages, a five-step feature tour, multiple notes, corner folding and optional selected-text AI translation.",
+      "additionalSystemRequirements": [
+        "Windows 10 version 2004 (build 19041) or later, or Windows 11; x64",
+        "Internet and a personal OpenAI API key are required only for AI translation"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "ko-KR",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Partner Center에서 이미 예약한 정확한 제품 이름을 선택하세요. 번역한 이름을 쓰려면 먼저 해당 이름을 예약해야 합니다.",
+      "shortDescription": "생각을 가까이 두고, 필요할 때 화면 구석에 접어 두세요. 무료 데스크톱 메모를 겹쳐 배치하고 항상 위 표시를 선택할 수 있습니다. 본인 OpenAI API 키로 선택한 글의 AI 번역도 이용할 수 있어요.",
+      "description": "기억할 일은 눈앞에 두고, 공간이 필요하면 작게 접어 두세요. Corner Note는 아이디어와 할 일, 가까이 두고 싶은 짧은 글을 적는 무료 데스크톱 메모 앱입니다.\n\n+로 여러 메모를 만들고, 색을 고르고, 변 테두리를 끌어 크기를 조절하세요. 메모는 자유롭게 겹쳐 놓을 수 있고 마지막으로 클릭하거나 편집한 메모가 위로 올라옵니다. 모든 메모의 ‘항상 위’를 켜 다른 앱 위에 두거나, 끄고 작업 표시줄과 Alt+Tab으로 전환할 수 있습니다.\n\n모서리를 대각선 거리의 1/3만 끌면 그쪽 화면 구석에 접힙니다. 접힌 메모도 원하는 곳으로 옮길 수 있어요. 몸체를 두 번 클릭하면 처음 접힌 구석으로 돌아가고, 대각선 손잡이를 안쪽으로 당기면 펼쳐집니다. 메모 내용과 창 상태는 컴퓨터에 자동 저장됩니다. −는 트레이로 숨기고, ×는 확인 후 해당 메모를 삭제합니다.\n\n선택 기능인 AI 번역은 실시간 생성형 AI 서비스를 사용합니다. 번역할 글을 선택하고 언어를 고른 뒤, 결과를 확인해 복사하거나 선택 부분을 직접 바꿀 수 있습니다. 선택한 글만 OpenAI로 전송되며 원문을 자동으로 덮어쓰지 않습니다. 번역에는 인터넷과 본인의 OpenAI API 키가 필요합니다. OpenAI API 사용료는 ChatGPT 구독과 별도로 청구됩니다. 메모 앱 자체는 무료이며, 기본 작성과 저장은 계정이나 API 키 없이 오프라인에서도 사용할 수 있습니다.\n\n메뉴·도움말·5단계 튜토리얼은 컴퓨터 기본 언어에 맞춰 표시됩니다. 오프라인 설명서도 포함되어 있습니다. 한국어, 영어, 일본어, 중국어 간체·번체, 스페인어, 프랑스어, 독일어, 포르투갈어, 이탈리아어를 지원하며 다른 표시 언어는 영어로 대체합니다. 작성한 메모는 자동 번역하지 않습니다.\n\nWindows 10 버전 2004(빌드 19041) 이상 및 Windows 11 x64용입니다. 문제나 부적절한 AI 결과는 dowonpark12318@gmail.com으로 알려 주세요. 신고에 API 키나 민감한 글을 포함하지 마세요.",
+      "features": [
+        "글·색상·크기·위치를 따로 저장하는 여러 메모와 자유로운 겹침 배치",
+        "모든 메모에 적용되는 항상 위 설정과 끈 상태의 Alt+Tab 전환",
+        "모서리를 대각선 거리의 1/3만 끌어 화면 구석으로 접기",
+        "접힌 메모의 자유로운 이동과 더블클릭으로 처음 구석 복귀",
+        "컴퓨터에 자동 저장, 트레이 숨김, 확인 후 메모 삭제",
+        "선택한 글의 AI 번역과 결과 미리보기·복사·직접 바꾸기",
+        "10개 표시 언어 자동 선택과 5단계 기능 튜토리얼"
+      ],
+      "searchTerms": [
+        "스티커 메모",
+        "바탕화면 메모",
+        "접는 메모",
+        "항상 위",
+        "메모장",
+        "번역"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "메모를 쓰고 크기와 색을 바꿔 필요한 생각을 가까이 두세요.",
+        "02-overlapping-notes": "여러 메모를 자유롭게 겹쳐 놓으세요. 마지막으로 클릭하거나 편집한 메모가 위로 올라옵니다.",
+        "03-folding-guide": "기본 튜토리얼에서 접기·펼치기와 접힌 메모 이동 방법을 확인하세요.",
+        "04-ai-settings": "선택형 AI 번역은 본인의 OpenAI API 키를 사용하며 API 사용료는 별도입니다."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "10개 표시 언어 자동 선택, 5단계 기능 안내, 여러 메모, 모서리 접기와 선택한 글의 AI 번역을 지원합니다.",
+      "additionalSystemRequirements": [
+        "Windows 10 버전 2004(빌드 19041) 이상 또는 Windows 11, x64",
+        "인터넷과 본인 OpenAI API 키는 AI 번역에만 필요"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "ja-JP",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Partner Centerで予約済みの正確な製品名を選択してください。翻訳した名前を使う場合は、先にその名前を予約してください。",
+      "shortDescription": "思いついたことをそばに置き、必要なときは画面の隅に折りたためる無料のデスクトップ付箋。重ねて配置し、最前面表示を切り替え、自分のOpenAI APIキーで選択した文章をAI翻訳できます。",
+      "description": "覚えておきたいことは目の前に。スペースが必要なら、小さく折りたたんで。Corner Noteは、アイデアや予定、手元に置いておきたい文章を書ける無料のデスクトップ付箋アプリです。\n\n+で付箋を追加し、色を選び、辺をドラッグしてサイズを調整できます。付箋は自由に重ねて配置でき、最後にクリックまたは編集した付箋が手前に表示されます。「常に最前面」はすべての付箋に適用され、オフにすればタスクバーやAlt+Tabで通常のウィンドウとして切り替えられます。\n\n角を対角線の3分の1だけ引くと、その方向の画面の隅に折りたたまれます。折りたたんだ付箋も好きな場所へ移動できます。本体をダブルクリックすると最初の隅に戻り、斜めのつまみを内側へ引くと元に戻ります。内容とウィンドウの状態はコンピューターに自動保存されます。−はトレイに隠し、×は確認してからその付箋を削除します。\n\n任意のAI翻訳には、リアルタイムの生成AIサービスを使用します。文章を選択して言語を指定し、結果を確認してコピーするか、選択部分を自分で置き換えます。OpenAIへ送信されるのは選択した文章だけで、原文は自動で上書きされません。翻訳にはインターネット接続と本人のOpenAI APIキーが必要です。OpenAI API利用料金はChatGPTのサブスクリプションとは別です。アプリ自体は無料で、基本的な記入と保存はアカウントやAPIキーなしでオフラインでも使えます。\n\nメニュー、ヘルプ、5段階のチュートリアルはコンピューターの優先言語に合わせて表示されます。オフラインガイドも付属しています。韓国語、英語、日本語、中国語簡体字・繁体字、スペイン語、フランス語、ドイツ語、ポルトガル語、イタリア語に対応し、その他の表示言語は英語になります。書いた文章は自動翻訳しません。\n\nWindows 10バージョン2004（ビルド19041）以降およびWindows 11のx64環境向けです。問題や不適切なAI結果はdowonpark12318@gmail.comへご連絡ください。APIキーや機密情報は送らないでください。",
+      "features": [
+        "文章・色・サイズ・位置を個別に保存する複数の付箋と自由な重ね合わせ",
+        "すべての付箋の最前面表示を切り替え、オフならAlt+Tabで移動",
+        "角を対角線の3分の1だけ引いて画面の隅に折りたたむ",
+        "折りたたんだ付箋を自由に移動し、ダブルクリックで最初の隅へ戻す",
+        "ローカル自動保存、トレイへの非表示、確認後の削除",
+        "選択した文章のAI翻訳と、結果の確認・コピー・手動での置き換え",
+        "10種類の表示言語の自動選択と5段階のチュートリアル"
+      ],
+      "searchTerms": [
+        "付箋",
+        "デスクトップメモ",
+        "折りたたみメモ",
+        "最前面",
+        "メモ帳",
+        "翻訳"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "付箋を書き、サイズと色を変えて、必要な考えをそばに置けます。",
+        "02-overlapping-notes": "複数の付箋を自由に重ねて配置。最後にクリックまたは編集した付箋が手前に表示されます。",
+        "03-folding-guide": "チュートリアルで折りたたみ、元に戻す操作、折りたたんだ付箋の移動を確認できます。",
+        "04-ai-settings": "任意のAI翻訳には本人のOpenAI APIキーを使用し、API利用料金は別途発生します。"
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "10種類の表示言語の自動選択、5段階の機能ガイド、複数の付箋、角の折りたたみ、選択した文章のAI翻訳に対応しています。",
+      "additionalSystemRequirements": [
+        "Windows 10バージョン2004（ビルド19041）以降、またはWindows 11、x64",
+        "インターネット接続と本人のOpenAI APIキーはAI翻訳にのみ必要"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "zh-Hans",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "请选择已在Partner Center中保留的准确产品名称。如需使用翻译后的名称，请先保留该名称。",
+      "shortDescription": "把灵感留在眼前，需要空间时就折叠到屏幕角落。这款免费桌面便笺支持自由重叠、置顶切换，还可使用你自己的OpenAI API密钥对选中文字进行AI翻译。",
+      "description": "把需要记住的事留在眼前，需要更多空间时就轻轻折起。Corner Note是一款免费的桌面便笺应用，适合记录灵感、待办事项和想随时查看的文字。\n\n点击+添加多张便笺，选择颜色，拖动边缘调整大小。便笺可以自由重叠，最后点击或编辑的便笺会显示在最前面。“始终置顶”适用于所有便笺；关闭后，可通过任务栏或Alt+Tab像普通窗口一样切换。\n\n将便笺角沿对角线拖动三分之一后松开，它就会折叠到对应的屏幕角落。折叠后的便笺仍可自由移动。双击其主体可返回最初折叠的位置，向内拉动斜边把手即可展开。内容和窗口状态会自动保存在电脑上。−将便笺隐藏到托盘；×会先询问，再删除当前便笺。\n\n可选的AI翻译使用实时生成式AI服务。选中文字并选择目标语言，查看结果后再复制或手动替换选区。只有选中的文字会发送给OpenAI，原文不会被自动覆盖。翻译需要联网及你自己的OpenAI API密钥。OpenAI API费用与ChatGPT订阅分开计费。应用本身免费，基本记录与保存无需账户或API密钥，离线也能使用。\n\n菜单、帮助和五步教程会跟随电脑的首选语言。应用还附有离线说明。支持韩语、英语、日语、简体及繁体中文、西班牙语、法语、德语、葡萄牙语和意大利语；其他显示语言使用英语。你写下的便笺不会被自动翻译。\n\n适用于Windows 10版本2004（内部版本19041）及以上版本，以及Windows 11的x64设备。如需报告问题或不适当的AI结果，请联系dowonpark12318@gmail.com。请勿在报告中包含API密钥或敏感文字。",
+      "features": [
+        "多张便笺可自由重叠，各自保存文字、颜色、大小和位置",
+        "统一切换所有便笺的置顶状态，关闭后可用Alt+Tab切换",
+        "拖动便笺角至对角线的三分之一，即可折叠到屏幕角落",
+        "折叠后可自由移动，双击返回最初的角落",
+        "自动保存到本地、托盘隐藏，以及确认后删除",
+        "对选中文字进行AI翻译，预览、复制或手动替换结果",
+        "自动选择十种显示语言，并提供五步功能教程"
+      ],
+      "searchTerms": [
+        "便笺",
+        "桌面笔记",
+        "折叠便笺",
+        "始终置顶",
+        "备忘录",
+        "翻译"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "书写便笺，调整大小与颜色，把需要的灵感留在身边。",
+        "02-overlapping-notes": "自由重叠多张便笺，最后点击或编辑的便笺会移到最前面。",
+        "03-folding-guide": "通过内置教程了解如何折叠、展开和移动折叠后的便笺。",
+        "04-ai-settings": "可选AI翻译使用你自己的OpenAI API密钥，API费用另行计费。"
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "支持十种显示语言自动选择、五步功能教程、多张便笺、角落折叠，以及选中文字的AI翻译。",
+      "additionalSystemRequirements": [
+        "Windows 10版本2004（内部版本19041）及以上，或Windows 11；x64",
+        "仅AI翻译需要联网及个人OpenAI API密钥"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "zh-Hant",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "請選擇已在Partner Center保留的確切產品名稱。使用翻譯名稱前，請先保留該名稱。",
+      "shortDescription": "把靈感留在眼前，需要空間時就摺到螢幕角落。這款免費桌面便箋支援自由重疊、置頂切換，還能使用自己的OpenAI API金鑰翻譯選取的文字。",
+      "description": "把想記住的事留在眼前，需要更多空間時就輕輕摺起。Corner Note是一款免費的桌面便箋應用程式，適合記錄靈感、待辦事項，以及想隨時查看的文字。\n\n按+新增多張便箋，選擇顏色，拖曳邊緣調整大小。便箋可自由重疊，最後點選或編輯的便箋會顯示在最上方。「一律置頂」套用至所有便箋；關閉後，可透過工作列或Alt+Tab像一般視窗一樣切換。\n\n將便箋角沿對角線拖曳三分之一後放開，就會摺到對應的螢幕角落。摺疊後仍可自由移動。按兩下主體可回到最初摺疊的位置，向內拉動斜邊把手即可展開。內容與視窗狀態會自動儲存在電腦上。−會將便箋隱藏至系統匣；×會先詢問，再刪除目前的便箋。\n\n選用的AI翻譯使用即時生成式AI服務。選取文字並選擇目標語言，查看結果後再複製，或手動取代選取範圍。只有選取的文字會傳送給OpenAI，原文不會被自動覆寫。翻譯需要網際網路連線及你自己的OpenAI API金鑰。OpenAI API費用與ChatGPT訂閱分開計費。應用程式本身免費，基本書寫與儲存無需帳戶或API金鑰，離線也能使用。\n\n選單、說明與五步教學會跟隨電腦的慣用語言，並附有離線指南。支援韓文、英文、日文、簡體及繁體中文、西班牙文、法文、德文、葡萄牙文及義大利文；其他顯示語言使用英文。寫下的便箋不會被自動翻譯。\n\n適用於Windows 10版本2004（組建19041）以上，以及Windows 11的x64裝置。若要回報問題或不適當的AI結果，請聯絡dowonpark12318@gmail.com。請勿在回報中包含API金鑰或敏感文字。",
+      "features": [
+        "多張便箋可自由重疊，各自儲存文字、顏色、大小與位置",
+        "統一切換所有便箋的置頂狀態，關閉後可用Alt+Tab切換",
+        "拖曳便箋角至對角線的三分之一，即可摺到螢幕角落",
+        "摺疊後自由移動，按兩下回到最初的角落",
+        "自動儲存至本機、系統匣隱藏，以及確認後刪除",
+        "選取文字的AI翻譯，支援預覽、複製與手動取代",
+        "自動選擇十種顯示語言，並提供五步功能教學"
+      ],
+      "searchTerms": [
+        "便箋",
+        "桌面筆記",
+        "摺疊便箋",
+        "一律置頂",
+        "備忘錄",
+        "翻譯"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "書寫便箋，調整大小與顏色，把需要的靈感留在身邊。",
+        "02-overlapping-notes": "自由重疊多張便箋，最後點選或編輯的便箋會移到最上方。",
+        "03-folding-guide": "透過內建教學了解如何摺疊、展開及移動摺疊後的便箋。",
+        "04-ai-settings": "選用的AI翻譯使用你自己的OpenAI API金鑰，API費用另計。"
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "支援十種顯示語言自動選擇、五步功能教學、多張便箋、角落摺疊，以及選取文字的AI翻譯。",
+      "additionalSystemRequirements": [
+        "Windows 10版本2004（組建19041）以上，或Windows 11；x64",
+        "只有AI翻譯需要網路連線與個人OpenAI API金鑰"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "es",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Selecciona el nombre exacto del producto que ya hayas reservado en Partner Center. Reserva cualquier nombre traducido antes de usarlo.",
+      "shortDescription": "Ten tus ideas a mano con notas de escritorio gratuitas que se pliegan en una esquina. Superpón notas, activa Siempre encima y traduce el texto seleccionado con tu propia clave de API de OpenAI.",
+      "description": "Mantén los recordatorios a la vista y pliégalos cuando necesites espacio. Corner Note es una aplicación gratuita de notas de escritorio para ideas, tareas y pequeños textos que quieras tener cerca.\n\nCrea varias notas con +, elige sus colores y cambia su tamaño arrastrando un borde. Colócalas libremente, incluso superpuestas: la última nota que pulses o edites pasará al frente. Activa Siempre encima para todas las notas o desactívalo para alternar entre ellas con la barra de tareas y Alt+Tab.\n\nArrastra una esquina hasta un tercio de la diagonal para plegar la nota en esa esquina de la pantalla. Después puedes moverla donde quieras. Haz doble clic en su cuerpo para devolverla a la esquina original o tira del pequeño tirador diagonal hacia dentro para desplegarla. El contenido y el estado de cada ventana se guardan automáticamente en el equipo. − oculta la nota en la bandeja y × pide confirmación antes de eliminarla.\n\nLa traducción con IA es opcional y utiliza un servicio de IA generativa en tiempo real. Selecciona texto, elige un idioma y revisa el resultado antes de copiarlo o sustituir la selección. Solo el texto seleccionado se envía a OpenAI; el original nunca se reemplaza automáticamente. Se necesitan internet y tu propia clave de API de OpenAI. El uso de la API se factura aparte de la suscripción a ChatGPT. La aplicación es gratuita y permite escribir y guardar notas sin conexión, cuenta ni clave de API.\n\nLos menús, la ayuda y el tutorial de cinco pasos siguen el idioma preferido del equipo. También se incluye una guía sin conexión. Se admiten coreano, inglés, japonés, chino simplificado y tradicional, español, francés, alemán, portugués e italiano. Los demás idiomas de interfaz se muestran en inglés. Tus notas no se traducen automáticamente.\n\nPara Windows 10 versión 2004 (compilación 19041) o posterior y Windows 11, x64. Para comunicar un problema o un resultado de IA inapropiado, escribe a dowonpark12318@gmail.com. No envíes claves de API ni texto confidencial.",
+      "features": [
+        "Varias notas superpuestas con texto, colores, tamaños y posiciones independientes",
+        "Siempre encima para todas las notas y cambio normal con Alt+Tab al desactivarlo",
+        "Pliega una nota arrastrando una esquina un tercio de su diagonal",
+        "Mueve las notas plegadas y vuelve a su esquina original con un doble clic",
+        "Guardado local automático, ocultación en la bandeja y eliminación con confirmación",
+        "Traducción opcional con IA del texto seleccionado: vista previa, copia y sustitución manual",
+        "Diez idiomas de interfaz, selección automática y tutorial de cinco pasos"
+      ],
+      "searchTerms": [
+        "notas adhesivas",
+        "notas de escritorio",
+        "notas plegables",
+        "siempre encima",
+        "recordatorios",
+        "traducción"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "Escribe una nota, cambia su tamaño y color y mantén tus ideas a mano.",
+        "02-overlapping-notes": "Superpón varias notas libremente. La última que pulses o edites pasará al frente.",
+        "03-folding-guide": "La guía integrada explica cómo plegar, desplegar y mover las notas plegadas.",
+        "04-ai-settings": "La traducción opcional con IA usa tu propia clave de API de OpenAI. Su uso se factura aparte."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "Selección automática entre diez idiomas de interfaz, guía de cinco pasos, varias notas, plegado en esquinas y traducción opcional con IA del texto seleccionado.",
+      "additionalSystemRequirements": [
+        "Windows 10 versión 2004 (compilación 19041) o posterior, o Windows 11; x64",
+        "Internet y una clave personal de API de OpenAI solo son necesarios para la traducción con IA"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "fr",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Sélectionnez le nom exact du produit déjà réservé dans Partner Center. Réservez tout nom traduit avant de l’utiliser.",
+      "shortDescription": "Gardez vos idées à portée de main avec des notes de bureau gratuites qui se replient dans un coin. Superposez-les, choisissez l’affichage au premier plan et traduisez une sélection avec votre propre clé API OpenAI.",
+      "description": "Gardez un rappel sous les yeux, puis repliez-le quand vous avez besoin de place. Corner Note est une application gratuite de notes de bureau pour vos idées, tâches et petits textes à garder à portée de main.\n\nCréez plusieurs notes avec +, choisissez leurs couleurs et redimensionnez-les en faisant glisser un bord. Placez-les librement, même les unes sur les autres : la dernière note cliquée ou modifiée passe devant. Activez Toujours au premier plan pour toutes les notes, ou désactivez cette option pour utiliser la barre des tâches et Alt+Tab normalement.\n\nTirez un coin sur un tiers de la diagonale pour replier la note dans ce coin de l’écran. Déplacez ensuite la note repliée où vous voulez. Un double-clic sur son corps la ramène au coin d’origine ; tirez la petite poignée diagonale vers l’intérieur pour la déplier. Le contenu et l’état des fenêtres sont enregistrés automatiquement sur votre ordinateur. − masque une note dans la zone de notification ; × demande confirmation avant de la supprimer.\n\nLa traduction par IA est facultative et utilise un service d’IA générative en temps réel. Sélectionnez du texte, choisissez une langue et vérifiez le résultat avant de le copier ou de remplacer la sélection. Seul le texte sélectionné est envoyé à OpenAI ; l’original n’est jamais remplacé automatiquement. Une connexion internet et votre propre clé API OpenAI sont nécessaires. L’utilisation de l’API est facturée séparément d’un abonnement ChatGPT. L’application est gratuite ; l’écriture et l’enregistrement des notes fonctionnent hors connexion, sans compte ni clé API.\n\nLes menus, l’aide et le tutoriel en cinq étapes suivent la langue préférée de l’ordinateur. Un guide hors connexion est également inclus. Langues d’affichage : coréen, anglais, japonais, chinois simplifié et traditionnel, espagnol, français, allemand, portugais et italien. Les autres langues d’interface utilisent l’anglais. Le texte de vos notes n’est pas traduit automatiquement.\n\nPour Windows 10 version 2004 (build 19041) ou ultérieure et Windows 11, x64. Pour signaler un problème ou un résultat d’IA inapproprié : dowonpark12318@gmail.com. N’envoyez pas de clé API ni de texte sensible.",
+      "features": [
+        "Plusieurs notes superposables avec texte, couleurs, tailles et positions indépendants",
+        "Premier plan pour toutes les notes, ou changement normal avec Alt+Tab si l’option est désactivée",
+        "Repli d’une note en tirant un coin sur un tiers de sa diagonale",
+        "Déplacement libre des notes repliées et retour au coin d’origine par double-clic",
+        "Enregistrement local automatique, masquage dans la zone de notification et suppression confirmée",
+        "Traduction IA facultative d’une sélection, avec aperçu, copie et remplacement manuel",
+        "Dix langues d’affichage choisies automatiquement et tutoriel en cinq étapes"
+      ],
+      "searchTerms": [
+        "pense-bête",
+        "notes de bureau",
+        "notes pliables",
+        "premier plan",
+        "mémo",
+        "traduction"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "Écrivez une note, adaptez sa taille et sa couleur et gardez vos idées à portée de main.",
+        "02-overlapping-notes": "Superposez vos notes librement. La dernière note cliquée ou modifiée passe devant.",
+        "03-folding-guide": "Le guide intégré explique comment replier, déplier et déplacer les notes repliées.",
+        "04-ai-settings": "La traduction IA facultative utilise votre propre clé API OpenAI. L’utilisation de l’API est facturée séparément."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "Choix automatique parmi dix langues d’affichage, guide en cinq étapes, plusieurs notes, repli dans un coin et traduction IA facultative du texte sélectionné.",
+      "additionalSystemRequirements": [
+        "Windows 10 version 2004 (build 19041) ou ultérieure, ou Windows 11 ; x64",
+        "Internet et une clé API OpenAI personnelle sont nécessaires uniquement pour la traduction IA"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "de",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Wählen Sie den genauen, bereits im Partner Center reservierten Produktnamen. Übersetzte Namen müssen vor ihrer Verwendung ebenfalls reserviert werden.",
+      "shortDescription": "Kostenlose Desktopnotizen halten Ideen griffbereit und lassen sich in eine Bildschirmecke falten. Überlappen Sie Notizen, wählen Sie Immer im Vordergrund und übersetzen Sie markierten Text mit Ihrem eigenen OpenAI-API-Schlüssel.",
+      "description": "Behalten Sie Erinnerungen im Blick und falten Sie sie zusammen, wenn Sie mehr Platz brauchen. Corner Note ist eine kostenlose Desktopnotiz-App für Ideen, Aufgaben und kurze Texte, die Sie griffbereit haben möchten.\n\nErstellen Sie mit + mehrere Notizen, wählen Sie Farben und ziehen Sie an einem Rand, um die Größe zu ändern. Notizen dürfen sich frei überlappen. Die zuletzt angeklickte oder bearbeitete Notiz kommt nach vorn. Immer im Vordergrund gilt für alle Notizen. Wenn Sie die Option ausschalten, wechseln Sie wie gewohnt über die Taskleiste oder Alt+Tab.\n\nZiehen Sie eine Ecke über ein Drittel der Diagonale, um die Notiz in die entsprechende Bildschirmecke zu falten. Anschließend können Sie die gefaltete Notiz frei verschieben. Ein Doppelklick auf ihren Körper bringt sie zur ursprünglichen Ecke zurück; ziehen Sie den diagonalen Griff nach innen, um sie zu entfalten. Inhalte und Fensterzustände werden automatisch auf Ihrem Computer gespeichert. − blendet eine Notiz in den Infobereich aus; × fragt vor dem Löschen nach.\n\nDie optionale KI-Übersetzung nutzt einen generativen KI-Dienst in Echtzeit. Markieren Sie Text, wählen Sie eine Sprache und prüfen Sie das Ergebnis, bevor Sie es kopieren oder die Auswahl ersetzen. Nur der markierte Text wird an OpenAI gesendet; der Originaltext wird nie automatisch ersetzt. Dafür benötigen Sie Internet und einen eigenen OpenAI-API-Schlüssel. Die API-Nutzung wird getrennt von einem ChatGPT-Abonnement berechnet. Die App selbst ist kostenlos. Notizen schreiben und speichern funktioniert offline, ohne Konto oder API-Schlüssel.\n\nMenüs, Hilfe und die fünfteilige Einführung folgen der bevorzugten Computersprache. Eine Offline-Anleitung ist ebenfalls enthalten. Unterstützt werden Koreanisch, Englisch, Japanisch, vereinfachtes und traditionelles Chinesisch, Spanisch, Französisch, Deutsch, Portugiesisch und Italienisch. Andere Anzeigesprachen verwenden Englisch. Ihre Notiztexte werden nicht automatisch übersetzt.\n\nFür Windows 10 Version 2004 (Build 19041) oder neuer sowie Windows 11, x64. Probleme oder unangemessene KI-Ergebnisse können Sie an dowonpark12318@gmail.com melden. Senden Sie keine API-Schlüssel oder vertraulichen Texte mit.",
+      "features": [
+        "Mehrere überlappende Notizen mit eigenen Texten, Farben, Größen und Positionen",
+        "Vordergrundanzeige für alle Notizen; bei ausgeschalteter Option normaler Wechsel mit Alt+Tab",
+        "Eine Ecke um ein Drittel der Diagonale ziehen und die Notiz in eine Bildschirmecke falten",
+        "Gefaltete Notizen frei verschieben und per Doppelklick zur ursprünglichen Ecke zurückbringen",
+        "Automatisch lokal speichern, im Infobereich ausblenden und nach Bestätigung löschen",
+        "Optionale KI-Übersetzung markierter Texte mit Vorschau, Kopieren und manuellem Ersetzen",
+        "Zehn automatisch gewählte Anzeigesprachen und eine fünfteilige Einführung"
+      ],
+      "searchTerms": [
+        "Haftnotizen",
+        "Desktopnotizen",
+        "faltbare Notizen",
+        "immer im Vordergrund",
+        "Notizzettel",
+        "Übersetzung"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "Schreiben Sie eine Notiz, passen Sie Größe und Farbe an und halten Sie Ideen griffbereit.",
+        "02-overlapping-notes": "Ordnen Sie Notizen überlappend an. Die zuletzt angeklickte oder bearbeitete Notiz erscheint vorn.",
+        "03-folding-guide": "Die integrierte Einführung zeigt das Falten, Entfalten und Verschieben gefalteter Notizen.",
+        "04-ai-settings": "Die optionale KI-Übersetzung nutzt Ihren eigenen OpenAI-API-Schlüssel. API-Kosten werden separat berechnet."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "Automatische Auswahl aus zehn Anzeigesprachen, fünfteilige Einführung, mehrere Notizen, Falten in Ecken und optionale KI-Übersetzung markierter Texte.",
+      "additionalSystemRequirements": [
+        "Windows 10 Version 2004 (Build 19041) oder neuer, oder Windows 11; x64",
+        "Internet und ein persönlicher OpenAI-API-Schlüssel sind nur für die KI-Übersetzung erforderlich"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "pt",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Selecione o nome exato do produto já reservado no Partner Center. Reserve qualquer nome traduzido antes de usá-lo.",
+      "shortDescription": "Mantenha suas ideias por perto com notas gratuitas que se dobram em um canto da tela. Sobreponha notas, escolha Sempre no topo e traduza o texto selecionado com sua própria chave de API da OpenAI.",
+      "description": "Deixe seus lembretes à vista e dobre-os quando precisar de mais espaço. Corner Note é um aplicativo gratuito de notas para a área de trabalho, feito para ideias, tarefas e pequenos textos que você quer ter por perto.\n\nCrie várias notas com +, escolha as cores e arraste uma borda para redimensionar. Posicione-as livremente, inclusive sobrepostas. A última nota em que você clicar ou editar vem para a frente. Sempre no topo vale para todas as notas; desative essa opção para alternar normalmente pela barra de tarefas e pelo Alt+Tab.\n\nArraste um canto por um terço da diagonal e solte para dobrar a nota naquele canto da tela. Depois, mova a nota dobrada para onde quiser. Um clique duplo no corpo da nota a devolve ao canto original; puxe a pequena alça diagonal para dentro para desdobrá-la. O conteúdo e o estado das janelas são salvos automaticamente no computador. − oculta uma nota na bandeja e × pede confirmação antes de excluí-la.\n\nA tradução opcional usa um serviço de IA generativa em tempo real. Selecione um texto, escolha o idioma e confira o resultado antes de copiá-lo ou substituir a seleção. Apenas o texto selecionado é enviado à OpenAI; o original nunca é substituído automaticamente. São necessários internet e sua própria chave de API da OpenAI. O uso da API é cobrado separadamente da assinatura do ChatGPT. O aplicativo é gratuito, e as funções básicas de escrita e salvamento funcionam offline, sem conta nem chave de API.\n\nMenus, ajuda e tutorial de cinco etapas seguem o idioma preferido do computador. Um guia offline também está incluído. Há suporte a coreano, inglês, japonês, chinês simplificado e tradicional, espanhol, francês, alemão, português e italiano. Outros idiomas de interface usam inglês. Suas notas não são traduzidas automaticamente.\n\nPara Windows 10 versão 2004 (build 19041) ou posterior e Windows 11, x64. Para relatar problemas ou resultados inadequados de IA, escreva para dowonpark12318@gmail.com. Não envie chaves de API nem textos confidenciais.",
+      "features": [
+        "Várias notas sobrepostas com textos, cores, tamanhos e posições independentes",
+        "Sempre no topo para todas as notas; com a opção desativada, alterne normalmente com Alt+Tab",
+        "Dobre uma nota arrastando um canto por um terço da diagonal",
+        "Mova as notas dobradas e retorne ao canto original com um clique duplo",
+        "Salvamento local automático, ocultação na bandeja e exclusão com confirmação",
+        "Tradução opcional por IA do texto selecionado, com prévia, cópia e substituição manual",
+        "Dez idiomas de interface escolhidos automaticamente e tutorial de cinco etapas"
+      ],
+      "searchTerms": [
+        "notas adesivas",
+        "notas da área de trabalho",
+        "notas dobráveis",
+        "sempre no topo",
+        "lembretes",
+        "tradução"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "Escreva uma nota, ajuste o tamanho e a cor e mantenha suas ideias por perto.",
+        "02-overlapping-notes": "Sobreponha as notas livremente. A última nota em que você clicar ou editar vem para a frente.",
+        "03-folding-guide": "O guia integrado explica como dobrar, desdobrar e mover as notas dobradas.",
+        "04-ai-settings": "A tradução opcional por IA usa sua própria chave de API da OpenAI. O uso da API é cobrado à parte."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "Escolha automática entre dez idiomas de interface, guia de cinco etapas, várias notas, dobra nos cantos e tradução opcional por IA do texto selecionado.",
+      "additionalSystemRequirements": [
+        "Windows 10 versão 2004 (build 19041) ou posterior, ou Windows 11; x64",
+        "Internet e uma chave pessoal de API da OpenAI são necessários apenas para a tradução por IA"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    },
+    {
+      "locale": "it",
+      "suggestedProductName": "Corner Note",
+      "productNameInstruction": "Seleziona il nome esatto del prodotto già riservato nel Partner Center. Riserva eventuali nomi tradotti prima di usarli.",
+      "shortDescription": "Tieni le idee a portata di mano con note desktop gratuite da ripiegare in un angolo. Sovrapponi le note, scegli Sempre in primo piano e traduci il testo selezionato con la tua chiave API OpenAI.",
+      "description": "Tieni un promemoria in vista e ripiegalo quando serve più spazio. Corner Note è un’app gratuita di note desktop per idee, attività e brevi testi da avere sempre a portata di mano.\n\nCrea più note con +, scegli i colori e trascina un bordo per ridimensionarle. Disponile liberamente, anche sovrapposte: l’ultima nota su cui fai clic o che modifichi viene portata davanti alle altre. Sempre in primo piano vale per tutte le note; disattivalo per passare da una finestra all’altra con la barra delle applicazioni e Alt+Tab.\n\nTrascina un angolo per un terzo della diagonale e rilascialo per ripiegare la nota in quell’angolo dello schermo. Poi sposta la nota ripiegata dove vuoi. Un doppio clic sul corpo la riporta all’angolo originale; tira verso l’interno la piccola maniglia diagonale per riaprirla. Il contenuto e lo stato delle finestre vengono salvati automaticamente sul computer. − nasconde una nota nell’area di notifica; × chiede conferma prima di eliminarla.\n\nLa traduzione facoltativa usa un servizio di IA generativa in tempo reale. Seleziona il testo, scegli una lingua e controlla il risultato prima di copiarlo o sostituire la selezione. Viene inviato a OpenAI solo il testo selezionato e l’originale non viene mai sostituito automaticamente. Servono una connessione internet e la tua chiave API OpenAI. L’uso dell’API è fatturato separatamente dall’abbonamento a ChatGPT. L’app è gratuita e consente di scrivere e salvare note offline, senza account né chiave API.\n\nMenu, guida e tutorial in cinque passaggi seguono la lingua preferita del computer. È incluso anche un manuale offline. Sono supportati coreano, inglese, giapponese, cinese semplificato e tradizionale, spagnolo, francese, tedesco, portoghese e italiano. Per le altre lingue dell’interfaccia viene usato l’inglese. Le note scritte non vengono tradotte automaticamente.\n\nPer Windows 10 versione 2004 (build 19041) o successiva e Windows 11, x64. Per segnalare problemi o risultati IA inappropriati, scrivi a dowonpark12318@gmail.com. Non inviare chiavi API o testi riservati.",
+      "features": [
+        "Più note sovrapponibili con testi, colori, dimensioni e posizioni indipendenti",
+        "Primo piano per tutte le note; quando è disattivato, passa tra le finestre con Alt+Tab",
+        "Ripiega una nota trascinando un angolo per un terzo della diagonale",
+        "Sposta le note ripiegate e torna all’angolo originale con un doppio clic",
+        "Salvataggio locale automatico, note nascoste nell’area di notifica ed eliminazione con conferma",
+        "Traduzione IA facoltativa del testo selezionato con anteprima, copia e sostituzione manuale",
+        "Dieci lingue dell’interfaccia selezionate automaticamente e tutorial in cinque passaggi"
+      ],
+      "searchTerms": [
+        "note adesive",
+        "note desktop",
+        "note pieghevoli",
+        "sempre in primo piano",
+        "promemoria",
+        "traduzione"
+      ],
+      "screenshotCaptions": {
+        "01-writing": "Scrivi una nota, scegli dimensioni e colore e tieni le tue idee a portata di mano.",
+        "02-overlapping-notes": "Sovrapponi liberamente più note. L’ultima su cui fai clic o che modifichi viene portata davanti alle altre.",
+        "03-folding-guide": "La guida integrata spiega come ripiegare, riaprire e spostare le note ripiegate.",
+        "04-ai-settings": "La traduzione IA facoltativa usa la tua chiave API OpenAI. L’uso dell’API viene fatturato separatamente."
+      },
+      "recommendedCategory": "Productivity",
+      "price": "Free",
+      "supportEmail": "dowonpark12318@gmail.com",
+      "firstSubmissionWhatsNew": "",
+      "releaseNotesForFuture": "Selezione automatica tra dieci lingue, guida in cinque passaggi, più note, ripiegamento negli angoli e traduzione IA facoltativa del testo selezionato.",
+      "additionalSystemRequirements": [
+        "Windows 10 versione 2004 (build 19041) o successiva, oppure Windows 11; x64",
+        "Internet e una chiave API OpenAI personale sono necessari solo per la traduzione IA"
+      ],
+      "publisherDisplayName": "Dowon Park",
+      "packageIdentityName": "DowonPark.CornerNote",
+      "generativeAI": true,
+      "commercialDisclosure": {
+        "appPrice": "free",
+        "ownOpenAiApiKeyRequired": true,
+        "apiUsageBilledSeparately": true,
+        "chatGptSubscriptionDoesNotIncludeApiUsage": true
+      }
+    }
+  ]
+}

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,6 +90,49 @@ jobs:
             throw
           }
 
+      - name: Capture and package Store registration materials
+        id: materials
+        timeout-minutes: 12
+        env:
+          ELECTRON_TEST_NO_SANDBOX: '0'
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'store-materials.log'
+          try {
+            $savedErrorPreference = $ErrorActionPreference
+            try {
+              $ErrorActionPreference = 'Continue'
+              npm run store:screenshots 2>&1 | Tee-Object -FilePath $log
+              $captureExitCode = $LASTEXITCODE
+            } finally {
+              $ErrorActionPreference = $savedErrorPreference
+            }
+            if ($captureExitCode -ne 0) { throw "Store screenshot capture failed with exit code $captureExitCode." }
+            try {
+              $ErrorActionPreference = 'Continue'
+              npm run store:materials 2>&1 | Tee-Object -FilePath $log -Append
+              $materialsExitCode = $LASTEXITCODE
+            } finally {
+              $ErrorActionPreference = $savedErrorPreference
+            }
+            if ($materialsExitCode -ne 0) { throw "Store materials validation failed with exit code $materialsExitCode." }
+          } catch {
+            $exception = $_.Exception.ToString()
+            $tail = (Get-Content -LiteralPath $log -Tail 15 | Out-String)
+            if ($tail.Length -gt 1600) { $tail = $tail.Substring($tail.Length - 1600) }
+            $details = ($exception + "`n" + $tail).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Store material generation failed::$details"
+            throw
+          }
+
+      - name: Upload Store material failure log
+        if: always() && steps.materials.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Store-material-generation-log
+          path: ${{ runner.temp }}/store-materials.log
+          retention-days: 14
+
       - name: Upload MSIX validation log
         if: always() && steps.msix.outcome == 'failure'
         uses: actions/upload-artifact@v4
@@ -115,7 +158,7 @@ jobs:
           retention-days: 14
 
       - name: Publish a directly downloadable test release
-        if: success() && steps.desktop.outcome == 'success' && steps.msix.outcome == 'success'
+        if: success() && steps.desktop.outcome == 'success' && steps.msix.outcome == 'success' && steps.materials.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
@@ -133,13 +176,15 @@ jobs:
 
           CornerNote-Development-x64.msix는 테스트용 식별정보를 사용하는 서명되지 않은 개발 빌드입니다. Store 제출용 또는 일반 더블클릭 설치용 파일이 아닙니다. Windows SDK 패키지 검증과 임시 인증서를 사용한 실제 설치·영어/한국어 실행 검사를 통과했습니다. 임시 인증서와 개인 키는 다운로드에 포함하지 않습니다. CornerNote-Store-x64.msix는 실제 Partner Center 식별정보 DowonPark.CornerNote / Dowon Park로 만든 unsigned 제출용 패키지입니다. Store에 업로드해 심사를 받아야 하며 현재 Store에 공개된 앱이 아닙니다. store/MSIX.md에 절차가 있습니다.
 
+          CornerNote-Store-Materials.zip에는 10개 언어의 소개문·기능·검색어·스크린샷 40장과 300px 아이콘, 한·영 개인정보처리방침·지원 안내·심사 참고 사항이 들어 있습니다. Windows 실제 앱 화면을 캡처했으며 무료 앱 및 별도 OpenAI API 요금을 명시했습니다. IARC, Windows App Certification Kit, 실제 OpenAI 호출 검증과 Microsoft 심사는 별도로 완료해야 합니다.
+
           이전 앱을 트레이 메뉴에서 종료한 뒤 새 ZIP을 새 폴더에 모두 풀어 실행하세요. AI 번역에는 본인 OpenAI API 키가 필요하고 ChatGPT 구독과 별도로 사용료가 발생할 수 있습니다. 자동 번역 검사는 모의 응답을 사용하며 실제 OpenAI 응답과 청구를 검증하지 않았습니다.
 
           Automatic UI, help, tutorial, translation menus and offline manual in Korean, English, Japanese, Simplified/Traditional Chinese, Spanish, French, German, Portuguese and Italian. Other display languages fall back to English; note text is never translated automatically. Extract the portable ZIP and run CornerNote.exe. Help/manual.html opens the local user guide.
 
           The unsigned Development MSIX is a validation artifact, not a Store submission or a normal double-click installer. Windows packaging and temporary-certificate installation/activation checks passed. CornerNote-Store-x64.msix uses the real DowonPark.CornerNote / Dowon Park Partner Center identity and is unsigned for Store submission; it is not a public Store release. The portable build is unsigned and may show Windows SmartScreen warnings.
           '@ | Set-Content -LiteralPath $notes -Encoding utf8
-          gh release create "$tag" "dist/CornerNote-Windows-x64.zip" "dist/CornerNote-Windows-x64.zip.sha256" "dist/CornerNote-Development-x64.msix" "dist/CornerNote-Development-x64.msix.sha256" "dist/CornerNote-Development-x64.msix.json" "dist/CornerNote-Store-x64.msix" "dist/CornerNote-Store-x64.msix.sha256" "dist/CornerNote-Store-x64.msix.json" --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --latest=false --title "모서리 메모 Windows 테스트 $env:GITHUB_RUN_NUMBER" --notes-file "$notes"
+          gh release create "$tag" "dist/CornerNote-Windows-x64.zip" "dist/CornerNote-Windows-x64.zip.sha256" "dist/CornerNote-Development-x64.msix" "dist/CornerNote-Development-x64.msix.sha256" "dist/CornerNote-Development-x64.msix.json" "dist/CornerNote-Store-x64.msix" "dist/CornerNote-Store-x64.msix.sha256" "dist/CornerNote-Store-x64.msix.json" "dist/CornerNote-Store-Materials.zip" "dist/CornerNote-Store-Materials.zip.sha256" --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --latest=false --title "모서리 메모 Windows 테스트 $env:GITHUB_RUN_NUMBER" --notes-file "$notes"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "다운로드: https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/CornerNote-Windows-x64.zip" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
