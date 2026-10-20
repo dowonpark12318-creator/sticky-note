@@ -282,6 +282,15 @@ $file = Get-Item -LiteralPath $resolvedOutput
 if ($file.Length -gt 50MB) { throw 'The actual PNG exceeds the Microsoft Store 50 MB screenshot limit.' }
 $desktop['path'] = $resolvedOutput
 $desktop['bytes'] = $file.Length
-$desktop['sha256'] = (Get-FileHash -LiteralPath $resolvedOutput -Algorithm SHA256).Hash.ToLowerInvariant()
+# Use .NET directly: this helper can be launched from PowerShell 7 with a
+# PSModulePath that does not expose Windows PowerShell's Get-FileHash function.
+$hashStream = [IO.File]::OpenRead($resolvedOutput)
+$hashAlgorithm = [Security.Cryptography.SHA256]::Create()
+try {
+    $desktop['sha256'] = ([BitConverter]::ToString($hashAlgorithm.ComputeHash($hashStream))).Replace('-', '').ToLowerInvariant()
+} finally {
+    $hashAlgorithm.Dispose()
+    $hashStream.Dispose()
+}
 $desktop['capturedUtc'] = [DateTime]::UtcNow.ToString('o')
 $desktop | ConvertTo-Json -Compress
