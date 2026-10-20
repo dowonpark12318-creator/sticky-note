@@ -213,16 +213,19 @@ namespace CornerNoteStoreCapture {
 
         private static bool IsApplicationWindow(IntPtr window) {
             if (!IsWindowVisible(window) || IsIconic(window) || window == GetDesktopWindow() || window == GetShellWindow()) return false;
-            // Minimize application surfaces, never the desktop/taskbar, owned
+            // Hide application surfaces, never the desktop/taskbar, owned
             // menus, notification tool windows, or shell infrastructure.
-            if (GetWindow(window, 4) != IntPtr.Zero || (GetWindowLongPtr(window, -20).ToInt64() & 0x80) != 0) return false;
             StringBuilder className = new StringBuilder(256);
             GetClassName(window, className, className.Capacity);
             string name = className.ToString();
             if (name == "Progman" || name == "WorkerW" || name == "Shell_TrayWnd" ||
                 name == "Shell_SecondaryTrayWnd" || name == "NotifyIconOverflowWindow" ||
                 name == "XamlExplorerHostIslandWindow") return false;
-            return GetWindowTextLength(window) > 0;
+            // Owned dialogs can lack a minimize button, and must not be
+            // mistaken for the owned menus/tool windows excluded above.
+            bool dialog = name == "#32770";
+            if (!dialog && (GetWindow(window, 4) != IntPtr.Zero || (GetWindowLongPtr(window, -20).ToInt64() & 0x80) != 0)) return false;
+            return dialog || GetWindowTextLength(window) > 0;
         }
 
         private static string SavePlacement(WindowPlacement placement) {
@@ -303,7 +306,7 @@ namespace CornerNoteStoreCapture {
 
         public static void MinimizeApplication(string handle, uint expectedProcessId) {
             IntPtr window = SameWindow(handle, expectedProcessId);
-            if (window != IntPtr.Zero && !IsIconic(window)) ShowWindowAsync(window, 6);
+            if (window != IntPtr.Zero && IsWindowVisible(window)) ShowWindowAsync(window, 0);
         }
 
         public static void RestoreApplication(string handle, uint expectedProcessId, string serialized) {
@@ -358,14 +361,17 @@ function Minimize-ForeignApplications($State, [uint32[]]$AllowedIds) {
         if (@($saved | Where-Object { $_.Handle -eq $window.Handle -and $_.ProcessId -eq $window.ProcessId }).Count -eq 0) {
             $saved += $window
             $State.minimizedWindows = @($saved)
-            # Persist the original placement before issuing SW_MINIMIZE.
+            # Persist the original placement before issuing SW_HIDE, including dialogs.
             Save-CaptureState $State
         }
         [CornerNoteStoreCapture.NativeDesktop]::MinimizeApplication($window.Handle, [uint32]$window.ProcessId)
     }
     if ($foreign.Count -gt 0) { Start-Sleep -Milliseconds 250 }
     $remaining = @([CornerNoteStoreCapture.NativeDesktop]::ForeignApplicationWindows($AllowedIds))
-    if ($remaining.Count -gt 0) { throw 'An unrelated visible application could not be minimized. Refusing to capture host logs or other applications.' }
+    if ($remaining.Count -gt 0) {
+        $diagnostics = (@($remaining | ForEach-Object { [CornerNoteStoreCapture.NativeDesktop]::WindowDiagnostics($_.Handle) }) -join '; ')
+        throw "An unrelated application remains visible after hiding. Refusing to capture other applications: $diagnostics"
+    }
     return $saved.Count
 }
 

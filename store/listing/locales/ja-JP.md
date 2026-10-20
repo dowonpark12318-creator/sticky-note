@@ -2,9 +2,9 @@
 
 ## Product name
 
-Corner Note
+CornerNote
 
-Partner Centerで予約済みの正確な製品名を選択してください。翻訳した名前を使う場合は、先にその名前を予約してください。
+すべての掲載言語で、Partner Centerに予約済みの製品名CornerNoteを選択してください。スペースを入れず、この表記を保ち、翻訳した名前に置き換えないでください。
 
 ## Short description
 

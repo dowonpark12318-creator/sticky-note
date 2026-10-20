@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { appxVersion, resolveIdentity, createManifest, RESOURCE_STRINGS, createResw, resizeIconPng, readRgbaPng, toolFailureDetails } = require('../scripts/package-msix.cjs');
+const { appxVersion, resolveIdentity, createManifest, STORE_PRODUCT_DISPLAY_NAME, RESOURCE_STRINGS, createResw, resizeIconPng, readRgbaPng, toolFailureDetails } = require('../scripts/package-msix.cjs');
 
 test('Store build requires real identity and never silently uses development values', () => {
   assert.deepEqual(resolveIdentity('development'), { name: 'CornerNote.Development', publisher: 'CN=CornerNoteDevelopment', publisherDisplayName: 'Corner Note' });
@@ -42,6 +42,19 @@ test('Windows SDK failure details retain validation errors without burying them 
   const fileList = Array.from({ length: 80 }, (_, index) => `Adding app/file${index}.pak`).join('\n');
   assert.equal(toolFailureDetails(`${fileList}\nMakeAppx : error: 0x80080204 - The package manifest is invalid.\n${fileList}`), 'MakeAppx : error: 0x80080204 - The package manifest is invalid.');
   assert.match(toolFailureDetails('no specific error code\noperation stopped'), /no specific error code/);
+});
+
+test('every package language uses the exact reserved CornerNote name while descriptions stay localized', () => {
+  assert.equal(STORE_PRODUCT_DISPLAY_NAME, 'CornerNote');
+  const manifest = createManifest(resolveIdentity('store', JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'msix', 'identity.json'), 'utf8')), {}), '1.5.0');
+  assert.match(manifest, /<DisplayName>ms-resource:AppDisplayName<\/DisplayName>/);
+  assert.match(manifest, /<uap:VisualElements DisplayName="ms-resource:AppDisplayName"/);
+  for (const [locale, strings] of Object.entries(RESOURCE_STRINGS)) {
+    assert.equal(strings.AppDisplayName, 'CornerNote', locale);
+    assert.match(createResw(strings), /<data name="AppDisplayName" xml:space="preserve"><value>CornerNote<\/value><\/data>/, locale);
+    assert.ok(strings.AppDescription.length > 0, locale);
+  }
+  assert.equal(new Set(Object.values(RESOURCE_STRINGS).map(strings => strings.AppDescription)).size, 10);
 });
 
 test('package versions reserve their final component for Store use and reject invalid components', () => {

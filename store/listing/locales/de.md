@@ -2,9 +2,9 @@
 
 ## Product name
 
-Corner Note
+CornerNote
 
-Wählen Sie den genauen, bereits im Partner Center reservierten Produktnamen. Übersetzte Namen müssen vor ihrer Verwendung ebenfalls reserviert werden.
+Wählen Sie in Partner Center für jede Sprache des Store-Eintrags den reservierten Produktnamen CornerNote. Behalten Sie diese genaue Schreibweise ohne Leerzeichen bei und verwenden Sie keinen übersetzten Namen.
 
 ## Short description
 

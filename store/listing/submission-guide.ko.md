@@ -14,10 +14,10 @@
    | Package/Properties/PublisherDisplayName | `Dowon Park` |
 
 3. **Start your submission / 새 제출 만들기**를 선택합니다.
-4. **Packages**에서 `CornerNote-Store-x64.msix`를 업로드합니다. [검증된 1.5.0 제출용 파일](https://github.com/dowonpark12318-creator/sticky-note/releases/download/windows-test-15-1/CornerNote-Store-x64.msix)과 [체크섬](https://github.com/dowonpark12318-creator/sticky-note/releases/download/windows-test-15-1/CornerNote-Store-x64.msix.sha256)을 사용할 수 있습니다. 최종 빌드를 바꾸면 그 파일을 다시 검증·업로드합니다.
+4. **Packages**에서 `CornerNote-Store-x64.msix`를 업로드합니다. 이 자료와 함께 생성한 `PACKAGE-MANIFEST.json`의 `storePackage.downloadUrl`에서 정확한 제출 파일을 받고 기록된 SHA-256을 확인합니다. 이전에 표시 이름 오류가 발생한 패키지는 **Delete**로 제거한 뒤 수정 파일을 올립니다. 최종 빌드를 바꾸면 그 파일을 다시 검증·업로드합니다.
 5. 업로드 분석 결과의 패키지 이름·게시자·버전·아키텍처와 경고를 확인합니다. 제출용 MSIX는 Microsoft가 심사 후 배포용으로 서명합니다. `CornerNote-Development-x64.msix`와 포터블 ZIP은 제출용 패키지로 선택하지 않습니다.
 
-**Store에 보일 제품 이름은 Partner Center에서 이미 예약한 이름을 선택합니다.** 자료에 제안된 `Corner Note`나 번역된 앱 이름이 자동으로 예약되는 것은 아닙니다. `DowonPark.CornerNote`는 패키지 식별자이며 표시 이름과 별개입니다.
+**Store에 보일 제품 이름은 모든 언어에서 `CornerNote`를 선택합니다.** 게시자가 제공한 Partner Center 화면의 제품 헤더에서 이 예약된 이름을 확인했습니다. 공백을 넣은 `Corner Note`나 번역된 이름으로 바꾸지 마세요. `DowonPark.CornerNote`는 별도의 패키지 식별자입니다. 이 화면 확인은 제품 이름에만 해당하며 다른 등록 항목이나 Microsoft 심사 승인을 확인한 것은 아닙니다.
 
 ## 2. 가격·대상·속성 입력
 
@@ -58,7 +58,7 @@
 
 각 언어에서 `locales/<코드>.md` 또는 JSON의 해당 항목을 사용합니다.
 
-1. **Product name:** 실제 예약한 이름을 드롭다운에서 선택합니다. 현지화 이름을 쓰려면 먼저 그 이름도 예약해야 합니다.
+1. **Product name:** 모든 언어의 드롭다운에서 예약된 `CornerNote`를 선택합니다. 공백을 넣거나 번역된 제품 이름으로 대체하지 않습니다.
 2. **Description:** 설명문을 일반 텍스트로 붙여 넣습니다. 최대 10,000자입니다.
 3. **Short description:** 짧은 소개를 붙여 넣습니다. 자료는 주요 표시 구간인 270자 이내를 목표로 준비합니다.
 4. **Product features:** 특징을 항목별로 넣습니다. 항목당 최대 200자, 최대 20개이며 별도의 글머리표 문자는 붙이지 않습니다.

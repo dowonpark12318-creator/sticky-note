@@ -2,9 +2,9 @@
 
 ## Product name
 
-Corner Note
+CornerNote
 
-Select the exact product name already reserved in Partner Center. Reserve a translated name before using it.
+Select the reserved product name CornerNote in Partner Center for every listing language. Keep this exact spelling, with no space, and do not substitute a translated name.
 
 ## Short description
 

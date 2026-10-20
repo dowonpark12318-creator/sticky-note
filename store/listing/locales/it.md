@@ -2,9 +2,9 @@
 
 ## Product name
 
-Corner Note
+CornerNote
 
-Seleziona il nome esatto del prodotto già riservato nel Partner Center. Riserva eventuali nomi tradotti prima di usarli.
+Seleziona il nome di prodotto riservato CornerNote nel Partner Center per tutte le lingue della scheda. Mantieni questa grafia esatta, senza spazi, e non sostituirla con un nome tradotto.
 
 ## Short description
 

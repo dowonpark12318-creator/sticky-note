@@ -15,45 +15,48 @@ const DEVELOPMENT_IDENTITY = Object.freeze({
 });
 const APP_ID = 'App';
 const APP_EXECUTABLE = 'app\\CornerNote.exe';
+// Partner Center reserves the product name separately from its package identity.
+// This product's confirmed reservation has no space and no translated variants.
+const STORE_PRODUCT_DISPLAY_NAME = 'CornerNote';
 const RESOURCE_STRINGS = Object.freeze({
   'en-US': {
-    AppDisplayName: 'Corner Note',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: 'Sticky notes that fold into a corner, with optional AI translation.',
   },
   'ko-KR': {
-    AppDisplayName: '모서리 메모',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: '화면 구석에 접어 두는 스티커 메모와 선택형 AI 번역.',
   },
   'ja-JP': {
-    AppDisplayName: 'コーナーノート',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: '画面の隅に折りたためる付箋メモ。AI翻訳も利用できます。',
   },
   'zh-Hans': {
-    AppDisplayName: '角落便笺',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: '可折叠到屏幕角落的便笺，并可按需使用 AI 翻译。',
   },
   'zh-Hant': {
-    AppDisplayName: '角落便箋',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: '可摺疊至螢幕角落的便箋，並可選擇使用 AI 翻譯。',
   },
   es: {
-    AppDisplayName: 'Nota de esquina',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: 'Notas adhesivas que se pliegan en una esquina, con traducción por IA opcional.',
   },
   fr: {
-    AppDisplayName: 'Note de coin',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: 'Des pense-bêtes qui se replient dans un coin, avec traduction par IA facultative.',
   },
   de: {
-    AppDisplayName: 'Ecknotiz',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: 'Haftnotizen, die sich in eine Ecke falten lassen, mit optionaler KI-Übersetzung.',
   },
   pt: {
-    AppDisplayName: 'Nota de canto',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: 'Notas adesivas que se dobram em um canto, com tradução por IA opcional.',
   },
   it: {
-    AppDisplayName: 'Nota d’angolo',
+    AppDisplayName: STORE_PRODUCT_DISPLAY_NAME,
     AppDescription: 'Note adesive che si ripiegano in un angolo, con traduzione IA facoltativa.',
   },
 });
@@ -302,6 +305,12 @@ async function buildMsix({ mode, configuration, root = ROOT, environment = proce
   // Index only package resources, not Electron's independent Chromium locale files.
   runTool(makepri, ['new', '/pr', resources, '/cf', configurationPath, '/mn', manifest, '/of', path.join(staging, 'resources.pri'), '/o'], path.join(directory, 'makepri-new.log'));
   await fsp.access(path.join(staging, 'resources.pri'));
+  const resourceDump = path.join(directory, 'resources-dump.xml');
+  runTool(makepri, ['dump', '/if', path.join(staging, 'resources.pri'), '/of', resourceDump, '/dt', 'detailed', '/o'], path.join(directory, 'makepri-dump.log'));
+  runTool('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', path.join(root, 'scripts', 'test-msix-display-name.ps1'),
+    '-ManifestPath', manifest, '-ResourceDumpPath', resourceDump,
+    '-ExpectedDisplayName', STORE_PRODUCT_DISPLAY_NAME], path.join(directory, 'display-name-check.log'));
   const filename = `CornerNote-${mode === 'store' ? 'Store' : 'Development'}-x64.msix`;
   const output = path.join(root, 'dist', filename);
   runTool(makeappx, ['pack', '/d', staging, '/p', output, '/o'], path.join(directory, 'makeappx-pack.log'));
@@ -309,6 +318,7 @@ async function buildMsix({ mode, configuration, root = ROOT, environment = proce
   await fsp.writeFile(`${output}.sha256`, `${sha256}  ${filename}\n`);
   const metadata = {
     mode, ...identity, version, appId: APP_ID, executable: APP_EXECUTABLE,
+    displayName: STORE_PRODUCT_DISPLAY_NAME, compiledDisplayNamesVerified: true,
     architecture: 'x64', languages: Object.keys(RESOURCE_STRINGS), signed: false,
     sourceVersion: packageVersion, filename, sha256,
     note: mode === 'store'
@@ -331,5 +341,5 @@ async function main(args = process.argv.slice(2)) {
   await buildMsix({ mode: modeFlags[0].slice(2), configuration });
 }
 
-module.exports = { DEVELOPMENT_IDENTITY, APP_ID, APP_EXECUTABLE, RESOURCE_STRINGS, appxVersion, resolveIdentity, createManifest, createResw, readRgbaPng, resizeIconPng, findSdkTool, toolFailureDetails, buildMsix };
+module.exports = { DEVELOPMENT_IDENTITY, APP_ID, APP_EXECUTABLE, STORE_PRODUCT_DISPLAY_NAME, RESOURCE_STRINGS, appxVersion, resolveIdentity, createManifest, createResw, readRgbaPng, resizeIconPng, findSdkTool, toolFailureDetails, buildMsix };
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });

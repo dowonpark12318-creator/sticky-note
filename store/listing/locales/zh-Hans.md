@@ -2,9 +2,9 @@
 
 ## Product name
 
-Corner Note
+CornerNote
 
-请选择已在Partner Center中保留的准确产品名称。如需使用翻译后的名称，请先保留该名称。
+在所有商店页面语言中，请选择Partner Center中已保留的产品名称CornerNote。请保留这一不含空格的准确拼写，不要改用翻译名称。
 
 ## Short description
 

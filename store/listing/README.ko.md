@@ -17,7 +17,7 @@
 | 패키지 | `PACKAGE-MANIFEST.json`의 `storePackage.downloadUrl`에서 해당 `CornerNote-Store-x64.msix` 다운로드 |
 | 가격 | Free / 무료 |
 | 카테고리 | Productivity / 생산성 |
-| 제품 이름 | Partner Center에서 이미 예약한 정확한 표시 이름을 선택. 번역된 이름을 새로 쓰려면 먼저 예약 |
+| 제품 이름 | 게시자가 제공한 Partner Center 화면에서 확인한 `CornerNote` 선택. 공백 없이 모든 언어에서 동일하게 사용 |
 | 언어별 설명·짧은 설명·기능·검색어 | `locales/<언어>.md` 또는 같은 이름의 `.json` |
 | 첫 제출의 새로운 기능 | 빈칸 유지. `releaseNotesForFuture`는 향후 업데이트에만 사용 |
 | 스크린샷 | `assets/screenshots/<언어>/`의 PNG 4개 |

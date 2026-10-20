@@ -42,9 +42,14 @@
   },
   "productName": {
     "action": "select_exact_reserved_name_in_Partner_Center",
-    "suggestedDisplayName": "Corner Note",
-    "reservationVerified": false,
-    "note": "Package identity and suggested localized display names do not reserve the Store listing name."
+    "suggestedDisplayName": "CornerNote",
+    "reservationVerified": true,
+    "note": "Select the exact reserved name CornerNote, with no space, for all listing languages. Do not substitute translated or spaced display names.",
+    "reservationEvidence": {
+      "source": "publisher-provided Partner Center screenshot",
+      "observedProductName": "CornerNote",
+      "scope": "The screenshot confirms the product name shown in the Partner Center header only; it does not verify other submission fields or Microsoft certification."
+    }
   },
   "declarations": {
     "accessesOrTransmitsPersonalInformation": {

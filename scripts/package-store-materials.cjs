@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { execFileSync, spawnSync } = require('node:child_process');
-const { resizeIconPng } = require('./package-msix.cjs');
+const { resizeIconPng, STORE_PRODUCT_DISPLAY_NAME } = require('./package-msix.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
 const LOCALES = ['en-US', 'ko-KR', 'ja-JP', 'zh-Hans', 'zh-Hant', 'es', 'fr', 'de', 'pt', 'it'];
@@ -44,6 +44,7 @@ function validateListing(listing, locale) {
   const prefix = `Listing ${locale}`;
   requireValue(listing.locale === locale, `${prefix}: locale mismatch.`);
   text(listing.suggestedProductName, 256, `${prefix} suggested product name`);
+  requireValue(listing.suggestedProductName === STORE_PRODUCT_DISPLAY_NAME, `${prefix}: select the exact reserved Store name ${STORE_PRODUCT_DISPLAY_NAME}.`);
   text(listing.productNameInstruction, 1000, `${prefix} reserved-name instruction`);
   text(listing.shortDescription, 270, `${prefix} short description`);
   text(listing.description, 10000, `${prefix} description`);
@@ -198,7 +199,8 @@ async function packageMaterials({ root = ROOT, environment = process.env } = {})
     const bytes = await fs.readFile(packageFile);
     requireValue(metadata.mode === 'store' && metadata.name === identity.name && metadata.publisher === identity.publisher
       && metadata.publisherDisplayName === identity.publisherDisplayName && metadata.sourceVersion === material.packageVersion
-      && metadata.signed === false && metadata.sha256 === sha256(bytes), 'Store MSIX metadata or checksum differs from the actual submission package.');
+      && metadata.displayName === STORE_PRODUCT_DISPLAY_NAME && metadata.compiledDisplayNamesVerified === true
+      && metadata.signed === false && metadata.sha256 === sha256(bytes), 'Store MSIX metadata, reserved display name or checksum differs from the actual submission package.');
     storePackage = {
       filename: path.basename(packageFile), version: metadata.version, bytes: bytes.length, sha256: metadata.sha256,
       metadataSha256: sha256(await fs.readFile(metadataFile)), signed: false, purpose: 'Partner Center submission; Microsoft signs approved packages',

@@ -33,6 +33,8 @@ Create a Microsoft Store developer account, reserve the product name, and open t
 
 `msix/identity.json` contains the product identity provided for this app: package name `DowonPark.CornerNote`, publisher `CN=B3FCB264-7CC2-48BC-8B90-21070B7AFBD4`, and publisher display name `Dowon Park`. The Store build reads this file by default. These values are public package metadata, not a password or API key.
 
+The separately reserved product display name is **CornerNote**, exactly, without a space. Every language's package and Start menu display name uses this same reservation. The package identity does not reserve `Corner Note` or translated product names; using those unreserved names causes Partner Center validation to reject the package. A different display name must be reserved before changing `STORE_PRODUCT_DISPLAY_NAME` in the packaging script.
+
 To build a different reserved product, use environment variables or pass `--config=...` with a JSON file based on `msix/identity.example.json`. Environment variables take precedence over the file. The Store build rejects missing values, example placeholders, and the development identity.
 
 ```powershell
@@ -44,7 +46,9 @@ The output is `dist/CornerNote-Store-x64.msix`, with matching `.sha256` and `.js
 
 ## Localization and validation
 
-The manifest and compiled `resources.pri` declare ten languages: `en-US`, `ko-KR`, `ja-JP`, `zh-Hans`, `zh-Hant`, `es`, `fr`, `de`, `pt`, and `it`. The Start menu/package display name and description select those resources through Windows; the app's menus and tutorial separately use the computer's preferred language. Other languages fall back to English until a catalog is provided. The version is the app's release version plus a Store-reserved final zero, for example `1.5.0.0`.
+The manifest and compiled `resources.pri` declare ten languages: `en-US`, `ko-KR`, `ja-JP`, `zh-Hans`, `zh-Hant`, `es`, `fr`, `de`, `pt`, and `it`. The package and Start menu display name stays **CornerNote** in all ten languages. Descriptions, app menus, help and tutorials retain their translations and follow the computer's preferred language. Other languages fall back to English until a catalog is provided. The version is the app's release version plus a Store-reserved final zero, for example `1.5.0.0`.
+
+Each build runs `makepri dump` and `scripts/test-msix-display-name.ps1` against the actual compiled PRI before packaging. The check rejects missing names or any candidate other than `CornerNote`, and verifies that package and application display names reference the same checked resource. This local check does not replace Partner Center's reservation and submission validation.
 
 MakePri and MakeAppx output is retained in `dist/msix-work/<mode>/*.log`. A failed build reports the SDK's actual validation errors before pointing to the full log, so a long Electron file list cannot hide the failure cause.
 
