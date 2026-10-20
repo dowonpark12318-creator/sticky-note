@@ -29,6 +29,8 @@ jobs:
       - run: npm test
       - name: Install browser for translation and tutorial checks
         run: npx playwright install chromium
+      - name: Test memo gestures and delayed double-click return
+        run: npm run test:ui
       - name: Test translation and first-run tutorial with a mock provider
         run: npm run test:features
 
