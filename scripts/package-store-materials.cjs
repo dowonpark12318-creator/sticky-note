@@ -163,6 +163,8 @@ async function validateScreenshots(staging, commit) {
       requireValue(info.width >= 1366 && info.height >= 768 && info.bytes <= 50 * 1024 * 1024, `${relative}: Desktop screenshots must be at least 1366×768 and at most 50 MB.`);
       requireValue(entry.width === info.width && entry.height === info.height && entry.bytes === info.bytes && entry.sha256 === sha256(bytes), `${relative}: screenshot bytes do not match captured provenance.`);
       requireValue(typeof entry.method === 'string' && entry.method.includes('CopyFromScreen'), `${relative}: missing actual desktop capture method.`);
+      requireValue(entry.cleanDesktop === true && entry.foreignWindowCountAfter === 0,
+        `${relative}: unrelated application windows must be minimized before the actual desktop capture.`);
       requireValue(typeof entry.uiLocale === 'string' && entry.uiLocale.length > 0 && Array.isArray(entry.windows)
         && entry.windows.length >= (scenario === '02-overlapping-notes' ? 3 : 1), `${relative}: actual app window and UI-language evidence is missing.`);
       filenames.add(relative);

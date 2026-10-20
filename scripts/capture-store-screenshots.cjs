@@ -88,9 +88,10 @@ function parseOptions(args) {
   return { output: path.resolve(outputArgument ? outputArgument.slice('--output='.length) : path.join(ROOT, 'dist', 'store-listing-materials')), locales, checkUi };
 }
 
-async function runDisplay(action, statePath, outputPath) {
+async function runDisplay(action, statePath, outputPath, allowedProcessIds = []) {
   const args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'set-store-capture-display.ps1'), '-Action', action, '-StatePath', statePath];
   if (outputPath) args.push('-OutputPath', outputPath);
+  if (allowedProcessIds.length) args.push('-AllowedProcessIds', allowedProcessIds.join(','));
   const { stdout } = await execFileAsync('powershell.exe', args, { timeout: 30000, windowsHide: true, maxBuffer: 1024 * 1024 });
   try { return JSON.parse(stdout.trim().replace(/^\uFEFF/, '')); }
   catch { throw new Error(`The Windows ${action} capture helper did not return JSON: ${stdout.slice(0, 1000)}`); }
@@ -162,14 +163,16 @@ async function main(args = process.argv.slice(2)) {
     const filename = path.posix.join('assets', 'screenshots', locale, `${scenario}.png`);
     const destination = path.join(output, ...filename.split('/'));
     await fs.mkdir(path.dirname(destination), { recursive: true });
-    const captured = await runDisplay('Capture', displayStatePath, destination);
+    const captured = await runDisplay('Capture', displayStatePath, destination, [application.process().pid]);
     const bytes = await fs.readFile(destination);
     const {width, height} = pngDimensions(bytes);
     assert.ok(width >= 1366 && height >= 768 && width <= 3840 && height <= 2160, 'Actual desktop capture must meet Store screenshot dimensions.');
     assert.ok(bytes.length < 50 * 1024 * 1024, 'Store screenshot exceeds 50 MB.');
     assert.equal(captured.width, width);
     assert.equal(captured.height, height);
-    screenshots.push({locale, file: filename, width, height, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), method: CAPTURE_METHOD, scenario, uiLocale: state.uiLocale, windows});
+    assert.equal(captured.cleanDesktop, true);
+    assert.equal(captured.foreignWindowCountAfter, 0);
+    screenshots.push({locale, file: filename, width, height, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), method: CAPTURE_METHOD, scenario, uiLocale: state.uiLocale, cleanDesktop: true, foreignWindowCountAfter: 0, minimizedForeignWindowCount: captured.minimizedForeignWindowCount, windows});
     console.log(`Captured real Windows desktop: ${filename} (${width}x${height}).`);
   }
 

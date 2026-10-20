@@ -5,7 +5,8 @@ param(
     [string]$Action,
     [Parameter(Mandatory = $true)]
     [string]$StatePath,
-    [string]$OutputPath
+    [string]$OutputPath,
+    [string]$AllowedProcessIds = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CornerNoteStoreCapture {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -52,6 +54,22 @@ namespace CornerNoteStoreCapture {
     [StructLayout(LayoutKind.Sequential)]
     public struct CursorPoint { public int X, Y; }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowRect { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowPlacement {
+        public uint Length, Flags, ShowCommand;
+        public CursorPoint MinimumPosition, MaximumPosition;
+        public WindowRect NormalPosition;
+    }
+
+    public sealed class SavedWindow {
+        public string Handle { get; set; }
+        public uint ProcessId { get; set; }
+        public string Placement { get; set; }
+    }
+
     public static class NativeDesktop {
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -69,6 +87,42 @@ namespace CornerNoteStoreCapture {
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetCursorPos(int x, int y);
+        private delegate bool EnumWindowsCallback(IntPtr window, IntPtr parameter);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr parameter);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindow(IntPtr window);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr window);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsIconic(IntPtr window);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetWindowTextLength(IntPtr window);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetClassName(IntPtr window, StringBuilder value, int count);
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDesktopWindow();
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetShellWindow();
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindow(IntPtr window, uint command);
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+        private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindowAsync(IntPtr window, int command);
 
         public static void UsePhysicalPixels() {
             // A thread context also works when powershell.exe already set a
@@ -155,12 +209,132 @@ namespace CornerNoteStoreCapture {
         public static void MoveCursor(int x, int y) {
             if (!SetCursorPos(x, y)) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not move the desktop cursor for capture.");
         }
+
+        private static bool IsApplicationWindow(IntPtr window) {
+            if (!IsWindowVisible(window) || IsIconic(window) || window == GetDesktopWindow() || window == GetShellWindow()) return false;
+            // Minimize application surfaces, never the desktop/taskbar, owned
+            // menus, notification tool windows, or shell infrastructure.
+            if (GetWindow(window, 4) != IntPtr.Zero || (GetWindowLongPtr(window, -20).ToInt64() & 0x80) != 0) return false;
+            StringBuilder className = new StringBuilder(256);
+            GetClassName(window, className, className.Capacity);
+            string name = className.ToString();
+            if (name == "Progman" || name == "WorkerW" || name == "Shell_TrayWnd" ||
+                name == "Shell_SecondaryTrayWnd" || name == "NotifyIconOverflowWindow" ||
+                name == "XamlExplorerHostIslandWindow") return false;
+            return GetWindowTextLength(window) > 0;
+        }
+
+        private static string SavePlacement(WindowPlacement placement) {
+            int size = Marshal.SizeOf(typeof(WindowPlacement));
+            IntPtr buffer = Marshal.AllocHGlobal(size);
+            try {
+                Marshal.StructureToPtr(placement, buffer, false);
+                byte[] bytes = new byte[size];
+                Marshal.Copy(buffer, bytes, 0, size);
+                return Convert.ToBase64String(bytes);
+            } finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        public static SavedWindow[] ForeignApplicationWindows(uint[] allowedProcessIds) {
+            HashSet<uint> allowed = new HashSet<uint>(allowedProcessIds ?? new uint[0]);
+            List<SavedWindow> windows = new List<SavedWindow>();
+            EnumWindows(delegate(IntPtr window, IntPtr parameter) {
+                if (!IsApplicationWindow(window)) return true;
+                uint processId;
+                GetWindowThreadProcessId(window, out processId);
+                if (allowed.Contains(processId)) return true;
+                WindowPlacement placement = new WindowPlacement();
+                placement.Length = (uint)Marshal.SizeOf(typeof(WindowPlacement));
+                if (!GetWindowPlacement(window, ref placement)) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not save an unrelated application's window placement.");
+                windows.Add(new SavedWindow { Handle = window.ToInt64().ToString(), ProcessId = processId, Placement = SavePlacement(placement) });
+                return true;
+            }, IntPtr.Zero);
+            return windows.ToArray();
+        }
+
+        public static int VisibleAllowedWindowCount(uint[] allowedProcessIds) {
+            HashSet<uint> allowed = new HashSet<uint>(allowedProcessIds ?? new uint[0]);
+            int count = 0;
+            EnumWindows(delegate(IntPtr window, IntPtr parameter) {
+                if (!IsWindowVisible(window) || IsIconic(window)) return true;
+                uint processId;
+                GetWindowThreadProcessId(window, out processId);
+                if (allowed.Contains(processId) && GetWindowTextLength(window) > 0) count++;
+                return true;
+            }, IntPtr.Zero);
+            return count;
+        }
+
+        private static IntPtr SameWindow(string handle, uint expectedProcessId) {
+            IntPtr window = new IntPtr(Int64.Parse(handle));
+            if (!IsWindow(window)) return IntPtr.Zero;
+            uint processId;
+            GetWindowThreadProcessId(window, out processId);
+            return processId == expectedProcessId ? window : IntPtr.Zero;
+        }
+
+        public static void MinimizeApplication(string handle, uint expectedProcessId) {
+            IntPtr window = SameWindow(handle, expectedProcessId);
+            if (window != IntPtr.Zero && !IsIconic(window)) ShowWindowAsync(window, 6);
+        }
+
+        public static void RestoreApplication(string handle, uint expectedProcessId, string serialized) {
+            IntPtr window = SameWindow(handle, expectedProcessId);
+            if (window == IntPtr.Zero) return; // A closed window is not recreated.
+            byte[] bytes = Convert.FromBase64String(serialized);
+            int size = Marshal.SizeOf(typeof(WindowPlacement));
+            if (bytes.Length != size) throw new InvalidOperationException("Invalid saved application window placement.");
+            IntPtr buffer = Marshal.AllocHGlobal(size);
+            try {
+                Marshal.Copy(bytes, 0, buffer, size);
+                WindowPlacement placement = (WindowPlacement)Marshal.PtrToStructure(buffer, typeof(WindowPlacement));
+                if (!SetWindowPlacement(window, ref placement)) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not restore an unrelated application's original window placement.");
+            } finally { Marshal.FreeHGlobal(buffer); }
+        }
     }
 }
 '@
 
 [CornerNoteStoreCapture.NativeDesktop]::UsePhysicalPixels()
 $resolvedState = [IO.Path]::GetFullPath($StatePath)
+$allowedIds = [uint32[]]@()
+if ($AllowedProcessIds) {
+    if ($AllowedProcessIds -notmatch '^\d+(,\d+)*$') { throw 'Allowed capture process IDs must be comma-separated Windows process IDs.' }
+    $allowedIds = [uint32[]]@($AllowedProcessIds.Split(',') | ForEach-Object { [uint32]$_ })
+}
+
+function Save-CaptureState($State) {
+    $State | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $resolvedState -Encoding utf8
+}
+
+function Restore-ApplicationWindows($State) {
+    $failures = [Collections.Generic.List[string]]::new()
+    if ($State.PSObject.Properties.Name -contains 'minimizedWindows' -or $State -is [Collections.IDictionary]) {
+        foreach ($window in @($State.minimizedWindows)) {
+            try { [CornerNoteStoreCapture.NativeDesktop]::RestoreApplication($window.Handle, [uint32]$window.ProcessId, $window.Placement) }
+            catch { $failures.Add($_.Exception.Message) }
+        }
+    }
+    if ($failures.Count -gt 0) { throw ($failures -join [Environment]::NewLine) }
+}
+
+function Minimize-ForeignApplications($State, [uint32[]]$AllowedIds) {
+    $foreign = @([CornerNoteStoreCapture.NativeDesktop]::ForeignApplicationWindows($AllowedIds))
+    $saved = @($State.minimizedWindows)
+    foreach ($window in $foreign) {
+        if (@($saved | Where-Object { $_.Handle -eq $window.Handle -and $_.ProcessId -eq $window.ProcessId }).Count -eq 0) {
+            $saved += $window
+            $State.minimizedWindows = @($saved)
+            # Persist the original placement before issuing SW_MINIMIZE.
+            Save-CaptureState $State
+        }
+        [CornerNoteStoreCapture.NativeDesktop]::MinimizeApplication($window.Handle, [uint32]$window.ProcessId)
+    }
+    if ($foreign.Count -gt 0) { Start-Sleep -Milliseconds 250 }
+    $remaining = @([CornerNoteStoreCapture.NativeDesktop]::ForeignApplicationWindows($AllowedIds))
+    if ($remaining.Count -gt 0) { throw 'An unrelated visible application could not be minimized. Refusing to capture host logs or other applications.' }
+    return $saved.Count
+}
 
 function Get-DesktopInfo {
     $mode = [CornerNoteStoreCapture.NativeDesktop]::CurrentMode()
@@ -190,7 +364,7 @@ if ($Action -eq 'Prepare') {
     $cursor = [CornerNoteStoreCapture.NativeDesktop]::Cursor()
     $state = [ordered]@{
         version = 1; original = $original; cursor = @{ x = $cursor.X; y = $cursor.Y }
-        selected = $null; changed = $false; preparedUtc = [DateTime]::UtcNow.ToString('o')
+        selected = $null; changed = $false; minimizedWindows = @(); preparedUtc = [DateTime]::UtcNow.ToString('o')
     }
     $stateDirectory = [IO.Path]::GetDirectoryName($resolvedState)
     [IO.Directory]::CreateDirectory($stateDirectory) | Out-Null
@@ -221,6 +395,7 @@ if ($Action -eq 'Prepare') {
         $original.BitsPerPixel -ne $selected.BitsPerPixel -or $original.Frequency -ne $selected.Frequency
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $resolvedState -Encoding utf8
     try {
+        $minimizedCount = Minimize-ForeignApplications $state ([uint32[]]@())
         if ($state.changed) {
             [CornerNoteStoreCapture.NativeDesktop]::ApplyAdvertisedMode($selected.NativeMode)
             Start-Sleep -Milliseconds 400
@@ -229,9 +404,12 @@ if ($Action -eq 'Prepare') {
         Assert-StoreDimensions $desktop
         $desktop['changed'] = $state.changed
         $desktop['availableModeCount'] = $modes.Count
+        $desktop['minimizedForeignWindowCount'] = $minimizedCount
         $desktop | ConvertTo-Json -Compress
     } catch {
-        if ($state.changed) { [CornerNoteStoreCapture.NativeDesktop]::ApplyAdvertisedMode($original.NativeMode) }
+        try {
+            if ($state.changed) { [CornerNoteStoreCapture.NativeDesktop]::ApplyAdvertisedMode($original.NativeMode) }
+        } finally { Restore-ApplicationWindows $state }
         throw
     }
     exit 0
@@ -244,21 +422,30 @@ if ($Action -eq 'Restore') {
     }
     $state = Get-Content -LiteralPath $resolvedState -Raw | ConvertFrom-Json
     if ($state.version -ne 1) { throw 'Unsupported saved capture display state.' }
-    [CornerNoteStoreCapture.NativeDesktop]::ApplyAdvertisedMode($state.original.NativeMode)
-    Start-Sleep -Milliseconds 250
-    $mode = [CornerNoteStoreCapture.NativeDesktop]::CurrentMode()
-    if ($mode.Width -ne $state.original.Width -or $mode.Height -ne $state.original.Height) {
-        throw 'Windows did not restore the original desktop resolution.'
+    try {
+        [CornerNoteStoreCapture.NativeDesktop]::ApplyAdvertisedMode($state.original.NativeMode)
+        Start-Sleep -Milliseconds 250
+        $mode = [CornerNoteStoreCapture.NativeDesktop]::CurrentMode()
+        if ($mode.Width -ne $state.original.Width -or $mode.Height -ne $state.original.Height) {
+            throw 'Windows did not restore the original desktop resolution.'
+        }
+    } finally {
+        try { Restore-ApplicationWindows $state }
+        finally { [CornerNoteStoreCapture.NativeDesktop]::MoveCursor([int]$state.cursor.x, [int]$state.cursor.y) }
     }
-    [CornerNoteStoreCapture.NativeDesktop]::MoveCursor([int]$state.cursor.x, [int]$state.cursor.y)
     Remove-Item -LiteralPath $resolvedState
-    @{ restored = $true; width = $mode.Width; height = $mode.Height } | ConvertTo-Json -Compress
+    @{ restored = $true; width = $mode.Width; height = $mode.Height; restoredForeignWindowCount = @($state.minimizedWindows).Count } | ConvertTo-Json -Compress
     exit 0
 }
 
 if (-not $OutputPath) { throw 'Capture requires -OutputPath for the actual desktop PNG.' }
 if (-not (Test-Path -LiteralPath $resolvedState)) { throw 'Prepare the capture display before taking a screenshot.' }
 $state = Get-Content -LiteralPath $resolvedState -Raw | ConvertFrom-Json
+if ($allowedIds.Count -eq 0) { throw 'Capture requires the allowed Corner Note main process ID.' }
+$minimizedCount = Minimize-ForeignApplications $state $allowedIds
+if ([CornerNoteStoreCapture.NativeDesktop]::VisibleAllowedWindowCount($allowedIds) -lt 1) {
+    throw 'No real Corner Note application window remains visible on the desktop.'
+}
 $desktop = Get-DesktopInfo
 Assert-StoreDimensions $desktop
 if ($null -eq $state.selected -or $desktop.width -ne $state.selected.Width -or $desktop.height -ne $state.selected.Height) {
@@ -293,4 +480,7 @@ try {
     $hashStream.Dispose()
 }
 $desktop['capturedUtc'] = [DateTime]::UtcNow.ToString('o')
+$desktop['cleanDesktop'] = $true
+$desktop['foreignWindowCountAfter'] = 0
+$desktop['minimizedForeignWindowCount'] = $minimizedCount
 $desktop | ConvertTo-Json -Compress
