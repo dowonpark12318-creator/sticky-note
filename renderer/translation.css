@@ -1,10 +1,11 @@
 .ct-tools .palette { flex-shrink: 0; }
-.ct-tools .fold-tip { flex-shrink: 1; text-align: right; }
-.ct-translate { display: inline-flex; flex-shrink: 0; justify-content: center; align-items: center; gap: 4px; min-height: 27px; padding: 4px 7px; border: 1px solid color-mix(in srgb, var(--accent), transparent 72%); border-radius: 7px; background: color-mix(in srgb, var(--paper-light), transparent 30%); color: var(--accent); font-size: 10px; line-height: 1.4; white-space: nowrap; }
+.ct-tools .fold-tip { flex-shrink: 1; min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.ct-translate { display: inline-flex; flex-shrink: 1; min-width: 0; justify-content: center; align-items: center; gap: 4px; min-height: 27px; padding: 4px 7px; border: 1px solid color-mix(in srgb, var(--accent), transparent 72%); border-radius: 7px; background: color-mix(in srgb, var(--paper-light), transparent 30%); color: var(--accent); font-size: 10px; line-height: 1.4; white-space: nowrap; }
 .ct-translate:hover:not(:disabled), .ct-translate[aria-expanded="true"] { border-color: var(--accent); background: var(--paper-light); }
 .ct-translate:disabled { opacity: .55; }
 .ct-translate[aria-busy="true"] { opacity: 1; }
-.ct-translate-icon { font-size: 12px; font-weight: 700; }
+.ct-translate-icon { flex-shrink: 0; font-size: 12px; font-weight: 700; }
+.ct-button-label { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .ct-spinner { display: inline-block; flex-shrink: 0; width: 12px; height: 12px; border: 1.5px solid color-mix(in srgb, var(--accent), transparent 68%); border-top-color: var(--accent); border-radius: 50%; animation: ct-spin .8s linear infinite; }
 .ct-panel { position: absolute; z-index: 12; top: 61px; right: 12px; bottom: var(--ct-panel-bottom, 118px); left: 12px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-light); box-shadow: 0 5px 23px #473b1929; color: var(--ink); -webkit-app-region: no-drag; }
 .ct-heading { display: flex; flex-shrink: 0; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px; padding: 9px 12px 6px 15px; border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 55%); }

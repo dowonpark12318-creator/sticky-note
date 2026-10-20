@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'"><title>Corner Note — User guide</title><link rel="stylesheet" href="manual.css"><script src="i18n.js" defer></script><script src="manual.js" defer></script></head><body><main>
+<html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'"><title>Corner Note — User guide</title><link rel="stylesheet" href="manual.css"><script src="i18n.js" defer></script><script src="locales/ja.js" defer></script><script src="locales/zh-Hans.js" defer></script><script src="locales/zh-Hant.js" defer></script><script src="locales/es.js" defer></script><script src="locales/fr.js" defer></script><script src="locales/de.js" defer></script><script src="locales/pt.js" defer></script><script src="locales/it.js" defer></script><script src="manual.js" defer></script></head><body><main>
 <section data-language="en"><h1>Corner Note · User guide</h1><pre>Corner Note
 Version 1.5.0
 
@@ -7,7 +7,7 @@ GETTING STARTED
 1. Extract the entire ZIP to a new folder and run CornerNote.exe. Keep the executable and other files together.
 2. Windows 10/11 64-bit is required. No account or Node.js installation is needed for taking notes.
 3. Before updating, right-click the tray icon and choose Quit. The minus button only hides a note; it does not quit the app.
-4. The app follows your Windows preferred language: Korean or English. Other languages currently fall back to English. Your note text is never translated automatically.
+4. The app follows your Windows preferred language. It supports Korean, English, Japanese, Simplified and Traditional Chinese, Spanish, French, German, Portuguese, and Italian. Other display languages fall back to English. Your note text is never translated automatically.
 
 WRITING AND ARRANGING NOTES
 - The titlebar buttons are Help (?), New note (+), Hide (-), and Delete (x).
@@ -46,7 +46,7 @@ Notes and shared preferences are stored in note-state.json in the app&#x27;s use
 WINDOWS AND BUILD INFORMATION
 The portable ZIP is an unsigned test build and may show Windows SmartScreen warnings. It does not request administrator privileges. Windows secure desktops, some exclusive full-screen apps, and other topmost windows may appear above notes.
 
-A Development MSIX is an unsigned build for validation, not a Microsoft Store release or a normal double-click installer. A Store build requires your Partner Center package identity. Microsoft signs the MSIX after certification; a local development installation requires a separately trusted test certificate.
+A Development MSIX is an unsigned build for validation, not a Microsoft Store release or a normal double-click installer. The Store build uses Partner Center package identity DowonPark.CornerNote, publisher Dowon Park. Microsoft signs the MSIX after certification; a local development installation requires a separately trusted test certificate.
 </pre></section>
 <section data-language="ko" hidden><h1>모서리 메모 · 사용 안내</h1><pre>모서리 메모 · Corner Note
 버전 1.5.0
@@ -58,7 +58,7 @@ A Development MSIX is an unsigned build for validation, not a Microsoft Store re
 4. 업데이트할 때는 이전 버전을 트레이 메뉴에서 &#x27;종료&#x27;한 뒤, 새 ZIP을 새 폴더에 모두 풀고 그 안의 CornerNote.exe를 실행하세요. 기존 메모는 유지됩니다.
 
 사용
-• Windows 기본 설정 언어에 따라 한국어 또는 영어로 표시됩니다. 다른 언어는 현재 영어로 표시합니다. 작성한 메모는 자동 번역하지 않습니다.
+• Windows 기본 설정 언어에 따라 한국어·영어·일본어·중국어 간체/번체·스페인어·프랑스어·독일어·포르투갈어·이탈리아어로 표시됩니다. 다른 언어는 영어로 표시합니다. 작성한 메모는 자동 번역하지 않습니다.
 • 제목 표시줄의 &#x27;?&#x27;와 &#x27;−&#x27; 사이 &#x27;+&#x27;를 누르면 현재 메모 근처에 빈 메모가 추가됩니다.
 • 여러 메모를 자유롭게 겹쳐 놓을 수 있습니다. 마지막으로 클릭하거나 편집한 메모가 다른 메모 위로 올라옵니다.
 • 각 메모의 글·색상·크기·접힌 상태·위치는 따로 자동 저장됩니다. 한글 입력을 지원합니다.
@@ -120,6 +120,6 @@ https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-re
 Windows 보안 화면(UAC/잠금 화면), 일부 독점 전체 화면 앱, 다른 최상위 창보다 위에 표시되는 것은 보장하지 않습니다.
 
 MSIX 개발 빌드
-Development MSIX는 검증용 서명되지 않은 패키지이며 Microsoft Store에 출시된 앱이 아닙니다. 일반 더블클릭 설치에는 별도로 신뢰한 테스트 인증서가 필요합니다. Store 제출용 빌드에는 Partner Center 앱 식별정보가 필요하며, 심사를 통과하면 Microsoft가 배포용 MSIX에 서명합니다. Store 설치판에서 기존 포터블 메모를 가져오는 동작은 공개 출시 전에 별도로 검증해야 합니다.
+Development MSIX는 검증용 서명되지 않은 패키지이며 Microsoft Store에 출시된 앱이 아닙니다. 일반 더블클릭 설치에는 별도로 신뢰한 테스트 인증서가 필요합니다. Store 제출용 빌드는 Partner Center 앱 식별정보 DowonPark.CornerNote / Dowon Park를 사용하며, 심사를 통과하면 Microsoft가 배포용 MSIX에 서명합니다. Store 설치판에서 기존 포터블 메모를 가져오는 동작은 공개 출시 전에 별도로 검증해야 합니다.
 </pre></section>
 </main></body></html>

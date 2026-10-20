@@ -65,4 +65,4 @@ Windows CI는 단위 테스트(`npm test`), 번역·첫 실행 안내 브라우�
 
 Windows 기본 설정 언어를 영어·한국어로 바꾸고 앱을 완전히 종료한 뒤 다시 실행합니다. 제목·트레이·도움말·튜토리얼·날짜·삭제 확인창·AI 번역 메뉴가 해당 언어로 표시되고 메모 내용은 그대로여야 합니다. 다른 언어는 영어 UI로 표시하되 번역 기본 대상은 실제 PC 언어와 영어를 유지합니다. Help/manual.html도 브라우저 기본 언어에 맞춰 표시되어야 합니다.
 
-개발용 MSIX는 unsigned이며 Store 제출본이 아닙니다. 빌드·임시 인증서 설치 검사는 store/MSIX.md를 참고합니다. 실제 Store ID를 받은 뒤 Store 패키지를 만들고 Windows App Certification Kit와 설치·업데이트·데이터 유지 검사를 진행해야 합니다.
+개발용 MSIX는 unsigned이며 Store 제출본이 아닙니다. 빌드·임시 인증서 설치 검사는 store/MSIX.md를 참고합니다. 실제 Store ID의 제출용 패키지를 대상으로 Windows App Certification Kit와 설치·업데이트·데이터 유지 검사를 진행해야 합니다.

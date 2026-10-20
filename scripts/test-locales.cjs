@@ -55,15 +55,21 @@ function installLocaleBridge(options) {
 
 async function main() {
   const renderer = path.resolve(__dirname, '..', 'renderer');
+  const manuals = path.resolve(__dirname, '..', 'docs');
   const output = path.resolve(__dirname, '..', 'test-results');
   fs.mkdirSync(output, {recursive: true});
   const server = http.createServer((request, response) => {
     let filename;
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
-      filename = path.resolve(renderer, `.${decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname)}`);
+      const pathname = decodeURIComponent(url.pathname);
+      if (pathname.startsWith('/manual/')) {
+        const item = pathname.slice('/manual/'.length);
+        if (['', 'manual.html', 'manual.js', 'manual.css'].includes(item)) filename = path.join(manuals, item || 'manual.html');
+        else if (item === 'i18n.js' || /^locales\/[a-zA-Z-]+\.js$/.test(item)) filename = path.resolve(renderer, item);
+      } else filename = path.resolve(renderer, `.${pathname === '/' ? '/index.html' : pathname}`);
     } catch { response.writeHead(400).end(); return; }
-    if (!filename.startsWith(`${renderer}${path.sep}`) || !fs.existsSync(filename) || !fs.statSync(filename).isFile()) {
+    if (!filename || ![renderer, manuals].some(directory => filename.startsWith(`${directory}${path.sep}`)) || !fs.existsSync(filename) || !fs.statSync(filename).isFile()) {
       response.writeHead(404).end(); return;
     }
     response.setHeader('Content-Type', {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml'}[path.extname(filename)] || 'application/octet-stream');
@@ -216,11 +222,89 @@ async function main() {
     await small.screenshot({path: path.join(output, 'locale-english-small.png')});
     pass('English tutorial, translation and delete controls remain usable at the minimum 300 by 300 note size');
 
+    const majorLocales = [
+      ['ja', 'ja-JP'], ['zh-Hans', 'zh-CN'], ['zh-Hant', 'zh-TW'], ['es', 'es-MX'],
+      ['fr', 'fr-CA'], ['de', 'de-DE'], ['pt', 'pt-PT'], ['it', 'it-IT'],
+    ];
+    for (const [language, systemLanguage] of majorLocales) {
+      const catalog = require(`../renderer/locales/${language}.js`);
+      const localized = await open({browserLocale: 'en-US', systemLanguage, completed: false, viewport});
+      assert.equal(await localized.title(), catalog.app.appTitle);
+      assert.equal(await localized.locator('html').getAttribute('lang'), systemLanguage);
+      assert.equal(await localized.getByTestId('help-button').getAttribute('aria-label'), catalog.app.helpMenu);
+      for (let step = 0; step < 5; step += 1) {
+        assert.equal(await localized.getByTestId('tutorial-step-title').textContent(), catalog.tutorial[`step.${step}.title`]);
+        assert.equal(await localized.locator('#corner-tutorial-body').textContent(), catalog.tutorial[`step.${step}.body`]);
+        assert.equal(await localized.locator('#corner-tutorial-detail').textContent(), catalog.tutorial[`step.${step}.detail`]);
+        inside(await localized.getByTestId('tutorial-dialog').boundingBox(), viewport, `${systemLanguage} tutorial ${step + 1}`);
+        inside(await localized.getByTestId(step === 4 ? 'tutorial-finish' : 'tutorial-next').boundingBox(), viewport, `${systemLanguage} tutorial action`);
+        if (step === 4) {
+          const art = await localized.locator('.corner-tutorial-illustration text').allTextContents();
+          assert.deepEqual(art, ['sample', 'translate', 'language', 'english', 'add'].map(key => catalog.tutorial[key]));
+        } else await localized.getByTestId('tutorial-next').click();
+      }
+      await localized.getByTestId('tutorial-finish').click();
+      await localized.getByTestId('tutorial-dialog').waitFor({state: 'hidden'});
+      await localized.getByTestId('help-button').click();
+      assert.equal(await localized.locator('#help-title').textContent(), catalog.app.helpTitle);
+      assert.equal(await localized.getByRole('button', {name: catalog.tutorial.reopen, exact: true}).count(), 1);
+      await localized.locator('#close-help').click();
+      await localized.getByTestId('delete-note-button').click();
+      assert.equal(await localized.locator('#delete-note-title').textContent(), catalog.app.deleteQuestion);
+      assert.equal(await localized.getByTestId('delete-note-cancel').textContent(), catalog.app.no);
+      assert.equal(await localized.getByTestId('delete-note-confirm').textContent(), catalog.app.yes);
+      inside(await localized.getByTestId('delete-note-dialog').boundingBox(), viewport, `${systemLanguage} delete confirmation`);
+      await localized.getByTestId('delete-note-cancel').click();
+      const written = 'Localized note 🌿';
+      await select(localized, written);
+      const count = new Intl.NumberFormat(systemLanguage).format(Array.from(written).length);
+      assert.equal(await localized.locator('#character-count').textContent(), catalog.app.characterCount.replace('{count}', count));
+      const date = await localized.evaluate(locale => new Intl.DateTimeFormat(locale, {month: 'long', day: 'numeric', weekday: 'long'}).format(new Date()), systemLanguage);
+      assert.equal(await localized.locator('#today').textContent(), date);
+      await localized.getByTestId('translate-button').click();
+      assert.equal(await localized.locator('#ct-title').textContent(), catalog.translation['번역할 언어']);
+      assert.equal(await localized.getByTestId(`language-${systemLanguage}`).locator('span').first().textContent(), new Intl.DisplayNames([systemLanguage], {type: 'language'}).of(systemLanguage));
+      inside(await localized.locator('#ct-panel').boundingBox(), viewport, `${systemLanguage} translation panel`);
+      await localized.getByRole('button', {name: catalog.translation['AI 연결 설정'], exact: true}).click();
+      assert.equal(await localized.locator('#ct-title').textContent(), catalog.translation['AI 번역 연결']);
+      assert.equal(await localized.locator('label[for="ct-api-key"]').textContent(), catalog.translation['OpenAI API 키']);
+      await localized.getByRole('button', {name: catalog.translation['번역 창 닫기'], exact: true}).click();
+      assert.equal(await localized.getByTestId('note-editor').inputValue(), written);
+      await localized.screenshot({path: path.join(output, `locale-${language}-small.png`)});
+      pass(`${systemLanguage} uses its complete catalog for help, all five tutorial steps, artwork, deletion and AI settings, with regional formatting and usable minimum-size controls`);
+    }
+
     for (const [browserLocale, expected] of [['en-GB', 'Corner Note'], ['ko-KR', '모서리 메모']]) {
       const fallback = await open({native: false, browserLocale});
       await fallback.getByTestId('tutorial-skip').click();
       assert.equal(await fallback.title(), expected);
     }
+    const manualLocales = [['en', 'en-US'], ['ko', 'ko-KR'], ...majorLocales];
+    for (const [language, locale] of manualLocales) {
+      const context = await browser.newContext({locale, viewport: {width: 700, height: 600}});
+      contexts.push(context);
+      await context.route('**/*', route => {
+        if (new URL(route.request().url()).origin === origin) return route.continue();
+        externalRequests.push(route.request().url().split('?')[0]);
+        return route.abort();
+      });
+      const manual = await context.newPage();
+      manual.on('pageerror', error => errors.push(error.message));
+      await manual.goto(`${origin}/manual/`);
+      await manual.waitForFunction(expected => document.documentElement.lang === expected, locale);
+      const visible = manual.locator('section:not([hidden])');
+      assert.equal(await visible.count(), 1, `${locale} shows only one localized manual`);
+      if (['en', 'ko'].includes(language)) {
+        assert.equal(await manual.title(), language === 'en' ? 'Corner Note · User guide' : '모서리 메모 · 사용 안내');
+        assert.match(await visible.locator('pre').textContent(), language === 'en' ? /TRANSLATING SELECTED TEXT/ : /선택한 글 AI 번역/);
+      } else {
+        const expected = require(`../renderer/locales/${language}.js`).manual;
+        assert.equal(await manual.title(), expected.title);
+        assert.equal(await visible.locator('h1').textContent(), expected.title);
+        assert.equal(await visible.locator('pre').textContent(), expected.content);
+      }
+    }
+    pass('the offline user guide automatically displays its complete localized instructions for all ten supported computer languages');
     assert.deepEqual(errors, []);
     assert.deepEqual(externalRequests, []);
     pass('browser-only previews follow navigator language and all locale checks stay offline without uncaught renderer errors');

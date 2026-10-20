@@ -5,7 +5,7 @@
   const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
   const FOLD_THRESHOLD = 1 / 3;
   const OPPOSITE = { 'top-left': 'bottom-right', 'top-right': 'bottom-left', 'bottom-left': 'top-right', 'bottom-right': 'top-left' };
-  let i18n = window.CornerI18n.createI18n(navigator.languages || [navigator.language], window.CornerAppMessages);
+  let i18n = window.CornerI18n.createI18n(navigator.languages || [navigator.language], window.CornerAppMessages, 'app');
   const t = (key, values) => i18n.t(key, values);
   const cornerLabel = (corner) => t(`corner.${corner}`);
   const STORAGE_KEY = 'corner-note-v1';
@@ -630,7 +630,7 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && ready) persistNow(); });
 
   function applyLanguage(preferredLanguages) {
-    i18n = window.CornerI18n.createI18n(preferredLanguages, window.CornerAppMessages);
+    i18n = window.CornerI18n.createI18n(preferredLanguages, window.CornerAppMessages, 'app');
     document.documentElement.lang = i18n.locale;
     for (const element of document.querySelectorAll('[data-i18n]')) {
       element.textContent = t(element.dataset.i18n);

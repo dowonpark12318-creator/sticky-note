@@ -80,15 +80,26 @@
     },
   };
 
+  // Step copy shares the same namespace as the tutorial controls so added
+  // locale catalogs can translate the entire tour without duplicating its art.
+  for (const language of ['ko', 'en']) {
+    STEPS[language].forEach((step, index) => {
+      for (const field of ['label', 'title', 'body', 'detail']) MESSAGES[language][`step.${index}.${field}`] = step[field];
+    });
+  }
+
   function init({ bridge, textarea, note, showToast = () => {}, initialState = {} }) {
     const app = document.querySelector('#app');
     if (!app || !note || !bridge) return { open() {}, close() {} };
     const existing = app.querySelector('.corner-tutorial-shell');
     if (existing) return existing._cornerTutorial;
 
-    const i18n = window.CornerI18n.createI18n(initialState.uiLocale || initialState.systemLanguage || navigator.languages, MESSAGES);
+    const i18n = window.CornerI18n.createI18n(initialState.uiLocale || initialState.systemLanguage || navigator.languages, MESSAGES, 'tutorial');
     const { t, locale } = i18n;
-    const steps = STEPS[i18n.language] || STEPS.en;
+    const steps = STEPS.en.map((step, index) => ({
+      art: step.art,
+      ...Object.fromEntries(['label', 'title', 'body', 'detail'].map(field => [field, t(`step.${index}.${field}`)])),
+    }));
     const helpPanel = document.querySelector('#help-panel');
     const helpButton = document.querySelector('#help-button');
     const shell = document.createElement('section');

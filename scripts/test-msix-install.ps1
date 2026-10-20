@@ -66,7 +66,9 @@ if (@(Get-AppxPackage -Name $packageName).Count -gt 0) {
 
 Add-Type -TypeDefinition @'
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace CornerNotePackageSmoke {
     [Flags]
@@ -90,15 +92,96 @@ namespace CornerNotePackageSmoke {
     [ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")]
     public class ApplicationActivationManager { }
 
+    // Retain the kernel handle before the activated app can exit. A Process
+    // obtained later by PID can lose access to its actual Windows exit code.
+    public sealed class ActivationProcess : IDisposable {
+        private const uint Synchronize = 0x00100000;
+        private const uint QueryLimitedInformation = 0x00001000;
+        private const uint Terminate = 0x00000001;
+        private const uint WaitObject0 = 0;
+        private const uint WaitTimeout = 258;
+        private const uint WaitFailed = 0xffffffff;
+        private SafeProcessHandle handle;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern SafeProcessHandle OpenProcess(uint access,
+            [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, uint processId);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint WaitForSingleObject(SafeProcessHandle process, uint milliseconds);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetExitCodeProcess(SafeProcessHandle process, out uint exitCode);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool TerminateProcess(SafeProcessHandle process, uint exitCode);
+
+        public uint ProcessId { get; private set; }
+
+        internal ActivationProcess(uint processId) {
+            if (processId == 0) throw new InvalidOperationException("MSIX activation returned no process ID.");
+            ProcessId = processId;
+            handle = OpenProcess(Synchronize | QueryLimitedInformation | Terminate, false, processId);
+            if (handle.IsInvalid) {
+                int error = Marshal.GetLastWin32Error();
+                handle.Dispose();
+                throw new Win32Exception(error,
+                    "Could not retain the activated MSIX process handle (PID " + processId + "). " +
+                    "The installation test must observe the app's actual exit code.");
+            }
+        }
+
+        private void EnsureOpen() {
+            if (handle == null || handle.IsClosed) throw new ObjectDisposedException("ActivationProcess");
+        }
+
+        public bool WaitForExit(int milliseconds) {
+            if (milliseconds < 0) throw new ArgumentOutOfRangeException("milliseconds");
+            EnsureOpen();
+            uint result = WaitForSingleObject(handle, (uint)milliseconds);
+            if (result == WaitObject0) return true;
+            if (result == WaitTimeout) return false;
+            if (result == WaitFailed) throw new Win32Exception(Marshal.GetLastWin32Error(),
+                "Could not wait for the activated MSIX process.");
+            throw new InvalidOperationException("Unexpected Windows process wait result: " + result);
+        }
+
+        public bool HasExited { get { return WaitForExit(0); } }
+
+        public uint ExitCode {
+            get {
+                if (!HasExited) throw new InvalidOperationException("The activated MSIX process is still running.");
+                uint exitCode;
+                if (!GetExitCodeProcess(handle, out exitCode)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(),
+                        "Could not read the activated MSIX process exit code.");
+                }
+                return exitCode;
+            }
+        }
+
+        public void Kill() {
+            EnsureOpen();
+            if (HasExited) return;
+            if (!TerminateProcess(handle, 1)) {
+                int error = Marshal.GetLastWin32Error();
+                if (!HasExited) throw new Win32Exception(error, "Could not stop the MSIX smoke-test process.");
+            }
+        }
+
+        public void Dispose() {
+            if (handle != null) { handle.Dispose(); handle = null; }
+        }
+    }
+
     public static class Launcher {
-        public static uint Activate(string appUserModelId, string arguments) {
+        public static ActivationProcess Activate(string appUserModelId, string arguments) {
             var manager = (IApplicationActivationManager)new ApplicationActivationManager();
             try {
                 uint processId;
                 int result = manager.ActivateApplication(appUserModelId, arguments,
                     ActivateOptions.NoErrorUI | ActivateOptions.NoSplashScreen, out processId);
                 Marshal.ThrowExceptionForHR(result);
-                return processId;
+                return new ActivationProcess(processId);
             } finally { Marshal.FinalReleaseComObject(manager); }
         }
     }
@@ -145,9 +228,8 @@ try {
         $reportPath = Join-Path $testDirectory 'smoke-report.json'
         $launchArguments = @('--smoke-test', "--smoke-report=$reportPath", "--user-data-dir=$testDirectory", "--test-system-language=$language")
         $argumentString = ($launchArguments | ForEach-Object { Quote-WindowsArgument $_ }) -join ' '
-        $activatedId = [CornerNotePackageSmoke.Launcher]::Activate($appUserModelId, $argumentString)
-        if ($activatedId -eq 0) { throw "MSIX activation returned no process for $language." }
-        $testProcess = Get-Process -Id $activatedId -ErrorAction SilentlyContinue
+        $testProcess = [CornerNotePackageSmoke.Launcher]::Activate($appUserModelId, $argumentString)
+        if ($null -eq $testProcess -or $testProcess.ProcessId -eq 0) { throw "MSIX activation returned no process for $language." }
         $deadline = [DateTime]::UtcNow.AddSeconds(45)
         while (-not (Test-Path -LiteralPath $reportPath)) {
             if ($null -ne $testProcess -and $testProcess.HasExited) {

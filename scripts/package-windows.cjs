@@ -29,6 +29,7 @@ async function main() {
     await fs.copyFile(path.join(root, 'docs', filename), path.join(helpPath, filename));
   }
   await fs.copyFile(path.join(root, 'renderer', 'i18n.js'), path.join(helpPath, 'i18n.js'));
+  await fs.cp(path.join(root, 'renderer', 'locales'), path.join(helpPath, 'locales'), { recursive: true });
   const zipPath = path.join(root, 'dist', 'CornerNote-Windows-x64.zip');
   await fs.rm(zipPath, {force: true});
   if (process.platform === 'win32') {

@@ -850,6 +850,23 @@ async function main() {
     await quit(page);
     assert.equal((await readSaved()).notes[0].text, '복구한 새 메모');
     pass('the Windows system-language preference localizes native title, menu/help and deletion UI without translating stored memo content');
+    page = await launch('ja-JP');
+    const japanese = require('../renderer/locales/ja.js');
+    const japaneseState = await stateFor(page);
+    assert.equal(japaneseState.systemLanguage, 'ja-JP');
+    assert.equal(japaneseState.uiLocale, 'ja-JP');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ja-JP');
+    assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), japanese.native['모서리 메모']);
+    assert.equal(await page.getByTestId('note-editor').inputValue(), '복구한 새 메모');
+    await page.getByTestId('help-button').click();
+    assert.equal(await page.locator('#help-title').textContent(), japanese.app.helpTitle);
+    await page.locator('#close-help').click();
+    await page.getByTestId('delete-note-button').click();
+    assert.equal(await page.locator('#delete-note-title').textContent(), japanese.app.deleteQuestion);
+    await page.getByTestId('delete-note-cancel').click();
+    await quit(page);
+    assert.equal((await readSaved()).notes[0].text, '복구한 새 메모');
+    pass('registered Japanese catalog also localizes the native title and renderer controls while preserving memo content through restart');
     console.log(`Desktop checks: ${passed} passed`);
   } finally {
     if (application) await application.close().catch(() => {});

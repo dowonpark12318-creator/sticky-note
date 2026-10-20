@@ -31,18 +31,22 @@ Create a Microsoft Store developer account, reserve the product name, and open t
 | `Package/Identity/Publisher` | `publisher` | `CORNER_NOTE_STORE_IDENTITY_PUBLISHER` |
 | `Package/Properties/PublisherDisplayName` | `publisherDisplayName` | `CORNER_NOTE_STORE_PUBLISHER_DISPLAY_NAME` |
 
-Use environment variables, or copy `msix/identity.example.json` to a local file outside the checkout and replace every placeholder with the real values. These identity values are public package metadata, not a password or API key. The Store build rejects missing values, example placeholders, and the development identity.
+`msix/identity.json` contains the product identity provided for this app: package name `DowonPark.CornerNote`, publisher `CN=B3FCB264-7CC2-48BC-8B90-21070B7AFBD4`, and publisher display name `Dowon Park`. The Store build reads this file by default. These values are public package metadata, not a password or API key.
+
+To build a different reserved product, use environment variables or pass `--config=...` with a JSON file based on `msix/identity.example.json`. Environment variables take precedence over the file. The Store build rejects missing values, example placeholders, and the development identity.
 
 ```powershell
 npm run pack:win
-node scripts/package-msix.cjs --store --config=C:\build\corner-note-identity.json
+node scripts/package-msix.cjs --store
 ```
 
 The output is `dist/CornerNote-Store-x64.msix`, with matching `.sha256` and `.json` files. Partner Center accepts unsigned MSIX submissions and Microsoft re-signs approved packages for Store distribution; a purchased CA certificate is not required for this path. An EXE/MSI listing has different signing requirements.
 
 ## Localization and validation
 
-The manifest and compiled `resources.pri` declare `en-US` and `ko-KR`. The Start menu/package display name and description select those resources through Windows; the app's menus and tutorial separately use the computer's preferred language. Other languages fall back to English until a catalog is provided. The version is the app's release version plus a Store-reserved final zero, for example `1.5.0.0`.
+The manifest and compiled `resources.pri` declare ten languages: `en-US`, `ko-KR`, `ja-JP`, `zh-Hans`, `zh-Hant`, `es`, `fr`, `de`, `pt`, and `it`. The Start menu/package display name and description select those resources through Windows; the app's menus and tutorial separately use the computer's preferred language. Other languages fall back to English until a catalog is provided. The version is the app's release version plus a Store-reserved final zero, for example `1.5.0.0`.
+
+MakePri and MakeAppx output is retained in `dist/msix-work/<mode>/*.log`. A failed build reports the SDK's actual validation errors before pointing to the full log, so a long Electron file list cannot hide the failure cause.
 
 Before submitting, test the actual installed MSIX: launch, multiple overlapping notes, minimize/tray, always-on-top toggle and Alt+Tab, folding/resize, deletion and confirmation, note persistence after an update, and AI settings/translation. The MSIX data path can differ from the portable version due to Windows application-data isolation; do not assume a portable user's notes or encrypted key migrate automatically. Run the Windows App Certification Kit and resolve its report before submission.
 

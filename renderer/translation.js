@@ -78,7 +78,7 @@
   }
 
   function init({ bridge, textarea, note, showToast = () => {}, initialState = {} }) {
-    const i18n = window.CornerI18n.createI18n(initialState.uiLocale || initialState.systemLanguage || navigator.languages, MESSAGES);
+    const i18n = window.CornerI18n.createI18n(initialState.uiLocale || initialState.systemLanguage || navigator.languages, MESSAGES, 'translation');
     const { t } = i18n;
     const displayNames = new Intl.DisplayNames([i18n.locale], { type: 'language', fallback: 'none' });
     function languageLabel(code) {
@@ -236,7 +236,7 @@
       const message = typeof error?.message === 'string' ? error.message : '';
       // Never echo an entered credential, even if a bridge implementation includes it in an error.
       if (/sk-|Bearer\s|api[_ -]?key\s*[:=]/i.test(message)) return fallback;
-      return (i18n.language === 'ko' ? /[가-힣]/.test(message) : /[A-Za-z]/.test(message) && !/[가-힣]/.test(message)) ? message.slice(0, 240) : fallback;
+      return /\p{L}/u.test(message) ? message.slice(0, 240) : fallback;
     }
 
     function positionPanel() {

@@ -24,6 +24,38 @@ const RESOURCE_STRINGS = Object.freeze({
     AppDisplayName: '모서리 메모',
     AppDescription: '화면 구석에 접어 두는 스티커 메모와 선택형 AI 번역.',
   },
+  'ja-JP': {
+    AppDisplayName: 'コーナーノート',
+    AppDescription: '画面の隅に折りたためる付箋メモ。AI翻訳も利用できます。',
+  },
+  'zh-Hans': {
+    AppDisplayName: '角落便笺',
+    AppDescription: '可折叠到屏幕角落的便笺，并可按需使用 AI 翻译。',
+  },
+  'zh-Hant': {
+    AppDisplayName: '角落便箋',
+    AppDescription: '可摺疊至螢幕角落的便箋，並可選擇使用 AI 翻譯。',
+  },
+  es: {
+    AppDisplayName: 'Nota de esquina',
+    AppDescription: 'Notas adhesivas que se pliegan en una esquina, con traducción por IA opcional.',
+  },
+  fr: {
+    AppDisplayName: 'Note de coin',
+    AppDescription: 'Des pense-bêtes qui se replient dans un coin, avec traduction par IA facultative.',
+  },
+  de: {
+    AppDisplayName: 'Ecknotiz',
+    AppDescription: 'Haftnotizen, die sich in eine Ecke falten lassen, mit optionaler KI-Übersetzung.',
+  },
+  pt: {
+    AppDisplayName: 'Nota de canto',
+    AppDescription: 'Notas adesivas que se dobram em um canto, com tradução por IA opcional.',
+  },
+  it: {
+    AppDisplayName: 'Nota d’angolo',
+    AppDescription: 'Note adesive che si ripiegano in un angolo, con traduzione IA facoltativa.',
+  },
 });
 
 function xml(value) {
@@ -75,8 +107,7 @@ function createManifest(identity, version) {
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
   <Resources>
-    <Resource Language="en-US" />
-    <Resource Language="ko-KR" />
+${Object.keys(RESOURCE_STRINGS).map(locale => `    <Resource Language="${xml(locale)}" />`).join('\n')}
   </Resources>
   <Applications>
     <Application Id="${APP_ID}" Executable="${APP_EXECUTABLE}" EntryPoint="Windows.FullTrustApplication">
@@ -208,14 +239,29 @@ function findSdkTool(tool, environment = process.env) {
   return found;
 }
 
-function runTool(filename, args) {
-  const result = spawnSync(filename, args, { stdio: 'inherit', windowsHide: true });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`${path.basename(filename)} failed with exit code ${result.status}.`);
+function toolFailureDetails(output) {
+  const lines = String(output || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const errors = lines.filter(line => /\b(?:error|failed|failure|invalid|cannot|unable)\b|\bPRI\d+\b|\b0x[89a-f][0-9a-f]{7}\b/i.test(line));
+  return (errors.length ? errors : lines.slice(-12)).slice(-20).map(line => line.slice(0, 800)).join('\n');
 }
 
-async function buildMsix({ mode, configuration = {}, root = ROOT, environment = process.env } = {}) {
-  const identity = resolveIdentity(mode, configuration, environment);
+function runTool(filename, args, logPath) {
+  const result = spawnSync(filename, args, {
+    stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, windowsHide: true,
+  });
+  const output = [result.stdout, result.stderr].filter(Boolean).join('\n');
+  if (logPath) fs.writeFileSync(logPath, output, 'utf8');
+  if (result.error || result.status !== 0) {
+    const details = toolFailureDetails(output);
+    throw new Error(`${path.basename(filename)} failed${result.error ? `: ${result.error.message}` : ` with exit code ${result.status}`}.${details ? `\n${details}` : ''}${logPath ? `\nFull tool log: ${logPath}` : ''}`);
+  }
+  console.log(`${path.basename(filename)} ${args[0]} completed.${logPath ? ` Full log: ${logPath}` : ''}`);
+}
+
+async function buildMsix({ mode, configuration, root = ROOT, environment = process.env } = {}) {
+  const identityConfiguration = configuration ?? (mode === 'store'
+    ? JSON.parse(await fsp.readFile(path.join(root, 'msix', 'identity.json'), 'utf8')) : {});
+  const identity = resolveIdentity(mode, identityConfiguration, environment);
   const packageVersion = JSON.parse(await fsp.readFile(path.join(root, 'package.json'), 'utf8')).version;
   const version = appxVersion(packageVersion);
   if (process.platform !== 'win32') throw new Error('MSIX packaging requires Windows with the Windows SDK. The Windows GitHub Actions workflow builds this artifact.');
@@ -248,17 +294,17 @@ async function buildMsix({ mode, configuration = {}, root = ROOT, environment = 
   const manifest = path.join(staging, 'AppxManifest.xml');
   await fsp.writeFile(manifest, createManifest(identity, packageVersion));
   const configurationPath = path.join(directory, 'priconfig.xml');
-  runTool(makepri, ['createconfig', '/cf', configurationPath, '/dq', 'en-US', '/o']);
+  runTool(makepri, ['createconfig', '/cf', configurationPath, '/dq', 'en-US', '/o'], path.join(directory, 'makepri-createconfig.log'));
   // This is one language-complete MSIX, not a bundle of split resource packs.
   // SDK-generated configs can request language/scale auto-packaging by default.
   const priConfiguration = await fsp.readFile(configurationPath, 'utf8');
   await fsp.writeFile(configurationPath, priConfiguration.replace(/<packaging\b[^>]*>[\s\S]*?<\/packaging>/g, ''));
   // Index only package resources, not Electron's independent Chromium locale files.
-  runTool(makepri, ['new', '/pr', resources, '/cf', configurationPath, '/mn', manifest, '/of', path.join(staging, 'resources.pri'), '/o']);
+  runTool(makepri, ['new', '/pr', resources, '/cf', configurationPath, '/mn', manifest, '/of', path.join(staging, 'resources.pri'), '/o'], path.join(directory, 'makepri-new.log'));
   await fsp.access(path.join(staging, 'resources.pri'));
   const filename = `CornerNote-${mode === 'store' ? 'Store' : 'Development'}-x64.msix`;
   const output = path.join(root, 'dist', filename);
-  runTool(makeappx, ['pack', '/d', staging, '/p', output, '/o']);
+  runTool(makeappx, ['pack', '/d', staging, '/p', output, '/o'], path.join(directory, 'makeappx-pack.log'));
   const sha256 = createHash('sha256').update(await fsp.readFile(output)).digest('hex');
   await fsp.writeFile(`${output}.sha256`, `${sha256}  ${filename}\n`);
   const metadata = {
@@ -281,9 +327,9 @@ async function main(args = process.argv.slice(2)) {
   if (modeFlags.length !== 1 || unknown.length) throw new Error('Usage: node scripts/package-msix.cjs (--development | --store) [--config=msix/identity.local.json]');
   const configuration = configurationFlag
     ? JSON.parse(await fsp.readFile(path.resolve(configurationFlag.slice('--config='.length)), 'utf8'))
-    : {};
+    : undefined;
   await buildMsix({ mode: modeFlags[0].slice(2), configuration });
 }
 
-module.exports = { DEVELOPMENT_IDENTITY, APP_ID, APP_EXECUTABLE, RESOURCE_STRINGS, appxVersion, resolveIdentity, createManifest, createResw, readRgbaPng, resizeIconPng, findSdkTool, buildMsix };
+module.exports = { DEVELOPMENT_IDENTITY, APP_ID, APP_EXECUTABLE, RESOURCE_STRINGS, appxVersion, resolveIdentity, createManifest, createResw, readRgbaPng, resizeIconPng, findSdkTool, toolFailureDetails, buildMsix };
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });

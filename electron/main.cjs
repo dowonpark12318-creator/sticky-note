@@ -5,7 +5,10 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
-const { createI18n } = require('../renderer/i18n.js');
+const { createI18n, registerLocale } = require('../renderer/i18n.js');
+for (const code of ['ja', 'zh-Hans', 'zh-Hant', 'es', 'fr', 'de', 'pt', 'it']) {
+  registerLocale(code, require(`../renderer/locales/${code}.js`));
+}
 const nativeMessages = require('./native-messages.cjs');
 const { canonicalLanguage, createTranslationService } = require('./translation.cjs');
 const { createTranslationKeyStore } = require('./translation-key-store.cjs');
@@ -40,7 +43,7 @@ let writeBlocker;
 let translationKeyStore;
 let pendingKeyMutations = 0;
 let systemLanguage = 'en-US';
-let ui = createI18n(['en-US'], nativeMessages);
+let ui = createI18n(['en-US'], nativeMessages, 'native');
 const t = (key, values) => ui.t(key, values);
 let state = createDefaultState();
 let tutorialNoteId = state.activeNoteId;
@@ -790,7 +793,7 @@ if (!app.requestSingleInstanceLock()) {
       languages = [testLanguage.slice('--test-system-language='.length)];
     }
     try { systemLanguage = canonicalLanguage(languages[0]); } catch { systemLanguage = 'en-US'; }
-    ui = createI18n(languages, nativeMessages);
+    ui = createI18n(languages, nativeMessages, 'native');
     await loadState();
     tutorialNoteId = state.activeNoteId;
     translationKeyStore = createTranslationKeyStore({ safeStorage, filePath: path.join(app.getPath('userData'), 'translation-key.json') });

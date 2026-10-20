@@ -5,7 +5,7 @@ GETTING STARTED
 1. Extract the entire ZIP to a new folder and run CornerNote.exe. Keep the executable and other files together.
 2. Windows 10/11 64-bit is required. No account or Node.js installation is needed for taking notes.
 3. Before updating, right-click the tray icon and choose Quit. The minus button only hides a note; it does not quit the app.
-4. The app follows your Windows preferred language: Korean or English. Other languages currently fall back to English. Your note text is never translated automatically.
+4. The app follows your Windows preferred language. It supports Korean, English, Japanese, Simplified and Traditional Chinese, Spanish, French, German, Portuguese, and Italian. Other display languages fall back to English. Your note text is never translated automatically.
 
 WRITING AND ARRANGING NOTES
 - The titlebar buttons are Help (?), New note (+), Hide (-), and Delete (x).
@@ -44,4 +44,4 @@ Notes and shared preferences are stored in note-state.json in the app's user dat
 WINDOWS AND BUILD INFORMATION
 The portable ZIP is an unsigned test build and may show Windows SmartScreen warnings. It does not request administrator privileges. Windows secure desktops, some exclusive full-screen apps, and other topmost windows may appear above notes.
 
-A Development MSIX is an unsigned build for validation, not a Microsoft Store release or a normal double-click installer. A Store build requires your Partner Center package identity. Microsoft signs the MSIX after certification; a local development installation requires a separately trusted test certificate.
+A Development MSIX is an unsigned build for validation, not a Microsoft Store release or a normal double-click installer. The Store build uses Partner Center package identity DowonPark.CornerNote, publisher Dowon Park. Microsoft signs the MSIX after certification; a local development installation requires a separately trusted test certificate.
