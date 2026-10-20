@@ -6,7 +6,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$StatePath,
     [string]$OutputPath,
-    [string]$AllowedProcessIds = ''
+    [string]$AllowedProcessIds = '',
+    [string]$AllowedWindowHandles = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -252,16 +253,43 @@ namespace CornerNoteStoreCapture {
             return windows.ToArray();
         }
 
-        public static int VisibleAllowedWindowCount(uint[] allowedProcessIds) {
-            HashSet<uint> allowed = new HashSet<uint>(allowedProcessIds ?? new uint[0]);
-            int count = 0;
-            EnumWindows(delegate(IntPtr window, IntPtr parameter) {
-                if (!IsWindowVisible(window) || IsIconic(window)) return true;
-                uint processId;
+        public static string WindowDiagnostics(string handle) {
+            IntPtr window = new IntPtr(Int64.Parse(handle));
+            bool exists = IsWindow(window);
+            uint processId = 0;
+            StringBuilder className = new StringBuilder(256);
+            if (exists) {
                 GetWindowThreadProcessId(window, out processId);
-                if (allowed.Contains(processId) && GetWindowTextLength(window) > 0) count++;
-                return true;
-            }, IntPtr.Zero);
+                GetClassName(window, className, className.Capacity);
+            }
+            // Never inspect or include a title, note text, or host console log.
+            return "HWND=" + handle + " PID=" + processId + " class=" + className +
+                " exists=" + exists + " visible=" + (exists && IsWindowVisible(window)) +
+                " minimized=" + (exists && IsIconic(window));
+        }
+
+        public static uint[] ProcessIdsForWindows(string[] handles) {
+            HashSet<uint> ids = new HashSet<uint>();
+            foreach (string handle in handles) {
+                IntPtr window = new IntPtr(Int64.Parse(handle));
+                uint processId;
+                if (!IsWindow(window) || GetWindowThreadProcessId(window, out processId) == 0) {
+                    throw new InvalidOperationException("The expected Corner Note native window is invalid: " + WindowDiagnostics(handle));
+                }
+                ids.Add(processId);
+            }
+            uint[] result = new uint[ids.Count];
+            ids.CopyTo(result);
+            return result;
+        }
+
+        public static int VisibleExpectedWindowCount(string[] handles) {
+            int count = 0;
+            foreach (string handle in handles) {
+                IntPtr window = new IntPtr(Int64.Parse(handle));
+                // Frameless Electron windows need not have a native caption.
+                if (IsWindow(window) && IsWindowVisible(window) && !IsIconic(window)) count++;
+            }
             return count;
         }
 
@@ -301,6 +329,11 @@ $allowedIds = [uint32[]]@()
 if ($AllowedProcessIds) {
     if ($AllowedProcessIds -notmatch '^\d+(,\d+)*$') { throw 'Allowed capture process IDs must be comma-separated Windows process IDs.' }
     $allowedIds = [uint32[]]@($AllowedProcessIds.Split(',') | ForEach-Object { [uint32]$_ })
+}
+$allowedHandles = [string[]]@()
+if ($AllowedWindowHandles) {
+    if ($AllowedWindowHandles -notmatch '^\d+(,\d+)*$') { throw 'Allowed capture window handles must be comma-separated native HWND values.' }
+    $allowedHandles = [string[]]@($AllowedWindowHandles.Split(','))
 }
 
 function Save-CaptureState($State) {
@@ -441,10 +474,18 @@ if ($Action -eq 'Restore') {
 if (-not $OutputPath) { throw 'Capture requires -OutputPath for the actual desktop PNG.' }
 if (-not (Test-Path -LiteralPath $resolvedState)) { throw 'Prepare the capture display before taking a screenshot.' }
 $state = Get-Content -LiteralPath $resolvedState -Raw | ConvertFrom-Json
-if ($allowedIds.Count -eq 0) { throw 'Capture requires the allowed Corner Note main process ID.' }
+if ($allowedHandles.Count -eq 0) { throw 'Capture requires the exact Corner Note native window handles.' }
+$expectedDiagnostics = (@($allowedHandles | ForEach-Object { [CornerNoteStoreCapture.NativeDesktop]::WindowDiagnostics($_) }) -join '; ')
+if ([CornerNoteStoreCapture.NativeDesktop]::VisibleExpectedWindowCount($allowedHandles) -ne $allowedHandles.Count) {
+    throw "An expected Corner Note native window is not visible before capture (reported main PID $AllowedProcessIds): $expectedDiagnostics"
+}
+# The Playwright launcher can have a different PID from Electron's native
+# browser process. Resolve ownership from trusted BrowserWindow HWNDs instead.
+$allowedIds = [uint32[]][CornerNoteStoreCapture.NativeDesktop]::ProcessIdsForWindows($allowedHandles)
 $minimizedCount = Minimize-ForeignApplications $state $allowedIds
-if ([CornerNoteStoreCapture.NativeDesktop]::VisibleAllowedWindowCount($allowedIds) -lt 1) {
-    throw 'No real Corner Note application window remains visible on the desktop.'
+if ([CornerNoteStoreCapture.NativeDesktop]::VisibleExpectedWindowCount($allowedHandles) -ne $allowedHandles.Count) {
+    $diagnostics = (@($allowedHandles | ForEach-Object { [CornerNoteStoreCapture.NativeDesktop]::WindowDiagnostics($_) }) -join '; ')
+    throw "An expected Corner Note native window is no longer visible after desktop preparation: $diagnostics"
 }
 $desktop = Get-DesktopInfo
 Assert-StoreDimensions $desktop

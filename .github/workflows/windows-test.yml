@@ -26,6 +26,33 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run setup
+
+      - name: Capture real Windows Store screenshots
+        id: captures
+        timeout-minutes: 12
+        env:
+          ELECTRON_TEST_NO_SANDBOX: '0'
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'store-materials.log'
+          try {
+            $captureErrorPreference = $ErrorActionPreference
+            try {
+              $ErrorActionPreference = 'Continue'
+              npm run store:screenshots 2>&1 | Tee-Object -FilePath $log
+              $captureExitCode = $LASTEXITCODE
+            } finally {
+              $ErrorActionPreference = $captureErrorPreference
+            }
+            if ($captureExitCode -ne 0) { throw "Store screenshot capture failed with exit code $captureExitCode." }
+          } catch {
+            $exception = $_.Exception.ToString()
+            $tail = (Get-Content -LiteralPath $log -Tail 15 | Out-String)
+            if ($tail.Length -gt 1600) { $tail = $tail.Substring($tail.Length - 1600) }
+            $details = ($exception + "`n" + $tail).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Store desktop capture failed::$details"
+            throw
+          }
       - run: npm test
       - name: Install browser for translation and tutorial checks
         run: npx playwright install chromium
@@ -90,9 +117,9 @@ jobs:
             throw
           }
 
-      - name: Capture and package Store registration materials
+      - name: Package Store registration materials
         id: materials
-        timeout-minutes: 12
+        timeout-minutes: 3
         env:
           ELECTRON_TEST_NO_SANDBOX: '0'
         shell: pwsh
@@ -100,14 +127,6 @@ jobs:
           $log = Join-Path $env:RUNNER_TEMP 'store-materials.log'
           try {
             $savedErrorPreference = $ErrorActionPreference
-            try {
-              $ErrorActionPreference = 'Continue'
-              npm run store:screenshots 2>&1 | Tee-Object -FilePath $log
-              $captureExitCode = $LASTEXITCODE
-            } finally {
-              $ErrorActionPreference = $savedErrorPreference
-            }
-            if ($captureExitCode -ne 0) { throw "Store screenshot capture failed with exit code $captureExitCode." }
             try {
               $ErrorActionPreference = 'Continue'
               npm run store:materials 2>&1 | Tee-Object -FilePath $log -Append
@@ -126,7 +145,7 @@ jobs:
           }
 
       - name: Upload Store material failure log
-        if: always() && steps.materials.outcome == 'failure'
+        if: always() && (steps.captures.outcome == 'failure' || steps.materials.outcome == 'failure')
         uses: actions/upload-artifact@v4
         with:
           name: Store-material-generation-log
@@ -158,7 +177,7 @@ jobs:
           retention-days: 14
 
       - name: Publish a directly downloadable test release
-        if: success() && steps.desktop.outcome == 'success' && steps.msix.outcome == 'success' && steps.materials.outcome == 'success'
+        if: success() && steps.captures.outcome == 'success' && steps.desktop.outcome == 'success' && steps.msix.outcome == 'success' && steps.materials.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh

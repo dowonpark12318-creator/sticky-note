@@ -88,10 +88,11 @@ function parseOptions(args) {
   return { output: path.resolve(outputArgument ? outputArgument.slice('--output='.length) : path.join(ROOT, 'dist', 'store-listing-materials')), locales, checkUi };
 }
 
-async function runDisplay(action, statePath, outputPath, allowedProcessIds = []) {
+async function runDisplay(action, statePath, outputPath, allowed = {}) {
   const args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'set-store-capture-display.ps1'), '-Action', action, '-StatePath', statePath];
   if (outputPath) args.push('-OutputPath', outputPath);
-  if (allowedProcessIds.length) args.push('-AllowedProcessIds', allowedProcessIds.join(','));
+  if (allowed.processId) args.push('-AllowedProcessIds', String(allowed.processId));
+  if (allowed.windowHandles?.length) args.push('-AllowedWindowHandles', allowed.windowHandles.join(','));
   const { stdout } = await execFileAsync('powershell.exe', args, { timeout: 30000, windowsHide: true, maxBuffer: 1024 * 1024 });
   try { return JSON.parse(stdout.trim().replace(/^\uFEFF/, '')); }
   catch { throw new Error(`The Windows ${action} capture helper did not return JSON: ${stdout.slice(0, 1000)}`); }
@@ -152,10 +153,17 @@ async function main(args = process.argv.slice(2)) {
   async function record(locale, scenario, page) {
     await settle(page);
     const state = await page.evaluate(() => window.cornerNote.getState());
-    const windows = await application.evaluate(async ({BrowserWindow}) => Promise.all(BrowserWindow.getAllWindows().filter(window => window.isVisible()).map(async window => {
-      const state = await window.webContents.executeJavaScript('window.cornerNote.getState()');
-      return { bounds: window.getBounds(), folded: state.folded, color: state.color, text: state.text };
-    })));
+    const native = await application.evaluate(async ({BrowserWindow}) => ({
+      processId: process.pid,
+      windows: await Promise.all(BrowserWindow.getAllWindows().filter(window => window.isVisible() && !window.isMinimized()).map(async window => {
+        const state = await window.webContents.executeJavaScript('window.cornerNote.getState()');
+        const bytes = window.getNativeWindowHandle();
+        const handle = (bytes.length === 8 ? bytes.readBigUInt64LE() : BigInt(bytes.readUInt32LE())).toString();
+        return {handle, bounds: window.getBounds(), folded: state.folded, color: state.color, text: state.text};
+      })),
+    }));
+    assert.ok(native.windows.length > 0, 'At least one native app window must be visible.');
+    const windows = native.windows.map(({handle, ...window}) => window);
     if (checkUi) {
       console.log(`UI capture sequence verified: ${locale}/${scenario} (${windows.length} actual note window(s)); no publication image produced.`);
       return;
@@ -163,7 +171,7 @@ async function main(args = process.argv.slice(2)) {
     const filename = path.posix.join('assets', 'screenshots', locale, `${scenario}.png`);
     const destination = path.join(output, ...filename.split('/'));
     await fs.mkdir(path.dirname(destination), { recursive: true });
-    const captured = await runDisplay('Capture', displayStatePath, destination, [application.process().pid]);
+    const captured = await runDisplay('Capture', displayStatePath, destination, {processId: native.processId, windowHandles: native.windows.map(window => window.handle)});
     const bytes = await fs.readFile(destination);
     const {width, height} = pngDimensions(bytes);
     assert.ok(width >= 1366 && height >= 768 && width <= 3840 && height <= 2160, 'Actual desktop capture must meet Store screenshot dimensions.');
