@@ -74,7 +74,10 @@ jobs:
             if ($buildExitCode -ne 0) { throw "MSIX build failed with exit code $buildExitCode." }
             & ./scripts/test-msix-install.ps1 -PackagePath dist/CornerNote-Development-x64.msix 2>&1 | Tee-Object -FilePath $log -Append
           } catch {
-            $details = ((Get-Content -LiteralPath $log -Tail 100 | Out-String) + $_.Exception.ToString()).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            $exception = $_.Exception.ToString()
+            $tail = (Get-Content -LiteralPath $log -Tail 15 | Out-String)
+            if ($tail.Length -gt 1600) { $tail = $tail.Substring($tail.Length - 1600) }
+            $details = ($exception + "`n" + $tail).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
             Write-Output "::error title=MSIX build or installation check failed::$details"
             throw
           }
