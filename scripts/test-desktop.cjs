@@ -105,7 +105,7 @@ async function main() {
       foreach ($id in $ids) {
         $handle = [IntPtr]::new([Int64]::Parse($id));
         $style = [CornerNoteNativeTest]::GetWindowLongPtr($handle, -20).ToInt64();
-        $styles[$id] = @{ toolWindow = (($style -band 128) -ne 0); owner = [CornerNoteNativeTest]::GetWindow($handle, 4).ToInt64().ToString() };
+        $styles[$id] = @{ toolWindow = (($style -band 128) -ne 0); topmost = (($style -band 8) -ne 0); owner = [CornerNoteNativeTest]::GetWindow($handle, 4).ToInt64().ToString() };
       }
       ConvertTo-Json -Depth 4 -Compress -InputObject @{ order = @($order.ToArray()); styles = $styles };
     `;
@@ -564,6 +564,7 @@ async function main() {
     if (nativeWindows) {
       for (const id of [idOne, idTwo, idThree]) {
         assert.equal(nativeWindows.styles[id].toolWindow, false, 'pin-off notes must remain normal Alt-Tab windows');
+        assert.equal(nativeWindows.styles[id].topmost, false, 'pin-off notes must leave the native Windows topmost band');
         assert.equal(nativeWindows.styles[id].owner, '0', 'independent notes must not be owned tool windows');
       }
     }
@@ -577,7 +578,7 @@ async function main() {
     nativeWindows = await windowsNativeState();
     if (nativeWindows) {
       assert.equal(nativeWindows.order[0], idThree);
-      for (const id of [idOne, idTwo, idThree]) assert.equal(nativeWindows.styles[id].toolWindow, true, 'pinned notes use the always-visible tool-window band');
+      for (const id of [idOne, idTwo, idThree]) assert.equal(nativeWindows.styles[id].topmost, true, 'pinned notes use the native Windows topmost band');
     }
     pass('the pin setting updates every native note together and pin-off notes retain normal Windows Alt-Tab styles');
 
@@ -697,10 +698,10 @@ async function main() {
   }
 }
 main().catch(error => {
-  console.error(error);
   if (process.env.GITHUB_ACTIONS === 'true') {
     const message = String(error?.stack || error).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
-    console.error(`::error title=Windows desktop test failed::${message}`);
+    console.log(`::error title=Windows desktop test failed::${message}`);
   }
+  console.error(error);
   process.exitCode = 1;
 });

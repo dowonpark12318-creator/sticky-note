@@ -39,8 +39,14 @@ jobs:
           ELECTRON_TEST_NO_SANDBOX: '0'
         shell: pwsh
         run: |
-          npm run test:desktop 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/windows-desktop-test.log"
-          $desktopExitCode = $LASTEXITCODE
+          $desktopErrorPreference = $ErrorActionPreference
+          try {
+            $ErrorActionPreference = 'Continue'
+            npm run test:desktop 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/windows-desktop-test.log"
+            $desktopExitCode = $LASTEXITCODE
+          } finally {
+            $ErrorActionPreference = $desktopErrorPreference
+          }
           exit $desktopExitCode
 
       - name: Package the Windows app
@@ -98,6 +104,8 @@ jobs:
           '```text' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path -LiteralPath $log) {
             Get-Content -LiteralPath $log -Tail 160 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            $details = (Get-Content -LiteralPath $log -Tail 60 | Out-String).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Windows desktop test details::$details"
           }
           '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           Write-Error 'Windows desktop tests failed. Inspect Windows-desktop-test-log and the job summary before testing.'
