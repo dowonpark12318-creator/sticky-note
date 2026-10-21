@@ -20,13 +20,14 @@ A file named `CornerNote-Store-x64.msix` supplied for submission is an **unsigne
 - **+** makes a new blank note. Notes can overlap; the note most recently clicked or edited comes to the front.
 - **−** hides only the current note. Use the tray menu to reopen it, show all notes, or create another note. The tray icon may be in Windows' hidden-icons area.
 - **×** asks whether to delete the current note. **No** cancels; **Yes** deletes that note and its saved text. This is not an undo operation.
-- Drag the title bar to move an unfolded note. Drag an edge to resize it.
+- Click a note title to rename it. Enter saves, Escape cancels, and an empty title restores the default name.
+- Drag an empty part of the titlebar to move an unfolded note, including when the text is scrolled down. Drag an edge to resize it.
 - Drag a corner one third of the way toward the opposite corner and release to fold the note into that screen corner. Release sooner or press Escape to cancel.
 - Drag the body of a folded note to move it freely. Double-click it to return to its original folded corner. Pull the diagonal grip inward, or focus it and press Enter, to unfold.
 
 ## Why does Alt+Tab not show a pinned note?
 
-**Always on top** applies to all notes. When it is on, notes stay above normal app windows and are excluded from the taskbar. Turn it off to use the taskbar and Alt+Tab normally. The app does not guarantee visibility over Windows security/lock screens, some exclusive full-screen applications, or every other topmost window.
+**Always on top** is separate for each note. When it is on, that note stays above normal app windows and is excluded from the taskbar. Turn it off to switch to that note with the taskbar and Alt+Tab normally. Other notes keep their own settings. The app does not guarantee visibility over Windows security/lock screens, some exclusive full-screen applications, or every other topmost window.
 
 ## Where did my notes go?
 

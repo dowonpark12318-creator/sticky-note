@@ -6,7 +6,15 @@ const { canonicalLanguage } = require('./translation.cjs');
 
 const COLORS = new Set(['butter', 'rose', 'mint', 'sky']);
 const MAX_TEXT_LENGTH = 2_000_000;
+const MAX_TITLE_LENGTH = 120;
 const MAX_NOTES = 500;
+
+function normalizeTitle(value) {
+  if (typeof value !== 'string') return '';
+  const title = value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').trim().slice(0, MAX_TITLE_LENGTH);
+  // Truncating a long pasted title must not leave half of a Unicode character.
+  return /[\uD800-\uDBFF]$/.test(title) ? title.slice(0, -1) : title;
+}
 
 function validId(value) {
   return typeof value === 'string' && value.length >= 1 && value.length <= 128
@@ -67,13 +75,14 @@ function normalizeSettings(saved) {
   return { translationLanguages, tutorialCompleted: settings.tutorialCompleted === true };
 }
 
-function normalizeNote(saved, id = saved?.id) {
+function normalizeNote(saved, id = saved?.id, legacyAlwaysOnTop = true) {
   if (!saved || typeof saved !== 'object' || Array.isArray(saved) || !validId(id)
     || typeof saved.text !== 'string' || saved.text.length > MAX_TEXT_LENGTH || !COLORS.has(saved.color)) {
     throw damagedData();
   }
   return {
-    id, text: saved.text, color: saved.color,
+    id, text: saved.text, color: saved.color, title: normalizeTitle(saved.title),
+    alwaysOnTop: typeof saved.alwaysOnTop === 'boolean' ? saved.alwaysOnTop : legacyAlwaysOnTop,
     savedAt: typeof saved.savedAt === 'string' && !Number.isNaN(Date.parse(saved.savedAt)) ? saved.savedAt : null,
     window: normalizeWindow(saved.window),
   };
@@ -89,7 +98,6 @@ function createDefaultState() {
     version: 2,
     notes: [note],
     settings: normalizeSettings(),
-    alwaysOnTop: true,
     activeNoteId: note.id,
     noteOrder: [note.id],
   };
@@ -110,23 +118,24 @@ function normalizedOrder(notes, savedOrder) {
 function normalizeState(saved) {
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw damagedData();
   if (saved.version === 1) {
-    const note = normalizeNote(saved, randomUUID());
+    const note = normalizeNote(saved, randomUUID(), saved.window?.alwaysOnTop !== false);
     return {
       version: 2,
       notes: [note],
       settings: normalizeSettings(saved.settings),
-      alwaysOnTop: saved.window?.alwaysOnTop !== false,
       activeNoteId: note.id,
       noteOrder: [note.id],
     };
   }
   if (saved.version !== 2 || !Array.isArray(saved.notes)
     || saved.notes.length > MAX_NOTES) throw damagedData();
-  const notes = saved.notes.map(note => normalizeNote(note));
+  // Older v2 saves stored one shared flag. Inherit it only where a note has no
+  // own setting, then persist the independent flags without the obsolete one.
+  const notes = saved.notes.map(note => normalizeNote(note, note?.id, saved.alwaysOnTop !== false));
   if (new Set(notes.map(note => note.id)).size !== notes.length) throw damagedData();
   if (!notes.length) return {
     version: 2, notes: [], settings: normalizeSettings(saved.settings),
-    alwaysOnTop: saved.alwaysOnTop !== false, activeNoteId: null, noteOrder: [],
+    activeNoteId: null, noteOrder: [],
   };
   const noteOrder = normalizedOrder(notes, saved.noteOrder);
   const activeNoteId = noteOrder.includes(saved.activeNoteId) ? saved.activeNoteId : noteOrder.at(-1);
@@ -137,7 +146,6 @@ function normalizeState(saved) {
   return {
     version: 2, notes,
     settings: normalizeSettings(saved.settings),
-    alwaysOnTop: saved.alwaysOnTop !== false,
     activeNoteId, noteOrder,
   };
 }
@@ -162,7 +170,7 @@ function orderedNotes(state) {
 }
 
 module.exports = {
-  COLORS, MAX_TEXT_LENGTH, MAX_NOTES,
+  COLORS, MAX_TEXT_LENGTH, MAX_TITLE_LENGTH, MAX_NOTES, normalizeTitle,
   createEmptyNote, createDefaultState, normalizeState, markNoteActive, orderedNotes,
   resolveFoldedAnchor,
 };

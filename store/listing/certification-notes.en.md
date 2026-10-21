@@ -1,4 +1,4 @@
-# Certification notes — Corner Note 1.5.0
+# Certification notes — Corner Note 1.6.0
 
 Copy the sections from **Product and access** through **Capabilities** into the private **Notes for certification** field after completing the live-AI check described at the end. These notes contain no API key or other credential.
 
@@ -7,7 +7,7 @@ Copy the sections from **Product and access** through **Capabilities** into the 
 - Package name: `DowonPark.CornerNote`.
 - Publisher: `CN=B3FCB264-7CC2-48BC-8B90-21070B7AFBD4`.
 - Publisher display name: `Dowon Park`.
-- Package version: `1.5.0.0`; application version: `1.5.0`.
+- Package version: `1.6.0.0`; application version: `1.6.0`.
 - Device family: Windows Desktop, x64; Windows 10 build 19041 or later and Windows 11.
 - The app is free. Basic note creation, editing, saving, arranging, resizing and folding require no login, API key or internet connection.
 - Optional live AI translation uses the customer's own OpenAI API key and an internet connection. OpenAI API charges are separate from a ChatGPT subscription and are billed to the customer's OpenAI account. The developer does not sell API credits or process an in-app payment.
@@ -22,14 +22,14 @@ The app follows the Windows preferred-language list at launch. Supported display
 ## Basic note checks — no credential required
 
 1. Enter a short note, a newline and an emoji. Choose another color. Wait for **Saved automatically**.
-2. Drag the titlebar to move the note. Drag each of the four straight edges to resize; corners are folding handles. The minimum note size is 300 × 300.
+2. Click the note title to rename it. Enter or clicking elsewhere saves, Escape cancels, and an empty title restores the localized default. Fill the note with several screens of text and scroll down; drag an empty part of the titlebar to move it without resetting the scroll position. Drag each of the four straight edges to resize; corners are folding handles. The minimum note size is 300 × 300.
 3. Use **+**, between **?** and **−**, to create another blank note. Give the notes different text and colors, then overlap them. Click or edit an exposed part of a note: it moves above the other notes without rearranging their bounds.
-4. **Always on top** starts enabled and applies to every note. The notes stay above ordinary application windows while another app keeps keyboard focus. Turn it off: notes act as ordinary windows and can be switched to with the taskbar or Alt+Tab. Secure desktops and exclusive full-screen apps are not promised to be covered.
+4. New notes start with **Always on top** enabled. Turn it off for only one note: that note becomes an ordinary window accessible with the taskbar or Alt+Tab, while other notes keep their own settings. Re-enable it and confirm that only this note changes. Pinned notes stay above ordinary application windows while another app keeps keyboard focus. Secure desktops and exclusive full-screen apps are not promised to be covered.
 5. Drag a corner diagonally toward the opposite corner by approximately one third of the note's diagonal and release. The note folds into the corresponding screen corner. Releasing before the threshold or pressing Escape cancels the gesture.
 6. Drag the body of the folded note elsewhere. Double-click the body: it returns to its original folded corner and remains folded. Pull its small diagonal grip inward, or focus the grip and press Enter, to unfold it.
 7. Click **−** to hide only that note. Use the notification-area/tray icon, including the hidden-icons area if needed, to show a note or show all notes. **Quit** in that tray menu exits the application; hiding a note does not exit it.
 8. Click **×**, to the right of **−**. The **Delete this note?** dialog must preserve the note when **No** or Escape is used. **Yes** deletes only that note and its saved content. Other notes remain. If all notes are deleted, a subsequent app launch creates a fresh blank note.
-9. Quit from the tray menu and relaunch. Remaining notes should retain their text, colors, bounds, folded state and original folded anchors. The shared always-on-top setting and added translation targets should remain.
+9. Quit from the tray menu and relaunch. Remaining notes should retain their titles, text, colors, bounds, folded state, original folded anchors and individual always-on-top settings, including a mixture of pinned and ordinary notes. Added translation targets should remain shared. Updating an older save preserves its former shared pin setting on each existing note before allowing independent changes.
 
 ## Optional live AI translation
 

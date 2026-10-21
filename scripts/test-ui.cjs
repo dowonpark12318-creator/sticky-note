@@ -118,6 +118,47 @@ async function main() {
     assert.equal(await page.evaluate(() => window.injected), undefined);
     pass('Korean, emoji, newlines and literal HTML survive autosave and reload');
 
+    const customTitle = '나의 메모 📝 <b>할 일</b>';
+    await page.locator('#note-title').click();
+    const titleInput = page.locator('#note-title-input');
+    assert.equal(await titleInput.evaluate(input => input === document.activeElement), true);
+    assert.equal(await titleInput.evaluate(input => input.maxLength), 120);
+    await titleInput.fill(customTitle);
+    await page.keyboard.press('Enter');
+    await titleInput.waitFor({state: 'hidden'});
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    assert.equal(await page.locator('#note-title b').count(), 0, 'custom titles are literal text');
+    assert.equal(await byId('note-editor').inputValue(), text);
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    await page.locator('#note-title').click();
+    await titleInput.fill('취소할 제목');
+    await page.keyboard.press('Escape');
+    await titleInput.waitFor({state: 'hidden'});
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    await page.locator('#note-title').click();
+    await titleInput.fill('');
+    await page.keyboard.press('Enter');
+    await titleInput.waitFor({state: 'hidden'});
+    assert.equal(await page.locator('#note-title').textContent(), '모서리 메모');
+    await page.locator('#note-title').click();
+    await titleInput.fill(customTitle);
+    await byId('note-editor').click();
+    await titleInput.waitFor({state: 'hidden'});
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    await page.locator('#note-title').click();
+    await titleInput.fill('한글 조합 중인 제목');
+    await titleInput.dispatchEvent('compositionstart');
+    await page.keyboard.press('Enter');
+    assert.equal(await titleInput.isVisible(), true, 'IME confirmation must not submit the title while composing');
+    await titleInput.dispatchEvent('compositionend');
+    await page.keyboard.press('Enter');
+    await titleInput.waitFor({state: 'hidden'});
+    assert.equal(await page.locator('#note-title').textContent(), '한글 조합 중인 제목');
+    assert.equal(await byId('note-editor').inputValue(), text);
+    pass('title click supports literal custom text, persistence, Enter, Escape, blank fallback, blur and Korean IME without changing note content');
+
     await byId('color-sky').click();
     await page.waitForFunction(() => Object.values(localStorage).some(raw => raw.includes('sky')));
     await page.reload();
@@ -206,6 +247,49 @@ async function main() {
       await page.mouse.up();
       await page.waitForTimeout(80);
     }
+    async function dragTitlebar(dx, dy, cancel = false) {
+      const header = await page.locator('.titlebar').boundingBox();
+      const point = {x: header.x + 12, y: header.y + header.height - 8};
+      assert.equal(await page.evaluate(({x, y}) => {
+        const target = document.elementFromPoint(x, y);
+        return Boolean(target?.closest('.titlebar') && !target.closest('button, input'));
+      }, point), true, 'grab a visible, noninteractive part of the titlebar');
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.down();
+      await page.mouse.move(point.x + dx, point.y + dy, {steps: 8});
+      if (cancel) await page.keyboard.press('Escape');
+      await page.mouse.up();
+      await page.waitForTimeout(80);
+    }
+    const longText = Array.from({length: 100}, (_, index) => `긴 메모 ${index + 1} · 스크롤 중에도 옮길 수 있어요.`).join('\n');
+    await byId('note-editor').fill(longText);
+    const editorScroll = await byId('note-editor').evaluate(editor => {
+      editor.scrollTop = editor.scrollHeight;
+      return editor.scrollTop;
+    });
+    assert.ok(editorScroll > 0, 'regression editor is actually scrolled down');
+    const beforeScrolledDrag = await appBox();
+    await dragTitlebar(54, 36);
+    let movedExpanded = await appBox();
+    closeTo(movedExpanded.x, beforeScrolledDrag.x + 54, 'scrolled note moves horizontally');
+    closeTo(movedExpanded.y, beforeScrolledDrag.y + 36, 'scrolled note moves vertically');
+    closeTo(movedExpanded.width, beforeScrolledDrag.width, 'expanded movement preserves width');
+    closeTo(movedExpanded.height, beforeScrolledDrag.height, 'expanded movement preserves height');
+    assert.equal(await byId('note-editor').evaluate(editor => editor.scrollTop), editorScroll, 'movement preserves the editor scroll position');
+    assert.equal(await page.evaluate(() => document.scrollingElement.scrollTop), 0);
+    assert.equal(await byId('note-editor').inputValue(), longText);
+    await dragTitlebar(24, 20, true);
+    const cancelledMove = await appBox();
+    closeTo(cancelledMove.x, movedExpanded.x, 'Escape restores expanded x');
+    closeTo(cancelledMove.y, movedExpanded.y, 'Escape restores expanded y');
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
+    const restoredMove = await appBox();
+    closeTo(restoredMove.x, movedExpanded.x, 'expanded x survives reload');
+    closeTo(restoredMove.y, movedExpanded.y, 'expanded y survives reload');
+    assert.equal(await byId('note-editor').inputValue(), longText);
+    await byId('note-editor').fill(sample);
+    pass('expanded titlebar drag works with a long scrolled editor, preserves content and scroll, supports Escape and persists position');
     const beforeResize = await appBox();
     for (const edge of ['left', 'right']) {
       await byId(`resize-${edge}`).hover();

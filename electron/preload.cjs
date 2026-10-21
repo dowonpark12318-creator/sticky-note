@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('cornerNote', Object.freeze({
   deleteNote: () => ipcRenderer.invoke('corner-note:delete-note'),
   activateNote: () => ipcRenderer.invoke('corner-note:activate-note'),
   saveNote: note => ipcRenderer.invoke('corner-note:save-note', { text: note?.text, color: note?.color }),
+  renameNote: title => ipcRenderer.invoke('corner-note:rename-note', { title }),
   fold: options => ipcRenderer.invoke('corner-note:fold', { corner: options?.corner }),
   returnFoldedNote: () => ipcRenderer.invoke('corner-note:return-folded-note'),
   unfold: () => ipcRenderer.invoke('corner-note:unfold'),

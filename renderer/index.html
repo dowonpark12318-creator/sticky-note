@@ -30,7 +30,8 @@
         <header class="titlebar">
           <div class="brand">
             <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h14v10L14 20H5z" fill="currentColor"/><path d="M14 20v-5.5h5" stroke="var(--paper)" stroke-width="1.5"/><path d="M8.5 9h7M8.5 12h5" stroke="var(--paper)" stroke-width="1.5" stroke-linecap="round"/></svg>
-            <span data-i18n="appTitle">모서리 메모</span>
+            <button id="note-title" data-testid="note-title" class="note-title" type="button" data-i18n-aria-label="renameNote" aria-label="메모 제목 변경" data-i18n-title="renameNote" title="메모 제목 변경" disabled>모서리 메모</button>
+            <input id="note-title-input" data-testid="note-title-input" class="note-title-input" type="text" maxlength="120" autocomplete="off" spellcheck="false" data-i18n-aria-label="noteTitle" aria-label="메모 제목" data-i18n-placeholder="titlePlaceholder" placeholder="제목을 입력하세요" hidden>
           </div>
           <nav class="window-controls" data-i18n-aria-label="windowControls" aria-label="메모 창">
             <button id="help-button" data-testid="help-button" class="icon-button" type="button" data-i18n-aria-label="helpMenu" aria-label="사용 방법과 메뉴" aria-expanded="false" aria-controls="help-panel" data-i18n-title="helpMenu" title="사용 방법과 메뉴">

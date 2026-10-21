@@ -3,24 +3,18 @@
   "suggestedProductName": "CornerNote",
   "productNameInstruction": "Sélectionnez le nom de produit réservé CornerNote dans Partner Center pour toutes les langues de la fiche. Conservez cette orthographe exacte, sans espace, et ne la remplacez pas par un nom traduit.",
   "shortDescription": "Gardez vos idées à portée de main avec des notes de bureau gratuites qui se replient dans un coin. Superposez-les, choisissez l’affichage au premier plan et traduisez une sélection avec votre propre clé API OpenAI.",
-  "description": "Gardez un rappel sous les yeux, puis repliez-le quand vous avez besoin de place. Corner Note est une application gratuite de notes de bureau pour vos idées, tâches et petits textes à garder à portée de main.\n\nCréez plusieurs notes avec +, choisissez leurs couleurs et redimensionnez-les en faisant glisser un bord. Placez-les librement, même les unes sur les autres : la dernière note cliquée ou modifiée passe devant. Activez Toujours au premier plan pour toutes les notes, ou désactivez cette option pour utiliser la barre des tâches et Alt+Tab normalement.\n\nTirez un coin sur un tiers de la diagonale pour replier la note dans ce coin de l’écran. Déplacez ensuite la note repliée où vous voulez. Un double-clic sur son corps la ramène au coin d’origine ; tirez la petite poignée diagonale vers l’intérieur pour la déplier. Le contenu et l’état des fenêtres sont enregistrés automatiquement sur votre ordinateur. − masque une note dans la zone de notification ; × demande confirmation avant de la supprimer.\n\nLa traduction par IA est facultative et utilise un service d’IA générative en temps réel. Sélectionnez du texte, choisissez une langue et vérifiez le résultat avant de le copier ou de remplacer la sélection. Seul le texte sélectionné est envoyé à OpenAI ; l’original n’est jamais remplacé automatiquement. Une connexion internet et votre propre clé API OpenAI sont nécessaires. L’utilisation de l’API est facturée séparément d’un abonnement ChatGPT. L’application est gratuite ; l’écriture et l’enregistrement des notes fonctionnent hors connexion, sans compte ni clé API.\n\nLes menus, l’aide et le tutoriel en cinq étapes suivent la langue préférée de l’ordinateur. Un guide hors connexion est également inclus. Langues d’affichage : coréen, anglais, japonais, chinois simplifié et traditionnel, espagnol, français, allemand, portugais et italien. Les autres langues d’interface utilisent l’anglais. Le texte de vos notes n’est pas traduit automatiquement.\n\nPour Windows 10 version 2004 (build 19041) ou ultérieure et Windows 11, x64. Pour signaler un problème ou un résultat d’IA inapproprié : dowonpark12318@gmail.com. N’envoyez pas de clé API ni de texte sensible.",
+  "description": "Gardez un rappel sous les yeux, puis repliez-le quand vous avez besoin de place. Corner Note est une application gratuite de notes de bureau pour vos idées, tâches et petits textes à garder à portée de main.\n\nCréez plusieurs notes avec +, choisissez leurs couleurs et redimensionnez-les en faisant glisser un bord. Placez-les librement, même les unes sur les autres. Cliquez sur le titre pour renommer une note. Faites glisser la barre de titre pour déplacer une note ouverte, même après avoir fait défiler son texte. Réglez Toujours au premier plan séparément pour chaque note : les autres notes ne changent pas. Si cette option est désactivée, utilisez la barre des tâches ou Alt+Tab pour retrouver la note.\n\nTirez un coin sur un tiers de la diagonale pour replier la note dans ce coin de l’écran. Déplacez ensuite la note repliée où vous voulez. Un double-clic sur son corps la ramène au coin d’origine ; tirez la petite poignée diagonale vers l’intérieur pour la déplier. Le contenu et l’état des fenêtres sont enregistrés automatiquement sur votre ordinateur. − masque une note dans la zone de notification ; × demande confirmation avant de la supprimer.\n\nLa traduction par IA est facultative et utilise un service d’IA générative en temps réel. Sélectionnez du texte, choisissez une langue et vérifiez le résultat avant de le copier ou de remplacer la sélection. Seul le texte sélectionné est envoyé à OpenAI ; l’original n’est jamais remplacé automatiquement. Une connexion internet et votre propre clé API OpenAI sont nécessaires. L’utilisation de l’API est facturée séparément d’un abonnement ChatGPT. L’application est gratuite ; l’écriture et l’enregistrement des notes fonctionnent hors connexion, sans compte ni clé API.\n\nLes menus, l’aide et le tutoriel en cinq étapes suivent la langue préférée de l’ordinateur. Un guide hors connexion est également inclus. Langues d’affichage : coréen, anglais, japonais, chinois simplifié et traditionnel, espagnol, français, allemand, portugais et italien. Les autres langues d’interface utilisent l’anglais. Le texte de vos notes n’est pas traduit automatiquement.\n\nPour Windows 10 version 2004 (build 19041) ou ultérieure et Windows 11, x64. Pour signaler un problème ou un résultat d’IA inapproprié : dowonpark12318@gmail.com. N’envoyez pas de clé API ni de texte sensible.",
   "features": [
     "Plusieurs notes superposables avec texte, couleurs, tailles et positions indépendants",
-    "Premier plan pour toutes les notes, ou changement normal avec Alt+Tab si l’option est désactivée",
+    "Premier plan réglable séparément pour chaque note ; Alt+Tab quand il est désactivé",
+    "Renommez les notes depuis leur titre et déplacez-les même après avoir fait défiler le texte",
     "Repli d’une note en tirant un coin sur un tiers de sa diagonale",
     "Déplacement libre des notes repliées et retour au coin d’origine par double-clic",
     "Enregistrement local automatique, masquage dans la zone de notification et suppression confirmée",
     "Traduction IA facultative d’une sélection, avec aperçu, copie et remplacement manuel",
     "Dix langues d’affichage choisies automatiquement et tutoriel en cinq étapes"
   ],
-  "searchTerms": [
-    "pense-bête",
-    "notes de bureau",
-    "notes pliables",
-    "premier plan",
-    "mémo",
-    "traduction"
-  ],
+  "searchTerms": [],
   "screenshotCaptions": {
     "01-writing": "Écrivez une note, adaptez sa taille et sa couleur et gardez vos idées à portée de main.",
     "02-overlapping-notes": "Superposez vos notes librement. La dernière note cliquée ou modifiée passe devant.",
@@ -31,7 +25,7 @@
   "price": "Free",
   "supportEmail": "dowonpark12318@gmail.com",
   "firstSubmissionWhatsNew": "",
-  "releaseNotesForFuture": "Choix automatique parmi dix langues d’affichage, guide en cinq étapes, plusieurs notes, repli dans un coin et traduction IA facultative du texte sélectionné.",
+  "releaseNotesForFuture": "Renommez chaque note en cliquant sur son titre, réglez son affichage au premier plan indépendamment et déplacez les notes ouvertes même après avoir fait défiler leur texte.",
   "additionalSystemRequirements": [
     "Windows 10 version 2004 (build 19041) ou ultérieure, ou Windows 11 ; x64",
     "Internet et une clé API OpenAI personnelle sont nécessaires uniquement pour la traduction IA"

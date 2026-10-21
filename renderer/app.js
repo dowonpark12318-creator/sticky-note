@@ -12,6 +12,9 @@
   const app = document.querySelector('#app');
   const note = document.querySelector('#note');
   const textarea = document.querySelector('#note-text');
+  const titlebar = document.querySelector('.titlebar');
+  const titleButton = document.querySelector('#note-title');
+  const titleInput = document.querySelector('#note-title-input');
   const foldedNote = document.querySelector('#folded-note');
   const helpPanel = document.querySelector('#help-panel');
   const helpButton = document.querySelector('#help-button');
@@ -46,11 +49,16 @@
   let pinBusy = false;
   let creatingNote = false;
   let deletingNote = false;
+  let editingTitle = false;
+  let titleComposing = false;
+  let titleBusy = false;
+  let titleNeedsRetry = false;
 
   function normalizeState(value) {
     const source = value && typeof value === 'object' ? value : {};
     return {
       text: typeof source.text === 'string' ? source.text : '',
+      title: typeof source.title === 'string' ? source.title : '',
       color: COLORS.includes(source.color) ? source.color : 'butter',
       corner: CORNERS.includes(source.corner) ? source.corner : 'top-right',
       folded: source.folded === true,
@@ -104,6 +112,10 @@
       async createNote() { throw new Error(t('browser.newNote')); },
       async deleteNote() { throw new Error(t('browser.delete')); },
       async activateNote() { return { ...browserState }; },
+      async renameNote(title) {
+        browserState = { ...browserState, title: title.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').trim().slice(0, 120).replace(/[\ud800-\udbff]$/, '') };
+        persist(); emit(); return { ...browserState };
+      },
       async saveNote(value) {
         const next = { ...browserState, text: value.text, color: value.color, savedAt: new Date().toISOString() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...next, expandedBounds, foldedAnchorBounds }));
@@ -158,8 +170,8 @@
         const dy = Math.round(screenY - current.screenY);
         const initial = current.bounds;
         let bounds = { ...initial };
-        if (current.kind === 'move-folded') {
-          bounds = clamp({ ...initial, x: initial.x + dx, y: initial.y + dy }, true);
+        if (current.kind === 'move-folded' || current.kind === 'move-expanded') {
+          bounds = clamp({ ...initial, x: initial.x + dx, y: initial.y + dy });
         } else if (current.edge === 'left') {
           bounds.x = limit(initial.x + dx, 0, initial.x + initial.width - Math.min(300, innerWidth));
           bounds.width = initial.x + initial.width - bounds.x;
@@ -211,19 +223,66 @@
     document.querySelectorAll('.color-swatch').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.color === color)));
   }
 
+  function renderTitle() {
+    const title = state.title || t('appTitle');
+    titleButton.textContent = title;
+    titleButton.title = `${title} · ${t('renameNote')}`;
+    note.setAttribute('aria-label', title);
+    document.title = title;
+  }
+
+  function beginTitleEdit() {
+    if (!ready || titleBusy || state.folded || editingTitle) return;
+    editingTitle = true;
+    titleInput.value = state.title;
+    titleButton.hidden = true;
+    titleInput.hidden = false;
+    titleInput.focus({ preventScroll: true });
+    titleInput.select();
+  }
+
+  async function finishTitleEdit(cancel = false) {
+    if (!editingTitle) return;
+    editingTitle = false;
+    titleComposing = false;
+    const draft = titleInput.value;
+    titleInput.hidden = true;
+    titleButton.hidden = false;
+    if (cancel || (draft === state.title && !titleNeedsRetry)) return;
+    titleBusy = true;
+    titleButton.disabled = true;
+    try {
+      const result = await bridge.renameNote(draft);
+      // Rename responses must never replace an editor draft or its selection.
+      state.title = typeof result?.title === 'string' ? result.title : state.title;
+      titleNeedsRetry = false;
+      renderTitle();
+    } catch {
+      titleNeedsRetry = true;
+      showToast(t('error.save'));
+      // Keep the unsaved title available for a retry.
+      editingTitle = true;
+      titleButton.hidden = true;
+      titleInput.hidden = false;
+      titleInput.focus({ preventScroll: true });
+    } finally { titleBusy = false; titleButton.disabled = false; }
+  }
+
   function applyState(value, initial = false) {
     const next = normalizeState(value);
     const snapshotIsCurrent = !state.savedAt || (next.savedAt && new Date(next.savedAt).getTime() >= new Date(state.savedAt).getTime());
     const canApplyText = initial || (snapshotIsCurrent && editVersion === persistedVersion && !composing && document.activeElement !== textarea);
     const previousFolded = state.folded;
     if (canApplyText) {
-      textarea.value = next.text;
+      if (textarea.value !== next.text) textarea.value = next.text;
       state.text = next.text;
       state.color = next.color;
       applyTheme(next.color);
       updateCount();
     }
     state.folded = next.folded;
+    state.title = next.title;
+    renderTitle();
     state.corner = next.corner;
     state.alwaysOnTop = next.alwaysOnTop;
     state.settings = next.settings;
@@ -474,6 +533,25 @@
   textarea.addEventListener('compositionend', () => { composing = false; markEdited(); });
   textarea.addEventListener('blur', () => { if (ready) persistNow(); });
 
+  titleButton.addEventListener('click', beginTitleEdit);
+  titleInput.addEventListener('compositionstart', () => { titleComposing = true; });
+  titleInput.addEventListener('compositionend', () => { titleComposing = false; });
+  titleInput.addEventListener('blur', () => { void finishTitleEdit(); });
+  titleInput.addEventListener('keydown', event => {
+    if (event.isComposing || titleComposing || event.keyCode === 229) return;
+    if (event.key !== 'Enter' && event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    void finishTitleEdit(event.key === 'Escape').then(() => {
+      const focused = document.activeElement;
+      if (!editingTitle && [document.body, titleInput, titleButton].includes(focused)) titleButton.focus({ preventScroll: true });
+    });
+  });
+  titlebar.addEventListener('pointerdown', event => {
+    if (state.folded || event.target.closest('button, input, a, [role="button"]')) return;
+    startInteraction(event, 'move-expanded');
+  });
+
   document.querySelectorAll('.color-swatch').forEach((button) => {
     button.addEventListener('click', () => {
       if (!ready || state.color === button.dataset.color) return;
@@ -647,6 +725,7 @@
     foldedNote.setAttribute('aria-label', t('foldedLabel', { corner: cornerLabel(state.corner) }));
     unfoldHandle.setAttribute('aria-label', t('unfoldLabel', { corner: cornerLabel(state.corner) }));
     updateCount();
+    renderTitle();
   }
   applyLanguage(navigator.languages || [navigator.language]);
 
@@ -658,6 +737,7 @@
     addNoteButton.disabled = false;
     deleteNoteButton.disabled = false;
     textarea.disabled = false;
+    titleButton.disabled = false;
     pinButton.disabled = false;
     app.classList.remove('is-loading');
     setStatus('saved', state.savedAt);

@@ -3,24 +3,18 @@
   "suggestedProductName": "CornerNote",
   "productNameInstruction": "Wählen Sie in Partner Center für jede Sprache des Store-Eintrags den reservierten Produktnamen CornerNote. Behalten Sie diese genaue Schreibweise ohne Leerzeichen bei und verwenden Sie keinen übersetzten Namen.",
   "shortDescription": "Kostenlose Desktopnotizen halten Ideen griffbereit und lassen sich in eine Bildschirmecke falten. Überlappen Sie Notizen, wählen Sie Immer im Vordergrund und übersetzen Sie markierten Text mit Ihrem eigenen OpenAI-API-Schlüssel.",
-  "description": "Behalten Sie Erinnerungen im Blick und falten Sie sie zusammen, wenn Sie mehr Platz brauchen. Corner Note ist eine kostenlose Desktopnotiz-App für Ideen, Aufgaben und kurze Texte, die Sie griffbereit haben möchten.\n\nErstellen Sie mit + mehrere Notizen, wählen Sie Farben und ziehen Sie an einem Rand, um die Größe zu ändern. Notizen dürfen sich frei überlappen. Die zuletzt angeklickte oder bearbeitete Notiz kommt nach vorn. Immer im Vordergrund gilt für alle Notizen. Wenn Sie die Option ausschalten, wechseln Sie wie gewohnt über die Taskleiste oder Alt+Tab.\n\nZiehen Sie eine Ecke über ein Drittel der Diagonale, um die Notiz in die entsprechende Bildschirmecke zu falten. Anschließend können Sie die gefaltete Notiz frei verschieben. Ein Doppelklick auf ihren Körper bringt sie zur ursprünglichen Ecke zurück; ziehen Sie den diagonalen Griff nach innen, um sie zu entfalten. Inhalte und Fensterzustände werden automatisch auf Ihrem Computer gespeichert. − blendet eine Notiz in den Infobereich aus; × fragt vor dem Löschen nach.\n\nDie optionale KI-Übersetzung nutzt einen generativen KI-Dienst in Echtzeit. Markieren Sie Text, wählen Sie eine Sprache und prüfen Sie das Ergebnis, bevor Sie es kopieren oder die Auswahl ersetzen. Nur der markierte Text wird an OpenAI gesendet; der Originaltext wird nie automatisch ersetzt. Dafür benötigen Sie Internet und einen eigenen OpenAI-API-Schlüssel. Die API-Nutzung wird getrennt von einem ChatGPT-Abonnement berechnet. Die App selbst ist kostenlos. Notizen schreiben und speichern funktioniert offline, ohne Konto oder API-Schlüssel.\n\nMenüs, Hilfe und die fünfteilige Einführung folgen der bevorzugten Computersprache. Eine Offline-Anleitung ist ebenfalls enthalten. Unterstützt werden Koreanisch, Englisch, Japanisch, vereinfachtes und traditionelles Chinesisch, Spanisch, Französisch, Deutsch, Portugiesisch und Italienisch. Andere Anzeigesprachen verwenden Englisch. Ihre Notiztexte werden nicht automatisch übersetzt.\n\nFür Windows 10 Version 2004 (Build 19041) oder neuer sowie Windows 11, x64. Probleme oder unangemessene KI-Ergebnisse können Sie an dowonpark12318@gmail.com melden. Senden Sie keine API-Schlüssel oder vertraulichen Texte mit.",
+  "description": "Behalten Sie Erinnerungen im Blick und falten Sie sie zusammen, wenn Sie mehr Platz brauchen. Corner Note ist eine kostenlose Desktopnotiz-App für Ideen, Aufgaben und kurze Texte, die Sie griffbereit haben möchten.\n\nErstellen Sie mit + mehrere Notizen, wählen Sie Farben und ziehen Sie an einem Rand, um die Größe zu ändern. Notizen dürfen sich frei überlappen. Klicken Sie auf den Titel, um eine Notiz umzubenennen. Ziehen Sie die Titelleiste, um eine geöffnete Notiz auch bei gescrolltem Text zu verschieben. Legen Sie Immer im Vordergrund für jede Notiz einzeln fest; andere Notizen bleiben unverändert. Bei ausgeschalteter Option erreichen Sie diese Notiz über die Taskleiste oder Alt+Tab.\n\nZiehen Sie eine Ecke über ein Drittel der Diagonale, um die Notiz in die entsprechende Bildschirmecke zu falten. Anschließend können Sie die gefaltete Notiz frei verschieben. Ein Doppelklick auf ihren Körper bringt sie zur ursprünglichen Ecke zurück; ziehen Sie den diagonalen Griff nach innen, um sie zu entfalten. Inhalte und Fensterzustände werden automatisch auf Ihrem Computer gespeichert. − blendet eine Notiz in den Infobereich aus; × fragt vor dem Löschen nach.\n\nDie optionale KI-Übersetzung nutzt einen generativen KI-Dienst in Echtzeit. Markieren Sie Text, wählen Sie eine Sprache und prüfen Sie das Ergebnis, bevor Sie es kopieren oder die Auswahl ersetzen. Nur der markierte Text wird an OpenAI gesendet; der Originaltext wird nie automatisch ersetzt. Dafür benötigen Sie Internet und einen eigenen OpenAI-API-Schlüssel. Die API-Nutzung wird getrennt von einem ChatGPT-Abonnement berechnet. Die App selbst ist kostenlos. Notizen schreiben und speichern funktioniert offline, ohne Konto oder API-Schlüssel.\n\nMenüs, Hilfe und die fünfteilige Einführung folgen der bevorzugten Computersprache. Eine Offline-Anleitung ist ebenfalls enthalten. Unterstützt werden Koreanisch, Englisch, Japanisch, vereinfachtes und traditionelles Chinesisch, Spanisch, Französisch, Deutsch, Portugiesisch und Italienisch. Andere Anzeigesprachen verwenden Englisch. Ihre Notiztexte werden nicht automatisch übersetzt.\n\nFür Windows 10 Version 2004 (Build 19041) oder neuer sowie Windows 11, x64. Probleme oder unangemessene KI-Ergebnisse können Sie an dowonpark12318@gmail.com melden. Senden Sie keine API-Schlüssel oder vertraulichen Texte mit.",
   "features": [
     "Mehrere überlappende Notizen mit eigenen Texten, Farben, Größen und Positionen",
-    "Vordergrundanzeige für alle Notizen; bei ausgeschalteter Option normaler Wechsel mit Alt+Tab",
+    "Vordergrundanzeige für jede Notiz einzeln; bei ausgeschalteter Option Wechsel mit Alt+Tab",
+    "Notizen per Titelklick umbenennen und auch bei gescrolltem Text verschieben",
     "Eine Ecke um ein Drittel der Diagonale ziehen und die Notiz in eine Bildschirmecke falten",
     "Gefaltete Notizen frei verschieben und per Doppelklick zur ursprünglichen Ecke zurückbringen",
     "Automatisch lokal speichern, im Infobereich ausblenden und nach Bestätigung löschen",
     "Optionale KI-Übersetzung markierter Texte mit Vorschau, Kopieren und manuellem Ersetzen",
     "Zehn automatisch gewählte Anzeigesprachen und eine fünfteilige Einführung"
   ],
-  "searchTerms": [
-    "Haftnotizen",
-    "Desktopnotizen",
-    "faltbare Notizen",
-    "immer im Vordergrund",
-    "Notizzettel",
-    "Übersetzung"
-  ],
+  "searchTerms": [],
   "screenshotCaptions": {
     "01-writing": "Schreiben Sie eine Notiz, passen Sie Größe und Farbe an und halten Sie Ideen griffbereit.",
     "02-overlapping-notes": "Ordnen Sie Notizen überlappend an. Die zuletzt angeklickte oder bearbeitete Notiz erscheint vorn.",
@@ -31,7 +25,7 @@
   "price": "Free",
   "supportEmail": "dowonpark12318@gmail.com",
   "firstSubmissionWhatsNew": "",
-  "releaseNotesForFuture": "Automatische Auswahl aus zehn Anzeigesprachen, fünfteilige Einführung, mehrere Notizen, Falten in Ecken und optionale KI-Übersetzung markierter Texte.",
+  "releaseNotesForFuture": "Benennen Sie jede Notiz per Titelklick um, legen Sie ihre Vordergrundanzeige einzeln fest und verschieben Sie geöffnete Notizen auch bei gescrolltem Text.",
   "additionalSystemRequirements": [
     "Windows 10 Version 2004 (Build 19041) oder neuer, oder Windows 11; x64",
     "Internet und ein persönlicher OpenAI-API-Schlüssel sind nur für die KI-Übersetzung erforderlich"

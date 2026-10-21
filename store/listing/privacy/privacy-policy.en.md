@@ -9,7 +9,7 @@ This policy describes the Windows desktop app's handling of information. Corner 
 
 ## Notes and settings on your computer
 
-The app stores note text and local note identifiers, colors, last-save times, window sizes and positions, folding state, and display-placement information in its user-data directory. Shared preferences include always-on-top behavior, additional translation languages, and tutorial completion. The app reads your Windows preferred languages and screen layout to display its interface and place note windows. These operations take place on your computer; the app does not request your geographic location.
+The app stores note titles, note text and local note identifiers, colors, last-save times, window sizes and positions, folding state, display-placement information, and each note’s always-on-top setting in its user-data directory. Shared preferences include additional translation languages and tutorial completion. The app reads your Windows preferred languages and screen layout to display its interface and place note windows. These operations take place on your computer; the app does not request your geographic location.
 
 Notes and preferences are saved in `note-state.json`. **Note text is stored as ordinary readable text, not encrypted by the app.** Anyone with access to the relevant Windows account, files, or backups may be able to read it. The portable edition normally uses `%APPDATA%\Corner Note`; Windows package data rules may change the effective location for an MSIX installation.
 

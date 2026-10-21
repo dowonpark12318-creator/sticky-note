@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  COLORS, MAX_TEXT_LENGTH, MAX_NOTES,
+  COLORS, MAX_TEXT_LENGTH, MAX_TITLE_LENGTH, MAX_NOTES, normalizeTitle,
   createEmptyNote, createDefaultState, normalizeState, markNoteActive, orderedNotes,
   resolveFoldedAnchor,
 } = require('../electron/note-store.cjs');
@@ -14,7 +14,6 @@ function sampleState() {
     version: 2,
     notes: ['first', 'second', 'third'].map(id => createEmptyNote({ id })),
     settings: { translationLanguages: ['en', 'ko'], tutorialCompleted: true },
-    alwaysOnTop: false,
     activeNoteId: 'third',
     noteOrder: ['first', 'second', 'third'],
   };
@@ -30,7 +29,9 @@ test('a new state has one independent blank note, frontmost and active', () => {
   assert.equal(state.notes[0].savedAt, null);
   assert.equal(state.activeNoteId, state.notes[0].id);
   assert.deepEqual(state.noteOrder, [state.activeNoteId]);
-  assert.equal(state.alwaysOnTop, true);
+  assert.equal(state.notes[0].alwaysOnTop, true);
+  assert.equal(state.notes[0].title, '');
+  assert.equal(Object.hasOwn(state, 'alwaysOnTop'), false);
   assert.deepEqual(state.settings, { translationLanguages: [], tutorialCompleted: false });
   assert.deepEqual(state.notes[0].window.expandedBounds, DEFAULT_SIZE);
   assert.notEqual(state.notes[0].id, createDefaultState().notes[0].id);
@@ -72,7 +73,9 @@ test('legacy migration preserves note content, preferences, and both window posi
   assert.equal(note.savedAt, saved.savedAt);
   const { alwaysOnTop, ...window } = saved.window;
   assert.deepEqual(note.window, { ...window, foldedAnchorBounds: null, foldedAnchorDisplayId: null });
-  assert.equal(state.alwaysOnTop, false);
+  assert.equal(note.alwaysOnTop, false);
+  assert.equal(note.title, '');
+  assert.equal(Object.hasOwn(state, 'alwaysOnTop'), false);
   assert.deepEqual(state.settings, { translationLanguages: ['ko-KR', 'en', 'ja'], tutorialCompleted: true });
   assert.deepEqual(state.noteOrder, [note.id]);
   assert.equal(state.activeNoteId, note.id);
@@ -95,7 +98,7 @@ test('legacy invalid optional preferences and geometry fall back without discard
     foldedAnchorBounds: null, foldedAnchorDisplayId: null, displayId: null,
   });
   assert.deepEqual(state.settings, { translationLanguages: [], tutorialCompleted: false });
-  assert.equal(state.alwaysOnTop, true);
+  assert.equal(state.notes[0].alwaysOnTop, true);
 });
 
 test('legacy partial expanded geometry remains available for display-aware startup fitting', () => {
@@ -107,6 +110,8 @@ test('valid multi-note state round trips every note and its independent appearan
   const saved = sampleState();
   saved.notes[0].text = 'first note';
   saved.notes[0].color = 'rose';
+  saved.notes[0].title = '가족 메모 💛';
+  saved.notes[0].alwaysOnTop = false;
   saved.notes[1].window.folded = true;
   saved.notes[1].window.corner = 'bottom-right';
   saved.notes[1].window.foldedBounds = { x: 700, y: 600, width: 88, height: 88 };
@@ -115,6 +120,67 @@ test('valid multi-note state round trips every note and its independent appearan
   assert.deepEqual(normalized, saved);
   assert.notEqual(normalized.notes[0], saved.notes[0]);
   assert.notEqual(normalized.settings.translationLanguages, saved.settings.translationLanguages);
+});
+
+test('older multi-note saves migrate the shared pin setting to each note without changing other data', () => {
+  for (const pinned of [false, true]) {
+    const saved = sampleState();
+    saved.alwaysOnTop = pinned;
+    for (const [index, note] of saved.notes.entries()) {
+      delete note.alwaysOnTop;
+      delete note.title;
+      note.text = `original note ${index}\n메모 보존`;
+      note.window.expandedBounds = { x: index * 100, y: index * 50, width: 500, height: 550 };
+    }
+    saved.notes[1].window.folded = true;
+    const snapshot = structuredClone(saved);
+    const migrated = normalizeState(saved);
+    assert.equal(Object.hasOwn(migrated, 'alwaysOnTop'), false);
+    assert.deepEqual(migrated.notes.map(note => note.alwaysOnTop), [pinned, pinned, pinned]);
+    assert.deepEqual(migrated.notes.map(note => note.title), ['', '', '']);
+    assert.deepEqual(migrated.notes.map(note => note.text), saved.notes.map(note => note.text));
+    assert.deepEqual(migrated.notes.map(note => note.window), saved.notes.map(note => note.window));
+    assert.deepEqual(migrated.noteOrder, saved.noteOrder);
+    assert.deepEqual(migrated.settings, saved.settings);
+    assert.deepEqual(saved, snapshot);
+  }
+});
+
+test('independent pin settings and titles survive round trips and ignore an obsolete shared setting', () => {
+  const saved = sampleState();
+  saved.alwaysOnTop = false;
+  saved.notes[0].alwaysOnTop = false;
+  saved.notes[0].title = '일정';
+  saved.notes[1].title = 'Shopping';
+  // A partially migrated note can still inherit the old setting.
+  delete saved.notes[2].alwaysOnTop;
+  const restored = normalizeState(saved);
+  assert.deepEqual(restored.notes.map(note => note.alwaysOnTop), [false, true, false]);
+  restored.notes[0].alwaysOnTop = true;
+  restored.notes[1].title = 'Work';
+  const restarted = normalizeState(JSON.parse(JSON.stringify(restored)));
+  assert.deepEqual(restarted.notes.map(note => note.alwaysOnTop), [true, true, false]);
+  assert.deepEqual(restarted.notes.map(note => note.title), ['일정', 'Work', '']);
+  assert.equal(createEmptyNote().alwaysOnTop, true);
+});
+
+test('titles are short single-line text, allow Unicode, and can return to the localized default', () => {
+  assert.equal(normalizeTitle('  다음 주 일정 💛  '), '다음 주 일정 💛');
+  assert.equal(normalizeTitle('first\nsecond\rthird\titem\u0000end'), 'first second third item end');
+  assert.equal(normalizeTitle('first\u2028second\u2029third'), 'first second third');
+  assert.equal(normalizeTitle('x'.repeat(MAX_TITLE_LENGTH + 1)), 'x'.repeat(MAX_TITLE_LENGTH));
+  assert.equal(normalizeTitle('x'.repeat(MAX_TITLE_LENGTH - 1) + '💛'), 'x'.repeat(MAX_TITLE_LENGTH - 1));
+  assert.equal(normalizeTitle('x'.repeat(MAX_TITLE_LENGTH - 2) + '💛'), 'x'.repeat(MAX_TITLE_LENGTH - 2) + '💛');
+  for (const blank of ['', '  \n \t', null, undefined, {}, 42]) assert.equal(normalizeTitle(blank), '');
+  const saved = sampleState();
+  saved.notes[0].title = '<script>alert("memo")</script>';
+  saved.notes[1].title = null;
+  const normalized = normalizeState(saved);
+  assert.equal(normalized.notes[0].title, '<script>alert("memo")</script>');
+  assert.equal(normalized.notes[1].title, '');
+  assert.equal(normalized.notes[2].title, '');
+  normalized.notes[0].title = '';
+  assert.equal(normalizeState(JSON.parse(JSON.stringify(normalized))).notes[0].title, '');
 });
 
 test('stack repair drops unknown and duplicate IDs, appends missing notes, and keeps active last', () => {
@@ -189,7 +255,7 @@ test('deleting the last note permits an empty save and preserves shared preferen
   assert.deepEqual(state.notes, []);
   assert.equal(state.activeNoteId, null);
   assert.deepEqual(state.noteOrder, []);
-  assert.equal(state.alwaysOnTop, false);
+  assert.equal(Object.hasOwn(state, 'alwaysOnTop'), false);
   assert.deepEqual(state.settings, {translationLanguages: ['ja'], tutorialCompleted: true});
   assert.deepEqual(orderedNotes(state), []);
   assert.equal(markNoteActive(state, 'deleted-note'), false);

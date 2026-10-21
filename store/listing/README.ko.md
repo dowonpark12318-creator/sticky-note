@@ -18,8 +18,9 @@
 | 가격 | Free / 무료 |
 | 카테고리 | Productivity / 생산성 |
 | 제품 이름 | 게시자가 제공한 Partner Center 화면에서 확인한 `CornerNote` 선택. 공백 없이 모든 언어에서 동일하게 사용 |
-| 언어별 설명·짧은 설명·기능·검색어 | `locales/<언어>.md` 또는 같은 이름의 `.json` |
-| 첫 제출의 새로운 기능 | 빈칸 유지. `releaseNotesForFuture`는 향후 업데이트에만 사용 |
+| 언어별 설명·짧은 설명·기능 | `locales/<언어>.md` 또는 같은 이름의 `.json` |
+| 선택 검색어 | 모든 언어에서 빈칸 유지 (`searchTerms: []`) |
+| 이번 업데이트의 새로운 기능 | 언어별 `releaseNotesForFuture` 사용. 첫 제출인 경우에만 빈칸 유지 |
 | 스크린샷 | `assets/screenshots/<언어>/`의 PNG 4개 |
 | 스크린샷 캡션 | 언어별 JSON의 `screenshotCaptions` |
 | 300×300 앱 타일 아이콘 | `assets/StoreLogo-300.png` |

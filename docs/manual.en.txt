@@ -1,5 +1,5 @@
 Corner Note
-Version 1.5.0
+Version 1.6.0
 
 GETTING STARTED
 1. Extract the entire ZIP to a new folder and run CornerNote.exe. Keep the executable and other files together.
@@ -10,13 +10,14 @@ GETTING STARTED
 WRITING AND ARRANGING NOTES
 - The titlebar buttons are Help (?), New note (+), Hide (-), and Delete (x).
 - Click + to open another blank note. Notes may overlap. The last note you click or edit comes to the front.
-- Each note saves its text, color, size, position, and folded state automatically on your computer.
-- Drag the titlebar to move an unfolded note. Drag any of the four edges to resize it. Corners are used for folding.
+- Each note saves its title, text, color, size, position, folded state, and Always on top setting automatically on your computer.
+- Click the note title to rename it. Enter saves, Escape cancels, and an empty title restores the default name.
+- Drag an empty part of the titlebar to move an unfolded note, even when its text has been scrolled down. Drag any of the four edges to resize it. Corners are used for folding.
 - Drag a corner toward the opposite corner by at least one third of the diagonal and release. The note folds into that corner of the screen.
 - Release sooner or press Escape while dragging to cancel folding.
 - Drag the body of a folded note to move it anywhere. Double-click its body to return it to the original folded corner without unfolding it.
 - Pull the small diagonal grip inward, or focus it and press Enter, to unfold.
-- Always on top applies to every note. When enabled, notes stay above other apps and are excluded from the taskbar. When disabled, use the taskbar or Alt+Tab to switch to them normally.
+- Set Always on top separately for each note. When enabled, that note stays above other apps and is excluded from the taskbar. When disabled, use the taskbar or Alt+Tab to switch to that note normally. Other notes keep their own setting.
 - Click - to hide only that note. The tray menu lets you show individual notes, show all notes, or create a new one. Look in the taskbar's hidden icon area if necessary.
 - Click x to ask whether to delete the current note. No cancels; Yes deletes that note and its saved text. Other notes are kept. Deleted notes do not return after restarting.
 - After the last note is deleted, the tray can open a new blank note. Restarting the app also creates a new blank note.
@@ -37,7 +38,7 @@ Basic notes work offline without an API key. AI translation requires internet ac
 Only the selected text is sent to OpenAI, up to 6,000 characters per request.
 
 API KEY AND DATA
-The API connection, target-language list, guide completion, and always-on-top setting are shared between notes. Your API key is used only for the current session unless you explicitly choose Remember key on this computer. Remembered keys are encrypted using Electron safeStorage on Windows and stored separately from notes. If secure storage is unavailable, use the key for the current session only. Disconnect clears both the current and remembered key.
+The API connection, target-language list, and guide completion are shared between notes. Titles and always-on-top settings are saved separately for each note. Your API key is used only for the current session unless you explicitly choose Remember key on this computer. Remembered keys are encrypted using Electron safeStorage on Windows and stored separately from notes. If secure storage is unavailable, use the key for the current session only. Disconnect clears both the current and remembered key.
 
 Notes and shared preferences are stored in note-state.json in the app's user data directory. The portable app normally uses %APPDATA%\Corner Note. A remembered encrypted key is in translation-key.json. Basic notes are not sent to a server. Deleting the portable program folder does not delete the saved notes. Store MSIX uses Windows package data rules; existing portable data migration must be checked before public release.
 

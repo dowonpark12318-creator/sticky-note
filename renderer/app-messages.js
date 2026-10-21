@@ -14,8 +14,8 @@
     "placeholder": "잊지 않고 싶은 생각을\n여기에 적어 보세요.",
     "pinOn": "항상 위",
     "pinOff": "항상 위 꺼짐",
-    "pinTurnOff": "모든 메모의 항상 위 표시 끄기",
-    "pinTurnOn": "모든 메모의 항상 위 표시 켜기",
+    "pinTurnOff": "이 메모의 항상 위 표시 끄기",
+    "pinTurnOn": "이 메모의 항상 위 표시 켜기",
     "colors": "메모 색상",
     "color.butter": "버터 노랑",
     "color.rose": "로즈 분홍",
@@ -44,7 +44,7 @@
     "foldRelease": "놓으면 {corner}에 접혀요",
     "helpTitle": "작은 메모, 늘 이 자리에.",
     "closeMenu": "메뉴 닫기",
-    "helpIntro": "+로 새 메모를 만들고 자유롭게 겹쳐 놓으세요.\n마지막으로 클릭하거나 편집한 메모가 위로 올라와요.\n‘항상 위’ 설정은 모든 메모에 함께 적용돼요.",
+    "helpIntro": "+로 메모를 만들고 자유롭게 겹쳐 놓으세요.\n제목을 클릭해 바꾸고 윗부분을 끌어 이동해요.\n‘항상 위’는 이 메모에만 적용돼요.",
     "helpFoldTitle": "당겨서 접고, 당겨서 펴세요",
     "helpFold": "메모 모서리를 대각선 거리의 1/3만 당기면\n그쪽 화면 구석에 접어 둘 수 있어요.",
     "helpMove": "접힌 메모를 끌면 원하는 위치로 옮겨져요.\n두 번 클릭하면 처음 접힌 위치로 돌아가요.\n대각선 손잡이를 안쪽으로 당기거나 Enter를 누르면 펴져요.",
@@ -84,7 +84,10 @@
     "browser.hide": "Windows 앱에서는 트레이로 숨겨져요.",
     "browser.quit": "브라우저 미리보기에서는 탭을 닫아 주세요.",
     "browser.interactionEnded": "창 동작이 끝났습니다.",
-    "browser.interactionActive": "진행 중인 창 동작이 있습니다."
+    "browser.interactionActive": "진행 중인 창 동작이 있습니다.",
+    "renameNote": "메모 제목 변경",
+    "noteTitle": "메모 제목",
+    "titlePlaceholder": "제목을 입력하세요"
   },
   "en": {
     "appTitle": "Corner Note",
@@ -99,8 +102,8 @@
     "placeholder": "Write the thoughts you\nwant to remember here.",
     "pinOn": "Always on top",
     "pinOff": "Always on top off",
-    "pinTurnOff": "Turn off always on top for all notes",
-    "pinTurnOn": "Turn on always on top for all notes",
+    "pinTurnOff": "Turn off always on top for this note",
+    "pinTurnOn": "Turn on always on top for this note",
     "colors": "Note color",
     "color.butter": "Butter yellow",
     "color.rose": "Rose pink",
@@ -129,7 +132,7 @@
     "foldRelease": "Release to fold into the {corner} corner",
     "helpTitle": "A little note, right where you need it.",
     "closeMenu": "Close menu",
-    "helpIntro": "Use + to create notes and overlap them freely.\nThe last note you click or edit comes to the front.\nAlways on top applies to every note.",
+    "helpIntro": "Use + to create notes and overlap them freely.\nClick the title to rename; drag the titlebar to move.\nAlways on top applies only to this note.",
     "helpFoldTitle": "Drag to fold, drag to unfold",
     "helpFold": "Drag a note corner one third of the way diagonally\nto fold it into that corner of your screen.",
     "helpMove": "Drag a folded note to move it anywhere.\nDouble-click to return it to its original folded position.\nDrag the diagonal grip inward or press Enter to unfold.",
@@ -169,7 +172,10 @@
     "browser.hide": "The Windows app hides this note to the tray.",
     "browser.quit": "Close the tab to exit the browser preview.",
     "browser.interactionEnded": "The interaction has ended.",
-    "browser.interactionActive": "An interaction is already active."
+    "browser.interactionActive": "An interaction is already active.",
+    "renameNote": "Rename this note",
+    "noteTitle": "Note title",
+    "titlePlaceholder": "Enter a title"
   }
 };
 })();

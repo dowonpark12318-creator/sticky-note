@@ -3,24 +3,18 @@
   "suggestedProductName": "CornerNote",
   "productNameInstruction": "Selecione o nome de produto reservado CornerNote no Partner Center para todos os idiomas da página. Mantenha esta grafia exata, sem espaço, e não a substitua por um nome traduzido.",
   "shortDescription": "Mantenha suas ideias por perto com notas gratuitas que se dobram em um canto da tela. Sobreponha notas, escolha Sempre no topo e traduza o texto selecionado com sua própria chave de API da OpenAI.",
-  "description": "Deixe seus lembretes à vista e dobre-os quando precisar de mais espaço. Corner Note é um aplicativo gratuito de notas para a área de trabalho, feito para ideias, tarefas e pequenos textos que você quer ter por perto.\n\nCrie várias notas com +, escolha as cores e arraste uma borda para redimensionar. Posicione-as livremente, inclusive sobrepostas. A última nota em que você clicar ou editar vem para a frente. Sempre no topo vale para todas as notas; desative essa opção para alternar normalmente pela barra de tarefas e pelo Alt+Tab.\n\nArraste um canto por um terço da diagonal e solte para dobrar a nota naquele canto da tela. Depois, mova a nota dobrada para onde quiser. Um clique duplo no corpo da nota a devolve ao canto original; puxe a pequena alça diagonal para dentro para desdobrá-la. O conteúdo e o estado das janelas são salvos automaticamente no computador. − oculta uma nota na bandeja e × pede confirmação antes de excluí-la.\n\nA tradução opcional usa um serviço de IA generativa em tempo real. Selecione um texto, escolha o idioma e confira o resultado antes de copiá-lo ou substituir a seleção. Apenas o texto selecionado é enviado à OpenAI; o original nunca é substituído automaticamente. São necessários internet e sua própria chave de API da OpenAI. O uso da API é cobrado separadamente da assinatura do ChatGPT. O aplicativo é gratuito, e as funções básicas de escrita e salvamento funcionam offline, sem conta nem chave de API.\n\nMenus, ajuda e tutorial de cinco etapas seguem o idioma preferido do computador. Um guia offline também está incluído. Há suporte a coreano, inglês, japonês, chinês simplificado e tradicional, espanhol, francês, alemão, português e italiano. Outros idiomas de interface usam inglês. Suas notas não são traduzidas automaticamente.\n\nPara Windows 10 versão 2004 (build 19041) ou posterior e Windows 11, x64. Para relatar problemas ou resultados inadequados de IA, escreva para dowonpark12318@gmail.com. Não envie chaves de API nem textos confidenciais.",
+  "description": "Deixe seus lembretes à vista e dobre-os quando precisar de mais espaço. Corner Note é um aplicativo gratuito de notas para a área de trabalho, feito para ideias, tarefas e pequenos textos que você quer ter por perto.\n\nCrie várias notas com +, escolha as cores e arraste uma borda para redimensionar. Posicione-as livremente, inclusive sobrepostas. Clique no título para renomear uma nota. Arraste a barra de título para mover uma nota aberta mesmo depois de rolar seu texto. Configure Sempre no topo separadamente para cada nota: alterar uma não afeta as outras. Com a opção desativada, acesse essa nota pela barra de tarefas ou pelo Alt+Tab.\n\nArraste um canto por um terço da diagonal e solte para dobrar a nota naquele canto da tela. Depois, mova a nota dobrada para onde quiser. Um clique duplo no corpo da nota a devolve ao canto original; puxe a pequena alça diagonal para dentro para desdobrá-la. O conteúdo e o estado das janelas são salvos automaticamente no computador. − oculta uma nota na bandeja e × pede confirmação antes de excluí-la.\n\nA tradução opcional usa um serviço de IA generativa em tempo real. Selecione um texto, escolha o idioma e confira o resultado antes de copiá-lo ou substituir a seleção. Apenas o texto selecionado é enviado à OpenAI; o original nunca é substituído automaticamente. São necessários internet e sua própria chave de API da OpenAI. O uso da API é cobrado separadamente da assinatura do ChatGPT. O aplicativo é gratuito, e as funções básicas de escrita e salvamento funcionam offline, sem conta nem chave de API.\n\nMenus, ajuda e tutorial de cinco etapas seguem o idioma preferido do computador. Um guia offline também está incluído. Há suporte a coreano, inglês, japonês, chinês simplificado e tradicional, espanhol, francês, alemão, português e italiano. Outros idiomas de interface usam inglês. Suas notas não são traduzidas automaticamente.\n\nPara Windows 10 versão 2004 (build 19041) ou posterior e Windows 11, x64. Para relatar problemas ou resultados inadequados de IA, escreva para dowonpark12318@gmail.com. Não envie chaves de API nem textos confidenciais.",
   "features": [
     "Várias notas sobrepostas com textos, cores, tamanhos e posições independentes",
-    "Sempre no topo para todas as notas; com a opção desativada, alterne normalmente com Alt+Tab",
+    "Sempre no topo independente para cada nota; com a opção desativada, use Alt+Tab",
+    "Renomeie notas pelo título e mova notas abertas mesmo com o texto rolado",
     "Dobre uma nota arrastando um canto por um terço da diagonal",
     "Mova as notas dobradas e retorne ao canto original com um clique duplo",
     "Salvamento local automático, ocultação na bandeja e exclusão com confirmação",
     "Tradução opcional por IA do texto selecionado, com prévia, cópia e substituição manual",
     "Dez idiomas de interface escolhidos automaticamente e tutorial de cinco etapas"
   ],
-  "searchTerms": [
-    "notas adesivas",
-    "notas da área de trabalho",
-    "notas dobráveis",
-    "sempre no topo",
-    "lembretes",
-    "tradução"
-  ],
+  "searchTerms": [],
   "screenshotCaptions": {
     "01-writing": "Escreva uma nota, ajuste o tamanho e a cor e mantenha suas ideias por perto.",
     "02-overlapping-notes": "Sobreponha as notas livremente. A última nota em que você clicar ou editar vem para a frente.",
@@ -31,7 +25,7 @@
   "price": "Free",
   "supportEmail": "dowonpark12318@gmail.com",
   "firstSubmissionWhatsNew": "",
-  "releaseNotesForFuture": "Escolha automática entre dez idiomas de interface, guia de cinco etapas, várias notas, dobra nos cantos e tradução opcional por IA do texto selecionado.",
+  "releaseNotesForFuture": "Renomeie cada nota clicando no título, configure Sempre no topo de forma independente e mova notas abertas mesmo depois de rolar seu texto.",
   "additionalSystemRequirements": [
     "Windows 10 versão 2004 (build 19041) ou posterior, ou Windows 11; x64",
     "Internet e uma chave pessoal de API da OpenAI são necessários apenas para a tradução por IA"

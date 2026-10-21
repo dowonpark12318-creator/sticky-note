@@ -164,6 +164,50 @@ async function main() {
     const {stdout} = await execFileAsync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {timeout: 15000, windowsHide: true});
     assert.equal(JSON.parse(stdout.trim()).root, nativeHandle, 'the actual mouse click reaches the intended native note');
   }
+  async function dragExpandedTitlebar(page, point, delta) {
+    if (process.platform !== 'win32') {
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.down();
+      await page.mouse.move(point.x + delta.x, point.y + delta.y, {steps: 8});
+      await page.mouse.up();
+      return;
+    }
+    const window = await application.browserWindow(page);
+    const handle = await window.evaluate(window => {
+      const bytes = window.getNativeWindowHandle();
+      return (bytes.length === 8 ? bytes.readBigUInt64LE() : BigInt(bytes.readUInt32LE())).toString();
+    });
+    const viewport = await page.evaluate(() => ({width: innerWidth, height: innerHeight}));
+    assert.match(handle, /^\d+$/);
+    assert.ok([...Object.values(point), ...Object.values(delta), ...Object.values(viewport)].every(Number.isFinite));
+    // Exercise Windows hit testing with an actual desktop mouse drag. Scale
+    // renderer coordinates into the physical native rectangle for non-100% DPI.
+    const script = `
+      $ErrorActionPreference = 'Stop';
+      Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CornerNoteHeaderMouse { [StructLayout(LayoutKind.Sequential)] public struct Point { public int X; public int Y; public Point(int x, int y) { X = x; Y = y; } } [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left; public int Top; public int Right; public int Bottom; } [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rectangle); [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(Point point); [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr window, uint flags); [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra); }';
+      $target = [IntPtr]::new([Int64]::Parse('${handle}'));
+      $rectangle = New-Object CornerNoteHeaderMouse+Rect;
+      if (-not [CornerNoteHeaderMouse]::GetWindowRect($target, [ref]$rectangle)) { throw 'Cannot inspect the titlebar drag target.'; }
+      $scaleX = ($rectangle.Right - $rectangle.Left) / ${viewport.width};
+      $scaleY = ($rectangle.Bottom - $rectangle.Top) / ${viewport.height};
+      $startX = $rectangle.Left + [int][Math]::Round(${point.x} * $scaleX);
+      $startY = $rectangle.Top + [int][Math]::Round(${point.y} * $scaleY);
+      $start = [CornerNoteHeaderMouse+Point]::new($startX, $startY);
+      if ([CornerNoteHeaderMouse]::GetAncestor([CornerNoteHeaderMouse]::WindowFromPoint($start), 2) -ne $target) { throw 'Another window covers the titlebar drag point.'; }
+      if (-not [CornerNoteHeaderMouse]::SetCursorPos($startX, $startY)) { throw 'Cannot position the desktop pointer on the titlebar.'; }
+      [CornerNoteHeaderMouse]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero);
+      try {
+        Start-Sleep -Milliseconds 50;
+        for ($step = 1; $step -le 10; $step++) {
+          $nextX = $startX + [int][Math]::Round(${delta.x} * $scaleX * $step / 10);
+          $nextY = $startY + [int][Math]::Round(${delta.y} * $scaleY * $step / 10);
+          if (-not [CornerNoteHeaderMouse]::SetCursorPos($nextX, $nextY)) { throw 'Cannot move the desktop pointer during titlebar drag.'; }
+          Start-Sleep -Milliseconds 25;
+        }
+      } finally { [CornerNoteHeaderMouse]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); }
+    `;
+    await execFileAsync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {timeout: 15000, windowsHide: true});
+  }
   try {
     let page = await launch();
     const preferences = await application.evaluate(({BrowserWindow}) => {
@@ -183,9 +227,10 @@ async function main() {
 
     await assert.rejects(page.evaluate(() => window.cornerNote.fold({corner: 'invalid'})));
     await assert.rejects(page.evaluate(() => window.cornerNote.setAlwaysOnTop('false')));
+    await assert.rejects(page.evaluate(() => window.cornerNote.renameNote({title: 'invalid'})));
     await assert.rejects(page.evaluate(() => window.cornerNote.beginInteraction({kind: 'resize', edge: 'diagonal', screenX: 0, screenY: 0})));
     await assert.rejects(page.evaluate(() => window.cornerNote.beginInteraction({kind: 'move-folded', screenX: 0, screenY: 0})));
-    pass('native IPC rejects invalid corners, pin settings, resize edges and moving an expanded note');
+    pass('native IPC rejects invalid corners, pin settings, title values, resize edges and folded-only movement on an expanded note');
 
     const first = '데스크톱 자동 저장 📝\n다시 열어도 남아 있어요.';
     await page.getByTestId('note-editor').fill(first);
@@ -202,6 +247,41 @@ async function main() {
     assert.equal(await page.getByTestId('note-editor').inputValue(), first);
     assert.equal(await page.getByTestId('color-mint').getAttribute('aria-pressed'), 'true');
     pass('immediate quit flushes text and color, and relaunch restores both');
+
+    const customTitle = '업무 계획 📝 <b>제목</b>';
+    const beforeRename = await nativeBounds();
+    await page.locator('#note-title').click();
+    await page.locator('#note-title-input').fill(customTitle);
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(async expected => (await window.cornerNote.getState()).title === expected, customTitle);
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    assert.equal(await page.locator('#note-title b').count(), 0, 'title text is never interpreted as HTML');
+    assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), customTitle);
+    assert.deepEqual(await nativeBounds(), beforeRename, 'clicking a title must edit it without moving the note');
+    assert.equal(await page.getByTestId('note-editor').inputValue(), first);
+    await page.locator('#note-title').click();
+    await page.locator('#note-title-input').fill('이 변경은 취소');
+    await page.keyboard.press('Escape');
+    assert.equal((await stateFor(page)).title, customTitle);
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    await page.locator('#note-title').click();
+    await page.locator('#note-title-input').fill('');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(async () => (await window.cornerNote.getState()).title === '');
+    assert.equal(await page.locator('#note-title').textContent(), '모서리 메모');
+    assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), '모서리 메모');
+    await page.locator('#note-title').click();
+    await page.locator('#note-title-input').fill(customTitle);
+    await page.getByTestId('note-editor').click();
+    await page.waitForFunction(async expected => (await window.cornerNote.getState()).title === expected, customTitle);
+    await quit(page);
+    assert.equal((await readSaved()).notes[0].title, customTitle);
+    page = await launch();
+    assert.equal((await stateFor(page)).title, customTitle);
+    assert.equal(await page.locator('#note-title').textContent(), customTitle);
+    assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), customTitle);
+    assert.equal(await page.getByTestId('note-editor').inputValue(), first);
+    pass('title click edits literal text without moving the note; Enter, Escape, blank fallback and blur behave correctly and rename survives restart');
 
     const preferenceUpdate = await page.evaluate(() => window.cornerNote.updatePreferences({
       translationLanguages: ['pt-br', 'pt-BR', 'ja', 'zh-hant'], tutorialCompleted: false,
@@ -291,6 +371,37 @@ async function main() {
     await blur();
     assert.equal(await nativeTopmost(), false);
     pass('clicking the pin disables native topmost and blur respects that choice');
+
+    const longText = Array.from({length: 100}, (_, index) => `긴 메모 ${index + 1}: 스크롤한 상태에서도 제목 표시줄을 잡아 옮길 수 있어요.`).join('\n');
+    const {bounds: beforeScrolledMove} = await centerWindow();
+    await page.getByTestId('note-editor').fill(longText);
+    await page.waitForFunction(async text => (await window.cornerNote.getState()).text === text, longText);
+    const scrolled = await page.getByTestId('note-editor').evaluate(editor => {
+      editor.scrollTop = editor.scrollHeight;
+      return {top: editor.scrollTop, documentTop: document.scrollingElement.scrollTop};
+    });
+    assert.ok(scrolled.top > 0, 'the regression must exercise a genuinely scrolled editor');
+    const header = await page.locator('.titlebar').boundingBox();
+    const headerGrab = {x: header.x + 12, y: header.y + header.height - 8};
+    assert.equal(await page.evaluate(({x, y}) => {
+      const target = document.elementFromPoint(x, y);
+      return Boolean(target?.closest('.titlebar') && !target.closest('button, input'));
+    }, headerGrab), true, 'drag starts on a visible noninteractive part of the titlebar');
+    await dragExpandedTitlebar(page, headerGrab, {x: 54, y: 36});
+    await eventually(async () => {
+      const bounds = await nativeBounds();
+      return bounds.x > beforeScrolledMove.x && bounds.y > beforeScrolledMove.y;
+    }, 'move an expanded native note while its editor is scrolled');
+    const afterScrolledMove = await nativeBounds();
+    assert.equal(afterScrolledMove.width, beforeScrolledMove.width);
+    assert.equal(afterScrolledMove.height, beforeScrolledMove.height);
+    assert.ok(await page.getByTestId('note-editor').evaluate(editor => editor.scrollTop) > 0, 'drag must not require or force scrolling to the top');
+    assert.equal(await page.evaluate(() => document.scrollingElement.scrollTop), scrolled.documentTop);
+    assert.equal(await page.getByTestId('note-editor').inputValue(), longText);
+    assert.equal((await stateFor(page)).title, customTitle);
+    await page.getByTestId('note-editor').fill(first);
+    await page.waitForFunction(async text => (await window.cornerNote.getState()).text === text, first);
+    pass('dragging an expanded titlebar moves the actual native window with a long scrolled editor, preserving scroll position, text, title and size');
 
     for (const edge of ['left', 'right', 'top', 'bottom']) {
       const {bounds: before} = await centerWindow();
@@ -416,7 +527,7 @@ async function main() {
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
     assert.deepEqual(saved.notes[0].window.foldedBounds, moved.bounds);
     assert.deepEqual(saved.notes[0].window.foldedAnchorBounds, folded);
-    assert.equal(saved.alwaysOnTop, false);
+    assert.equal(saved.notes[0].alwaysOnTop, false);
     page = await launch();
     const restored = await page.evaluate(() => window.cornerNote.getState());
     assert.equal(restored.folded, true);
@@ -593,7 +704,11 @@ async function main() {
         return data.activeNoteId === id && data.noteOrder.at(-1) === id;
       }, `persisted active note order for ${id}`);
       const native = await windowsNativeState();
-      if (native) assert.equal(native.order[0], id, 'last activated note is actually highest in Windows User32 stacking order');
+      if (native) {
+        const topmost = (await stateFor(note)).alwaysOnTop;
+        const sameLayer = native.order.filter(noteId => native.styles[noteId].topmost === topmost);
+        assert.equal(sameLayer[0], id, 'last activated note is highest within its Windows topmost or normal band');
+      }
     }
     await clickExposedNote(noteOne);
     await noteOne.getByTestId('note-editor').fill(`${first}\n겹친 상태에서 첫 메모 편집`);
@@ -611,31 +726,47 @@ async function main() {
 
     await clickExposedNote(noteOne);
     await noteOne.getByTestId('always-on-top-button').click();
-    for (const note of [noteOne, noteTwo, noteThree]) {
-      await note.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === false);
-      assert.equal((await nativeFor(note)).topmost, false);
-    }
-    let nativeWindows = await windowsNativeState();
-    if (nativeWindows) {
-      for (const id of [idOne, idTwo, idThree]) {
-        assert.equal(nativeWindows.styles[id].toolWindow, false, 'pin-off notes must remain normal Alt-Tab windows');
-        assert.equal(nativeWindows.styles[id].topmost, false, 'pin-off notes must leave the native Windows topmost band');
-        assert.equal(nativeWindows.styles[id].owner, '0', 'independent notes must not be owned tool windows');
+    async function assertIndependentPins(expected) {
+      for (const [note, enabled] of [[noteOne, expected[0]], [noteTwo, expected[1]], [noteThree, expected[2]]]) {
+        await note.waitForFunction(async enabled => (await window.cornerNote.getState()).alwaysOnTop === enabled, enabled);
+        assert.equal((await nativeFor(note)).topmost, enabled);
+        if (!(await stateFor(note)).folded) {
+          assert.equal(await note.getByTestId('always-on-top-button').getAttribute('aria-pressed'), String(enabled));
+        }
       }
+      const native = await windowsNativeState();
+      if (native) for (const [id, enabled] of [[idOne, expected[0]], [idTwo, expected[1]], [idThree, expected[2]]]) {
+        assert.equal(native.styles[id].topmost, enabled, `${id}: native topmost follows only this note's pin`);
+        if (!enabled) assert.equal(native.styles[id].toolWindow, false, 'each unpinned note remains a normal Alt-Tab window');
+        assert.equal(native.styles[id].owner, '0', 'independent notes must not be owned tool windows');
+      }
+      return native;
     }
+    await assertIndependentPins([false, true, true]);
     await clickExposedNote(noteThree);
     await assertActive(noteThree, idThree);
     await noteThree.getByTestId('always-on-top-button').click();
-    for (const note of [noteOne, noteTwo, noteThree]) {
-      await note.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === true);
-      assert.equal((await nativeFor(note)).topmost, true);
-    }
-    nativeWindows = await windowsNativeState();
-    if (nativeWindows) {
-      assert.equal(nativeWindows.order[0], idThree);
-      for (const id of [idOne, idTwo, idThree]) assert.equal(nativeWindows.styles[id].topmost, true, 'pinned notes use the native Windows topmost band');
-    }
-    pass('the pin setting updates every native note together and pin-off notes retain normal Windows Alt-Tab styles');
+    await assertIndependentPins([false, true, false]);
+    await clickExposedNote(noteOne);
+    await noteOne.getByTestId('always-on-top-button').click();
+    let nativeWindows = await assertIndependentPins([true, true, false]);
+    if (nativeWindows) assert.equal(nativeWindows.order[0], idOne, 'the newly pinned and activated note is highest within the topmost band');
+    await noteOne.getByTestId('always-on-top-button').click();
+    nativeWindows = await assertIndependentPins([false, true, false]);
+    if (nativeWindows) assert.equal(nativeWindows.order[0], idTwo, 'an independently pinned folded sibling stays above normal notes');
+    pass('pinning and unpinning affect only the clicked note; mixed normal Alt-Tab and topmost windows coexist, including a folded pinned sibling');
+
+    const secondTitle = '두 번째 메모 · 일정';
+    const thirdTitle = 'Third note · 별도 제목';
+    await noteTwo.evaluate(title => window.cornerNote.renameNote(title), secondTitle);
+    await noteThree.locator('#note-title').click();
+    await noteThree.locator('#note-title-input').fill(thirdTitle);
+    await noteThree.keyboard.press('Enter');
+    await noteThree.waitForFunction(async title => (await window.cornerNote.getState()).title === title, thirdTitle);
+    assert.equal((await stateFor(noteOne)).title, customTitle);
+    assert.equal((await stateFor(noteTwo)).title, secondTitle);
+    assert.equal((await stateFor(noteThree)).title, thirdTitle);
+    pass('custom titles belong to individual notes, including a folded note, without renaming siblings');
 
     const concurrentOne = `${first}\n다른 창 설정 중에도 첫 번째 초안 보존`;
     const concurrentThree = '세 번째의 새 초안 · shared settings must preserve this';
@@ -651,6 +782,10 @@ async function main() {
     }
     assert.equal(await noteOne.getByTestId('note-editor').inputValue(), concurrentOne);
     assert.equal(await noteThree.getByTestId('note-editor').inputValue(), concurrentThree);
+    await assertIndependentPins([false, true, false]);
+    for (const [note, title] of [[noteOne, customTitle], [noteTwo, secondTitle], [noteThree, thirdTitle]]) {
+      assert.equal((await stateFor(note)).title, title, 'concurrent autosaves and shared preferences preserve individual titles');
+    }
     await noteOne.evaluate(apiKey => window.cornerNote.setTranslationKey({apiKey, remember: false}), fakeKey);
     assert.equal((await noteTwo.evaluate(() => window.cornerNote.getTranslationSettings())).configured, true);
     assert.equal((await noteThree.evaluate(() => window.cornerNote.getTranslationSettings())).configured, true);
@@ -693,15 +828,25 @@ async function main() {
       const restoredNote = await stateFor(note);
       const expected = beforeRestart.get(restoredNote.noteId);
       assert.ok(expected, 'restore the same note IDs');
-      for (const key of ['text', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(restoredNote[key], expected[key], `${restoredNote.noteId}: restore ${key}`);
+      for (const key of ['text', 'title', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(restoredNote[key], expected[key], `${restoredNote.noteId}: restore ${key}`);
       assert.equal(restoredNote.noteCount, 3);
       assert.equal((await nativeFor(note)).visible, true);
-      assert.equal((await nativeFor(note)).topmost, true);
-      if (!restoredNote.folded) assert.equal(await note.getByTestId('note-editor').inputValue(), expected.text);
+      assert.equal((await nativeFor(note)).topmost, expected.alwaysOnTop);
+      const nativeWindow = await application.browserWindow(note);
+      assert.equal(await nativeWindow.evaluate(window => window.getTitle()), expected.title);
+      if (!restoredNote.folded) {
+        assert.equal(await note.getByTestId('note-editor').inputValue(), expected.text);
+        assert.equal(await note.locator('#note-title').textContent(), expected.title);
+      }
+    }
+    const restoredNativeStyles = await windowsNativeState();
+    if (restoredNativeStyles) for (const [id, expected] of beforeRestart) {
+      assert.equal(restoredNativeStyles.styles[id].topmost, expected.alwaysOnTop);
+      if (!expected.alwaysOnTop) assert.equal(restoredNativeStyles.styles[id].toolWindow, false);
     }
     const restoredThree = reopened.find(note => note === page) || reopened[0];
     await quit(restoredThree);
-    pass('quit and restart restore all three independent notes, shared settings, exact overlapping bounds and the last active layer');
+    pass('quit and restart restore all three independent titles, mixed pin and Alt-Tab states, shared settings, exact overlapping bounds and the last active layer');
 
     page = await launch();
     await eventually(() => application.windows().length === 3, 'restore notes for deletion');
@@ -731,7 +876,7 @@ async function main() {
     for (const id of [idOne, idTwo]) {
       const current = await stateFor(deletionById.get(id));
       const expected = beforeRestart.get(id);
-      for (const key of ['text', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(current[key], expected[key], `${id}: deletion preserves sibling ${key}`);
+      for (const key of ['text', 'title', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(current[key], expected[key], `${id}: deletion preserves sibling ${key}`);
       assert.equal(current.noteCount, 2);
     }
     await quit(deletionById.get(idOne));
@@ -816,7 +961,8 @@ async function main() {
     assert.equal(saved.notes.length, 1);
     assert.equal(saved.notes[0].text, legacy.text);
     assert.equal(saved.notes[0].color, legacy.color);
-    assert.equal(saved.alwaysOnTop, true);
+    assert.equal(saved.notes[0].alwaysOnTop, true);
+    assert.equal(saved.notes[0].title, '');
     assert.deepEqual(saved.settings, legacy.settings);
     pass('legacy version 1 saves keep note settings and gain default pin and folded positioning');
 

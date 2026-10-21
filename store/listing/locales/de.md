@@ -14,7 +14,7 @@ Kostenlose Desktopnotizen halten Ideen griffbereit und lassen sich in eine Bilds
 
 Behalten Sie Erinnerungen im Blick und falten Sie sie zusammen, wenn Sie mehr Platz brauchen. Corner Note ist eine kostenlose Desktopnotiz-App für Ideen, Aufgaben und kurze Texte, die Sie griffbereit haben möchten.
 
-Erstellen Sie mit + mehrere Notizen, wählen Sie Farben und ziehen Sie an einem Rand, um die Größe zu ändern. Notizen dürfen sich frei überlappen. Die zuletzt angeklickte oder bearbeitete Notiz kommt nach vorn. Immer im Vordergrund gilt für alle Notizen. Wenn Sie die Option ausschalten, wechseln Sie wie gewohnt über die Taskleiste oder Alt+Tab.
+Erstellen Sie mit + mehrere Notizen, wählen Sie Farben und ziehen Sie an einem Rand, um die Größe zu ändern. Notizen dürfen sich frei überlappen. Klicken Sie auf den Titel, um eine Notiz umzubenennen. Ziehen Sie die Titelleiste, um eine geöffnete Notiz auch bei gescrolltem Text zu verschieben. Legen Sie Immer im Vordergrund für jede Notiz einzeln fest; andere Notizen bleiben unverändert. Bei ausgeschalteter Option erreichen Sie diese Notiz über die Taskleiste oder Alt+Tab.
 
 Ziehen Sie eine Ecke über ein Drittel der Diagonale, um die Notiz in die entsprechende Bildschirmecke zu falten. Anschließend können Sie die gefaltete Notiz frei verschieben. Ein Doppelklick auf ihren Körper bringt sie zur ursprünglichen Ecke zurück; ziehen Sie den diagonalen Griff nach innen, um sie zu entfalten. Inhalte und Fensterzustände werden automatisch auf Ihrem Computer gespeichert. − blendet eine Notiz in den Infobereich aus; × fragt vor dem Löschen nach.
 
@@ -27,7 +27,8 @@ Für Windows 10 Version 2004 (Build 19041) oder neuer sowie Windows 11, x64. Pro
 ## Product features
 
 - Mehrere überlappende Notizen mit eigenen Texten, Farben, Größen und Positionen
-- Vordergrundanzeige für alle Notizen; bei ausgeschalteter Option normaler Wechsel mit Alt+Tab
+- Vordergrundanzeige für jede Notiz einzeln; bei ausgeschalteter Option Wechsel mit Alt+Tab
+- Notizen per Titelklick umbenennen und auch bei gescrolltem Text verschieben
 - Eine Ecke um ein Drittel der Diagonale ziehen und die Notiz in eine Bildschirmecke falten
 - Gefaltete Notizen frei verschieben und per Doppelklick zur ursprünglichen Ecke zurückbringen
 - Automatisch lokal speichern, im Infobereich ausblenden und nach Bestätigung löschen
@@ -36,7 +37,7 @@ Für Windows 10 Version 2004 (Build 19041) oder neuer sowie Windows 11, x64. Pro
 
 ## Search terms
 
-Haftnotizen, Desktopnotizen, faltbare Notizen, immer im Vordergrund, Notizzettel, Übersetzung
+Lassen Sie dieses optionale Feld leer.
 
 ## Screenshot captions
 
@@ -51,7 +52,7 @@ Leave this field blank for the first Store submission. The following text is for
 
 ## Future update notes
 
-Automatische Auswahl aus zehn Anzeigesprachen, fünfteilige Einführung, mehrere Notizen, Falten in Ecken und optionale KI-Übersetzung markierter Texte.
+Benennen Sie jede Notiz per Titelklick um, legen Sie ihre Vordergrundanzeige einzeln fest und verschieben Sie geöffnete Notizen auch bei gescrolltem Text.
 
 ## Registration values
 

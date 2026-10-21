@@ -14,7 +14,7 @@ Gardez vos idées à portée de main avec des notes de bureau gratuites qui se r
 
 Gardez un rappel sous les yeux, puis repliez-le quand vous avez besoin de place. Corner Note est une application gratuite de notes de bureau pour vos idées, tâches et petits textes à garder à portée de main.
 
-Créez plusieurs notes avec +, choisissez leurs couleurs et redimensionnez-les en faisant glisser un bord. Placez-les librement, même les unes sur les autres : la dernière note cliquée ou modifiée passe devant. Activez Toujours au premier plan pour toutes les notes, ou désactivez cette option pour utiliser la barre des tâches et Alt+Tab normalement.
+Créez plusieurs notes avec +, choisissez leurs couleurs et redimensionnez-les en faisant glisser un bord. Placez-les librement, même les unes sur les autres. Cliquez sur le titre pour renommer une note. Faites glisser la barre de titre pour déplacer une note ouverte, même après avoir fait défiler son texte. Réglez Toujours au premier plan séparément pour chaque note : les autres notes ne changent pas. Si cette option est désactivée, utilisez la barre des tâches ou Alt+Tab pour retrouver la note.
 
 Tirez un coin sur un tiers de la diagonale pour replier la note dans ce coin de l’écran. Déplacez ensuite la note repliée où vous voulez. Un double-clic sur son corps la ramène au coin d’origine ; tirez la petite poignée diagonale vers l’intérieur pour la déplier. Le contenu et l’état des fenêtres sont enregistrés automatiquement sur votre ordinateur. − masque une note dans la zone de notification ; × demande confirmation avant de la supprimer.
 
@@ -27,7 +27,8 @@ Pour Windows 10 version 2004 (build 19041) ou ultérieure et Windows 11, x64. Po
 ## Product features
 
 - Plusieurs notes superposables avec texte, couleurs, tailles et positions indépendants
-- Premier plan pour toutes les notes, ou changement normal avec Alt+Tab si l’option est désactivée
+- Premier plan réglable séparément pour chaque note ; Alt+Tab quand il est désactivé
+- Renommez les notes depuis leur titre et déplacez-les même après avoir fait défiler le texte
 - Repli d’une note en tirant un coin sur un tiers de sa diagonale
 - Déplacement libre des notes repliées et retour au coin d’origine par double-clic
 - Enregistrement local automatique, masquage dans la zone de notification et suppression confirmée
@@ -36,7 +37,7 @@ Pour Windows 10 version 2004 (build 19041) ou ultérieure et Windows 11, x64. Po
 
 ## Search terms
 
-pense-bête, notes de bureau, notes pliables, premier plan, mémo, traduction
+Laissez ce champ facultatif vide.
 
 ## Screenshot captions
 
@@ -51,7 +52,7 @@ Leave this field blank for the first Store submission. The following text is for
 
 ## Future update notes
 
-Choix automatique parmi dix langues d’affichage, guide en cinq étapes, plusieurs notes, repli dans un coin et traduction IA facultative du texte sélectionné.
+Renommez chaque note en cliquant sur son titre, réglez son affichage au premier plan indépendamment et déplacez les notes ouvertes même après avoir fait défiler leur texte.
 
 ## Registration values
 

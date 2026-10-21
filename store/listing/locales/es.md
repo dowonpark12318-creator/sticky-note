@@ -14,7 +14,7 @@ Ten tus ideas a mano con notas de escritorio gratuitas que se pliegan en una esq
 
 Mantén los recordatorios a la vista y pliégalos cuando necesites espacio. Corner Note es una aplicación gratuita de notas de escritorio para ideas, tareas y pequeños textos que quieras tener cerca.
 
-Crea varias notas con +, elige sus colores y cambia su tamaño arrastrando un borde. Colócalas libremente, incluso superpuestas: la última nota que pulses o edites pasará al frente. Activa Siempre encima para todas las notas o desactívalo para alternar entre ellas con la barra de tareas y Alt+Tab.
+Crea varias notas con +, elige sus colores y cambia su tamaño arrastrando un borde. Colócalas libremente, incluso superpuestas. Haz clic en el título para cambiar el nombre de una nota. Arrastra la barra de título para mover una nota abierta aunque hayas desplazado su texto. Configura Siempre encima por separado para cada nota: cambiar una no afecta a las demás. Si está desactivado, cambia a esa nota con la barra de tareas o Alt+Tab.
 
 Arrastra una esquina hasta un tercio de la diagonal para plegar la nota en esa esquina de la pantalla. Después puedes moverla donde quieras. Haz doble clic en su cuerpo para devolverla a la esquina original o tira del pequeño tirador diagonal hacia dentro para desplegarla. El contenido y el estado de cada ventana se guardan automáticamente en el equipo. − oculta la nota en la bandeja y × pide confirmación antes de eliminarla.
 
@@ -27,7 +27,8 @@ Para Windows 10 versión 2004 (compilación 19041) o posterior y Windows 11, x64
 ## Product features
 
 - Varias notas superpuestas con texto, colores, tamaños y posiciones independientes
-- Siempre encima para todas las notas y cambio normal con Alt+Tab al desactivarlo
+- Siempre encima independiente para cada nota; cambio con Alt+Tab al desactivarlo
+- Cambia el nombre haciendo clic en el título y mueve notas abiertas con el texto desplazado
 - Pliega una nota arrastrando una esquina un tercio de su diagonal
 - Mueve las notas plegadas y vuelve a su esquina original con un doble clic
 - Guardado local automático, ocultación en la bandeja y eliminación con confirmación
@@ -36,7 +37,7 @@ Para Windows 10 versión 2004 (compilación 19041) o posterior y Windows 11, x64
 
 ## Search terms
 
-notas adhesivas, notas de escritorio, notas plegables, siempre encima, recordatorios, traducción
+Deja este campo opcional vacío.
 
 ## Screenshot captions
 
@@ -51,7 +52,7 @@ Leave this field blank for the first Store submission. The following text is for
 
 ## Future update notes
 
-Selección automática entre diez idiomas de interfaz, guía de cinco pasos, varias notas, plegado en esquinas y traducción opcional con IA del texto seleccionado.
+Cambia el nombre de cada nota desde su título, configura Siempre encima de forma independiente y mueve notas abiertas aunque hayas desplazado su texto.
 
 ## Registration values
 

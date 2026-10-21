@@ -17,7 +17,7 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 body[data-color="rose"] { --paper: #f6b8c0; --paper-deep: #e397a4; --paper-back: #dc8b9a; --paper-light: #fbd8dc; --accent: #943e50; --ink: #51303b; --muted: #774857; --line: #ce8d9a; }
 body[data-color="mint"] { --paper: #badb9e; --paper-deep: #98c67a; --paper-back: #8ebe6e; --paper-light: #daedc8; --accent: #456d32; --ink: #2e4226; --muted: #4f683e; --line: #91b776; }
 body[data-color="sky"] { --paper: #b2d2f4; --paper-deep: #8cb5e5; --paper-back: #80aadc; --paper-light: #d3e6fb; --accent: #365f91; --ink: #2d405b; --muted: #476182; --line: #8bafd7; }
-button, textarea { font: inherit; }
+button, input, textarea { font: inherit; }
 button { -webkit-app-region: no-drag; color: inherit; -webkit-tap-highlight-color: transparent; }
 button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 button { cursor: pointer; }
@@ -27,10 +27,13 @@ button:disabled { cursor: default; opacity: .5; }
 .app { width: 100%; height: 100%; padding: 9px; color: var(--ink); }
 .app.browser-preview { position: fixed; top: 0; left: 0; width: min(392px, 100vw); height: min(460px, 100vh); }
 .note { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--line), transparent 22%); border-radius: 15px; background: linear-gradient(148deg, var(--paper-light) -55%, var(--paper) 72%); box-shadow: 0 3px 7px #30291116, 0 1px 2px #30291114; }
-.titlebar { display: flex; align-items: center; justify-content: space-between; min-height: 55px; padding: 8px 18px 0 25px; -webkit-app-region: drag; user-select: none; }
-.brand { min-width: 0; display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: -.3px; }
+.titlebar { display: flex; flex: 0 0 55px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 18px 0 25px; -webkit-app-region: no-drag; cursor: grab; touch-action: none; user-select: none; }
+.titlebar.is-active { cursor: grabbing; }
+.brand { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: -.3px; }
 .brand-icon { flex-shrink: 0; width: 21px; height: 21px; color: var(--accent); }
-.brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-title { min-width: 0; max-width: 100%; padding: 5px 2px; overflow: hidden; border: 0; border-radius: 4px; background: transparent; font: inherit; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.note-title:hover { background: color-mix(in srgb, var(--accent), transparent 91%); }
+.note-title-input { width: 100%; min-width: 0; padding: 4px 2px; border: 0; border-bottom: 1px solid var(--accent); border-radius: 0; outline: none; background: transparent; color: var(--ink); cursor: text; user-select: text; touch-action: auto; -webkit-app-region: no-drag; }
 .window-controls { flex-shrink: 0; display: flex; align-items: center; gap: 1px; }
 .icon-button { display: grid; width: 27px; height: 27px; place-items: center; padding: 4px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); }
 .icon-button svg { width: 18px; height: 18px; }
@@ -45,7 +48,7 @@ button:disabled { cursor: default; opacity: .5; }
 .delete-note-actions button:hover:not(:disabled) { filter: brightness(1.06); }
 .delete-note-error { margin: 12px 0 0; color: #963c32; font-size: 11px; line-height: 1.7; }
 .note-body { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: 8px 27px 17px; }
-.note-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; font-size: 10px; letter-spacing: -.15px; color: var(--muted); user-select: none; }
+.note-meta { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; font-size: 10px; letter-spacing: -.15px; color: var(--muted); user-select: none; }
 .today { font-variant-numeric: tabular-nums; }
 .pinned { display: inline-flex; align-items: center; gap: 2px; min-height: 24px; margin: -5px -5px -5px 0; padding: 4px 5px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); font-size: 9px; }
 .pinned svg { width: 12px; height: 12px; }

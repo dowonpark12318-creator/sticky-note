@@ -14,7 +14,7 @@ Keep ideas close with free desktop notes that fold into a screen corner. Arrange
 
 Keep a reminder in view, then fold it away when you need more room. Corner Note is a free desktop note app for ideas, tasks and small pieces of text you want nearby.
 
-Create several notes with +, choose their colors, resize them by dragging an edge, and arrange them freely—even overlapping. The note you last click or edit comes to the front. Turn Always on top on for all notes, or turn it off to switch with the taskbar and Alt+Tab normally.
+Create several notes with +, choose their colors, resize them by dragging an edge, and arrange them freely—even overlapping. Click a note’s title to rename it. Drag the titlebar to move an open note even when its text is scrolled down. Set Always on top separately for each note; changing one note does not change the others. With this option off, switch to that note through the taskbar or Alt+Tab.
 
 Drag a corner one third of the way across the note’s diagonal to fold it into the matching screen corner. Move the folded note wherever you like. Double-click its body to return it to the original corner, or pull the diagonal grip inward to unfold it. Each note saves its content and window state on your computer. The − button hides a note to the tray; × asks for confirmation before deleting it.
 
@@ -27,7 +27,8 @@ For Windows 10 version 2004 (build 19041) or later and Windows 11, x64. To repor
 ## Product features
 
 - Multiple overlapping notes with independent text, colors, sizes and positions
-- Always-on-top toggle shared across all notes; normal Alt+Tab switching when off
+- Independent Always on top for each note; normal Alt+Tab switching when off
+- Click a note title to rename it; move open notes while their text is scrolled
 - Fold a note after dragging a corner one third of its diagonal
 - Move folded notes freely and double-click to return to the original corner
 - Automatic local saving, tray hiding and confirmed note deletion
@@ -36,7 +37,7 @@ For Windows 10 version 2004 (build 19041) or later and Windows 11, x64. To repor
 
 ## Search terms
 
-sticky notes, desktop notes, folding notes, always on top, memo, translation
+Leave this optional field blank.
 
 ## Screenshot captions
 
@@ -51,7 +52,7 @@ Leave this field blank for the first Store submission. The following text is for
 
 ## Future update notes
 
-Automatic display-language selection for ten languages, a five-step feature tour, multiple notes, corner folding and optional selected-text AI translation.
+Rename each note by clicking its title, set Always on top independently, and move open notes while their text is scrolled down.
 
 ## Registration values
 

@@ -14,7 +14,7 @@ Tieni le idee a portata di mano con note desktop gratuite da ripiegare in un ang
 
 Tieni un promemoria in vista e ripiegalo quando serve più spazio. Corner Note è un’app gratuita di note desktop per idee, attività e brevi testi da avere sempre a portata di mano.
 
-Crea più note con +, scegli i colori e trascina un bordo per ridimensionarle. Disponile liberamente, anche sovrapposte: l’ultima nota su cui fai clic o che modifichi viene portata davanti alle altre. Sempre in primo piano vale per tutte le note; disattivalo per passare da una finestra all’altra con la barra delle applicazioni e Alt+Tab.
+Crea più note con +, scegli i colori e trascina un bordo per ridimensionarle. Disponile liberamente, anche sovrapposte. Fai clic sul titolo per rinominare una nota. Trascina la barra del titolo per spostare una nota aperta anche dopo aver fatto scorrere il testo. Imposta Sempre in primo piano separatamente per ogni nota: le altre rimangono invariate. Se l’opzione è disattivata, passa a quella nota con la barra delle applicazioni o Alt+Tab.
 
 Trascina un angolo per un terzo della diagonale e rilascialo per ripiegare la nota in quell’angolo dello schermo. Poi sposta la nota ripiegata dove vuoi. Un doppio clic sul corpo la riporta all’angolo originale; tira verso l’interno la piccola maniglia diagonale per riaprirla. Il contenuto e lo stato delle finestre vengono salvati automaticamente sul computer. − nasconde una nota nell’area di notifica; × chiede conferma prima di eliminarla.
 
@@ -27,7 +27,8 @@ Per Windows 10 versione 2004 (build 19041) o successiva e Windows 11, x64. Per s
 ## Product features
 
 - Più note sovrapponibili con testi, colori, dimensioni e posizioni indipendenti
-- Primo piano per tutte le note; quando è disattivato, passa tra le finestre con Alt+Tab
+- Primo piano indipendente per ogni nota; quando è disattivato, usa Alt+Tab
+- Rinomina le note dal titolo e spostale anche dopo aver fatto scorrere il testo
 - Ripiega una nota trascinando un angolo per un terzo della diagonale
 - Sposta le note ripiegate e torna all’angolo originale con un doppio clic
 - Salvataggio locale automatico, note nascoste nell’area di notifica ed eliminazione con conferma
@@ -36,7 +37,7 @@ Per Windows 10 versione 2004 (build 19041) o successiva e Windows 11, x64. Per s
 
 ## Search terms
 
-note adesive, note desktop, note pieghevoli, sempre in primo piano, promemoria, traduzione
+Lascia vuoto questo campo facoltativo.
 
 ## Screenshot captions
 
@@ -51,7 +52,7 @@ Leave this field blank for the first Store submission. The following text is for
 
 ## Future update notes
 
-Selezione automatica tra dieci lingue, guida in cinque passaggi, più note, ripiegamento negli angoli e traduzione IA facoltativa del testo selezionato.
+Rinomina ogni nota facendo clic sul titolo, imposta il primo piano in modo indipendente e sposta le note aperte anche dopo aver fatto scorrere il testo.
 
 ## Registration values
 

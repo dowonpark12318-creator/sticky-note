@@ -12,7 +12,7 @@ for (const code of ['ja', 'zh-Hans', 'zh-Hant', 'es', 'fr', 'de', 'pt', 'it']) {
 const nativeMessages = require('./native-messages.cjs');
 const { canonicalLanguage, createTranslationService } = require('./translation.cjs');
 const { createTranslationKeyStore } = require('./translation-key-store.cjs');
-const { COLORS, MAX_TEXT_LENGTH, MAX_NOTES, createEmptyNote, createDefaultState, normalizeState, markNoteActive, orderedNotes, resolveFoldedAnchor } = require('./note-store.cjs');
+const { COLORS, MAX_TEXT_LENGTH, MAX_NOTES, normalizeTitle, createEmptyNote, createDefaultState, normalizeState, markNoteActive, orderedNotes, resolveFoldedAnchor } = require('./note-store.cjs');
 const {
   EDGES, MIN_SIZE, FOLDED_SIZE, validCorner, fitSize, clampBounds, cornerBounds,
   unfoldBounds, moveBounds, resizeBounds, selectDisplay,
@@ -53,9 +53,9 @@ function publicState(context) {
   return {
     noteId: note.id, noteCount: state.notes.length, activeNoteId: state.activeNoteId,
     offerTutorial: note.id === tutorialNoteId,
-    text: note.text, color: note.color,
+    text: note.text, color: note.color, title: note.title,
     folded: note.window.folded, corner: note.window.corner, savedAt: note.savedAt,
-    alwaysOnTop: state.alwaysOnTop,
+    alwaysOnTop: note.alwaysOnTop,
     settings: { ...state.settings, translationLanguages: [...state.settings.translationLanguages] },
     systemLanguage, uiLocale: ui.locale,
     bounds: !context.window.isDestroyed() ? context.window.getBounds() : null,
@@ -157,13 +157,14 @@ function activeDisplay(context) {
 function applyWindowLayer(context) {
   const window = context.window;
   if (window.isDestroyed()) return;
-  if (context.lastSkipTaskbar !== state.alwaysOnTop) {
-    window.setSkipTaskbar(state.alwaysOnTop);
-    context.lastSkipTaskbar = state.alwaysOnTop;
+  const enabled = context.note.alwaysOnTop;
+  if (context.lastSkipTaskbar !== enabled) {
+    window.setSkipTaskbar(enabled);
+    context.lastSkipTaskbar = enabled;
   }
-  if (context.lastAlwaysOnTop !== state.alwaysOnTop || window.isAlwaysOnTop() !== state.alwaysOnTop) {
-    window.setAlwaysOnTop(state.alwaysOnTop, state.alwaysOnTop ? 'screen-saver' : 'normal');
-    context.lastAlwaysOnTop = state.alwaysOnTop;
+  if (context.lastAlwaysOnTop !== enabled || window.isAlwaysOnTop() !== enabled) {
+    window.setAlwaysOnTop(enabled, enabled ? 'screen-saver' : 'normal');
+    context.lastAlwaysOnTop = enabled;
   }
 }
 
@@ -347,11 +348,12 @@ function validatePointer(options) {
 function beginInteraction(context, options) {
   validatePointer(options);
   if (context.interaction) throw new Error('진행 중인 창 이동을 먼저 끝내 주세요.');
-  if (options.kind !== 'resize' && options.kind !== 'move-folded') throw new TypeError('올바른 창 동작이 필요합니다.');
+  if (!['resize', 'move-folded', 'move-expanded'].includes(options.kind)) throw new TypeError('올바른 창 동작이 필요합니다.');
   if (options.kind === 'resize' && (context.note.window.folded || !EDGES.includes(options.edge))) {
     throw new TypeError('펼친 메모의 변을 선택해 주세요.');
   }
   if (options.kind === 'move-folded' && !context.note.window.folded) throw new TypeError('접힌 메모만 이 방식으로 옮길 수 있습니다.');
+  if (options.kind === 'move-expanded' && context.note.window.folded) throw new TypeError('펼친 메모의 변을 선택해 주세요.');
   activateNote(context);
   context.interaction = {
     id: randomUUID(), kind: options.kind, edge: options.edge,
@@ -568,6 +570,15 @@ function registerIpc() {
     await schedulePersist();
     return { savedAt };
   });
+  handle('rename-note', async (context, options) => {
+    if (typeof options?.title !== 'string') throw new TypeError('저장할 메모나 색상이 올바르지 않습니다.');
+    context.note.title = normalizeTitle(options.title);
+    context.window.setTitle(context.note.title || t('모서리 메모'));
+    updateTrayMenu();
+    emitState(context);
+    await schedulePersist();
+    return publicState(context);
+  });
   handle('fold', (context, options) => foldWindow(context, options?.corner));
   handle('return-folded-note', returnFoldedNote);
   handle('unfold', unfoldWindow);
@@ -576,14 +587,11 @@ function registerIpc() {
   handle('end-interaction', endInteraction);
   handle('set-always-on-top', async (context, enabled) => {
     if (typeof enabled !== 'boolean') throw new TypeError('항상 위 표시 여부가 올바르지 않습니다.');
-    state.alwaysOnTop = enabled;
+    context.note.alwaysOnTop = enabled;
     activateNote(context);
-    for (const note of orderedNotes(state)) {
-      const sibling = noteWindows.get(note.id);
-      if (sibling) applyWindowLayer(sibling);
-    }
+    applyWindowLayer(context);
     activateNote(context, { forceRaise: true });
-    emitAllStates();
+    emitState(context);
     await schedulePersist();
     return publicState(context);
   });
@@ -646,9 +654,9 @@ async function createWindow(note) {
     ...bounds,
     minWidth: note.window.folded ? 1 : Math.min(MIN_SIZE.width, display.workArea.width),
     minHeight: note.window.folded ? 1 : Math.min(MIN_SIZE.height, display.workArea.height),
-    title: t('모서리 메모'), icon: iconPath,
+    title: note.title || t('모서리 메모'), icon: iconPath,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    hasShadow: true, show: false, alwaysOnTop: state.alwaysOnTop, skipTaskbar: state.alwaysOnTop,
+    hasShadow: true, show: false, alwaysOnTop: note.alwaysOnTop, skipTaskbar: note.alwaysOnTop,
     resizable: false, maximizable: false, fullscreenable: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -658,11 +666,16 @@ async function createWindow(note) {
     },
   });
   context.window = window;
-  context.lastSkipTaskbar = state.alwaysOnTop;
+  context.lastSkipTaskbar = note.alwaysOnTop;
   context.translationService = createTranslationService({ fetch: (url, options) => net.fetch(url, options), getKey: translationKeyStore.getKey });
   noteWindows.set(note.id, context);
   contextsByWebContents.set(window.webContents.id, context);
   window.setMenu(null);
+  window.on('page-title-updated', event => {
+    // The localized page title must not overwrite a saved custom window title.
+    event.preventDefault();
+    window.setTitle(note.title || t('모서리 메모'));
+  });
   applyWindowLayer(context);
   if (process.platform !== 'win32') window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -689,7 +702,7 @@ async function createWindow(note) {
   window.on('focus', () => activateNote(context));
   window.on('blur', () => setImmediate(() => {
     // Reassert only an unexpectedly lost topmost flag. Never raise a blurred sibling.
-    if (!window.isDestroyed() && state.alwaysOnTop && !window.isAlwaysOnTop()) applyWindowLayer(context);
+    if (!window.isDestroyed() && note.alwaysOnTop && !window.isAlwaysOnTop()) applyWindowLayer(context);
   }));
   window.on('show', () => applyWindowLayer(context));
   window.on('restore', () => applyWindowLayer(context));
@@ -706,7 +719,7 @@ function updateTrayMenu() {
   if (!tray || tray.isDestroyed()) return;
   const notes = state.notes.map((note, index) => {
     const context = noteWindows.get(note.id);
-    const preview = note.text.replace(/\s+/g, ' ').trim().slice(0, 28) || t('빈 메모');
+    const preview = note.title || note.text.replace(/\s+/g, ' ').trim().slice(0, 28) || t('빈 메모');
     const marker = context && !context.window.isDestroyed() && context.window.isVisible() ? '' : t(' · 숨김');
     return { label: `${index + 1}. ${preview}${marker}`, click: () => { void showNote(note).catch(reportError); } };
   });

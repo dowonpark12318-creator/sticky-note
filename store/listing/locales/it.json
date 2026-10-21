@@ -3,24 +3,18 @@
   "suggestedProductName": "CornerNote",
   "productNameInstruction": "Seleziona il nome di prodotto riservato CornerNote nel Partner Center per tutte le lingue della scheda. Mantieni questa grafia esatta, senza spazi, e non sostituirla con un nome tradotto.",
   "shortDescription": "Tieni le idee a portata di mano con note desktop gratuite da ripiegare in un angolo. Sovrapponi le note, scegli Sempre in primo piano e traduci il testo selezionato con la tua chiave API OpenAI.",
-  "description": "Tieni un promemoria in vista e ripiegalo quando serve più spazio. Corner Note è un’app gratuita di note desktop per idee, attività e brevi testi da avere sempre a portata di mano.\n\nCrea più note con +, scegli i colori e trascina un bordo per ridimensionarle. Disponile liberamente, anche sovrapposte: l’ultima nota su cui fai clic o che modifichi viene portata davanti alle altre. Sempre in primo piano vale per tutte le note; disattivalo per passare da una finestra all’altra con la barra delle applicazioni e Alt+Tab.\n\nTrascina un angolo per un terzo della diagonale e rilascialo per ripiegare la nota in quell’angolo dello schermo. Poi sposta la nota ripiegata dove vuoi. Un doppio clic sul corpo la riporta all’angolo originale; tira verso l’interno la piccola maniglia diagonale per riaprirla. Il contenuto e lo stato delle finestre vengono salvati automaticamente sul computer. − nasconde una nota nell’area di notifica; × chiede conferma prima di eliminarla.\n\nLa traduzione facoltativa usa un servizio di IA generativa in tempo reale. Seleziona il testo, scegli una lingua e controlla il risultato prima di copiarlo o sostituire la selezione. Viene inviato a OpenAI solo il testo selezionato e l’originale non viene mai sostituito automaticamente. Servono una connessione internet e la tua chiave API OpenAI. L’uso dell’API è fatturato separatamente dall’abbonamento a ChatGPT. L’app è gratuita e consente di scrivere e salvare note offline, senza account né chiave API.\n\nMenu, guida e tutorial in cinque passaggi seguono la lingua preferita del computer. È incluso anche un manuale offline. Sono supportati coreano, inglese, giapponese, cinese semplificato e tradizionale, spagnolo, francese, tedesco, portoghese e italiano. Per le altre lingue dell’interfaccia viene usato l’inglese. Le note scritte non vengono tradotte automaticamente.\n\nPer Windows 10 versione 2004 (build 19041) o successiva e Windows 11, x64. Per segnalare problemi o risultati IA inappropriati, scrivi a dowonpark12318@gmail.com. Non inviare chiavi API o testi riservati.",
+  "description": "Tieni un promemoria in vista e ripiegalo quando serve più spazio. Corner Note è un’app gratuita di note desktop per idee, attività e brevi testi da avere sempre a portata di mano.\n\nCrea più note con +, scegli i colori e trascina un bordo per ridimensionarle. Disponile liberamente, anche sovrapposte. Fai clic sul titolo per rinominare una nota. Trascina la barra del titolo per spostare una nota aperta anche dopo aver fatto scorrere il testo. Imposta Sempre in primo piano separatamente per ogni nota: le altre rimangono invariate. Se l’opzione è disattivata, passa a quella nota con la barra delle applicazioni o Alt+Tab.\n\nTrascina un angolo per un terzo della diagonale e rilascialo per ripiegare la nota in quell’angolo dello schermo. Poi sposta la nota ripiegata dove vuoi. Un doppio clic sul corpo la riporta all’angolo originale; tira verso l’interno la piccola maniglia diagonale per riaprirla. Il contenuto e lo stato delle finestre vengono salvati automaticamente sul computer. − nasconde una nota nell’area di notifica; × chiede conferma prima di eliminarla.\n\nLa traduzione facoltativa usa un servizio di IA generativa in tempo reale. Seleziona il testo, scegli una lingua e controlla il risultato prima di copiarlo o sostituire la selezione. Viene inviato a OpenAI solo il testo selezionato e l’originale non viene mai sostituito automaticamente. Servono una connessione internet e la tua chiave API OpenAI. L’uso dell’API è fatturato separatamente dall’abbonamento a ChatGPT. L’app è gratuita e consente di scrivere e salvare note offline, senza account né chiave API.\n\nMenu, guida e tutorial in cinque passaggi seguono la lingua preferita del computer. È incluso anche un manuale offline. Sono supportati coreano, inglese, giapponese, cinese semplificato e tradizionale, spagnolo, francese, tedesco, portoghese e italiano. Per le altre lingue dell’interfaccia viene usato l’inglese. Le note scritte non vengono tradotte automaticamente.\n\nPer Windows 10 versione 2004 (build 19041) o successiva e Windows 11, x64. Per segnalare problemi o risultati IA inappropriati, scrivi a dowonpark12318@gmail.com. Non inviare chiavi API o testi riservati.",
   "features": [
     "Più note sovrapponibili con testi, colori, dimensioni e posizioni indipendenti",
-    "Primo piano per tutte le note; quando è disattivato, passa tra le finestre con Alt+Tab",
+    "Primo piano indipendente per ogni nota; quando è disattivato, usa Alt+Tab",
+    "Rinomina le note dal titolo e spostale anche dopo aver fatto scorrere il testo",
     "Ripiega una nota trascinando un angolo per un terzo della diagonale",
     "Sposta le note ripiegate e torna all’angolo originale con un doppio clic",
     "Salvataggio locale automatico, note nascoste nell’area di notifica ed eliminazione con conferma",
     "Traduzione IA facoltativa del testo selezionato con anteprima, copia e sostituzione manuale",
     "Dieci lingue dell’interfaccia selezionate automaticamente e tutorial in cinque passaggi"
   ],
-  "searchTerms": [
-    "note adesive",
-    "note desktop",
-    "note pieghevoli",
-    "sempre in primo piano",
-    "promemoria",
-    "traduzione"
-  ],
+  "searchTerms": [],
   "screenshotCaptions": {
     "01-writing": "Scrivi una nota, scegli dimensioni e colore e tieni le tue idee a portata di mano.",
     "02-overlapping-notes": "Sovrapponi liberamente più note. L’ultima su cui fai clic o che modifichi viene portata davanti alle altre.",
@@ -31,7 +25,7 @@
   "price": "Free",
   "supportEmail": "dowonpark12318@gmail.com",
   "firstSubmissionWhatsNew": "",
-  "releaseNotesForFuture": "Selezione automatica tra dieci lingue, guida in cinque passaggi, più note, ripiegamento negli angoli e traduzione IA facoltativa del testo selezionato.",
+  "releaseNotesForFuture": "Rinomina ogni nota facendo clic sul titolo, imposta il primo piano in modo indipendente e sposta le note aperte anche dopo aver fatto scorrere il testo.",
   "additionalSystemRequirements": [
     "Windows 10 versione 2004 (build 19041) o successiva, oppure Windows 11; x64",
     "Internet e una chiave API OpenAI personale sono necessari solo per la traduzione IA"

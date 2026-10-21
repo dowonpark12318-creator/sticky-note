@@ -1,4 +1,4 @@
-# Store submission readiness — Corner Note 1.5.0
+# Store submission readiness — Corner Note 1.6.0
 
 This is a review checklist, not a Microsoft approval. Material preparation and completed validation are distinct from Partner Center declarations and final submission.
 
@@ -10,7 +10,7 @@ This is a review checklist, not a Microsoft approval. Material preparation and c
 | Submission package | `PACKAGE-MANIFEST.json` records the exact registered-identity unsigned Store MSIX release URL, version and SHA-256 for this material build. Download that file and verify its checksum before uploading. A Development MSIX or portable ZIP is not the Store submission. |
 | Existing automated checks | Publishing this material bundle requires the Windows workflow to pass UI/localization/native Windows checks, temporary-certificate Development-MSIX installation/activation, registered Store-MSIX generation, actual desktop capture and material validation. The source revision and capture evidence are recorded in `PACKAGE-MANIFEST.json` and `assets/screenshots/provenance.json`. These checks do not replace WACK or Microsoft certification. |
 | Store product display name | **Select `CornerNote` exactly, without a space, in every listing language.** The publisher-provided Partner Center screenshot confirms this name in the product header. This evidence verifies the product name only, not other submission fields or Microsoft certification. |
-| Listing texts | Review each of the ten locale files for meaning and market suitability. First Store submission leaves “What's new” blank. |
+| Listing texts | Review each of the ten locale files for meaning and market suitability. For this update, use the localized release notes; only a first Store submission leaves “What's new” blank. Keep optional search terms empty in every submitted language following the earlier policy 10.1.3 finding. |
 | Screenshots and icon | Validate the generated asset manifest/provenance, all actual PNG files, Desktop dimensions ≥1366×768 and size ≤50MB, captions ≤200 characters, and 300×300 app tile icon. Do not describe a mocked result as a live AI response. |
 | Public privacy/support URLs | Open each final GitHub-hosted policy/support URL while logged out. Ensure full text is available without login before entering the URL in Partner Center. |
 | Generative AI | Declare **Yes**. Keep optional BYOK translation, selected-text transmission, separate billing and report email clearly disclosed. Review and respond to reports as described in the support materials. |

@@ -12,8 +12,8 @@
   const STEPS = { ko: [
     {
       label: '나만의 자리', title: '메모를 원하는 곳으로', art: 'move',
-      body: '제목 표시줄을 끌어 옮기고, +로 새 메모를 만들어요. 겹친 메모는 마지막으로 클릭한 것이 위로 올라와요.',
-      detail: '‘항상 위’ 설정은 모든 메모에 함께 적용돼요. 끄면 일반 창처럼 Alt + Tab으로 다시 찾을 수 있어요.',
+      body: '제목을 클릭하면 이름을 바꿀 수 있어요. 글을 스크롤한 상태에서도 제목 표시줄을 끌어 옮겨요. +로 메모를 추가해요.',
+      detail: '‘항상 위’는 메모마다 따로 정해요. 끈 메모는 일반 창처럼 Alt + Tab으로 다시 찾을 수 있어요.',
     },
     {
       label: '딱 맞는 크기', title: '변을 당겨 크기 조절', art: 'resize',
@@ -38,8 +38,8 @@
   ], en: [
     {
       label: 'Your own space', title: 'Put notes where you need them', art: 'move',
-      body: 'Drag the title bar to move a note. Use + to make another note. When notes overlap, the one you last click comes to the front.',
-      detail: 'Always on top applies to all your notes. Turn it off to switch back to your notes with Alt + Tab, just like other windows.',
+      body: 'Click a note title to rename it. Drag the titlebar to move, even after scrolling the text. Use + to make another note.',
+      detail: 'Set Always on top separately for each note. Turn it off for a note to find it with Alt + Tab, just like other windows.',
     },
     {
       label: 'Just the right size', title: 'Drag an edge to resize', art: 'resize',
