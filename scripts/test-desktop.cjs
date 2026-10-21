@@ -25,6 +25,11 @@ async function main() {
     } while (Date.now() < deadline);
     assert.fail(`Timed out: ${label} (last result ${JSON.stringify(last)})`);
   }
+  async function waitForRenderer(page, predicate, argument, label = predicate.toString()) {
+    // Playwright waitForFunction treats a returned Promise as truthy instead
+    // of polling its resolved boolean. Await evaluate() in the Node-side loop.
+    return eventually(() => page.evaluate(predicate, argument), label);
+  }
   async function readyWindow(page) {
     await page.waitForFunction(() => typeof window.cornerNote?.getState === 'function');
     await page.waitForFunction(() => !document.querySelector('#app').classList.contains('is-loading'));
@@ -45,7 +50,7 @@ async function main() {
     if (!initialState.folded && !initialState.settings?.tutorialCompleted) {
       await page.getByTestId('tutorial-skip').waitFor({state: 'visible'});
       await page.getByTestId('tutorial-skip').click();
-      await page.waitForFunction(async () => (await window.cornerNote.getState()).settings.tutorialCompleted === true);
+      await waitForRenderer(page, async () => (await window.cornerNote.getState()).settings.tutorialCompleted === true);
     }
     return page;
   }
@@ -76,7 +81,7 @@ async function main() {
   async function waitTitleSettled(page, title, label = title || '모서리 메모') {
     // The native state changes before its disk write, renderer notification and
     // rename response finish. Observe both the saved value and the usable UI.
-    await page.waitForFunction(async ({title, label}) => {
+    await waitForRenderer(page, async ({title, label}) => {
       const state = await window.cornerNote.getState();
       const button = document.querySelector('#note-title');
       const input = document.querySelector('#note-title-input');
@@ -85,7 +90,7 @@ async function main() {
     }, {title, label});
   }
   async function waitPinSettled(page, enabled) {
-    await page.waitForFunction(async enabled => {
+    await waitForRenderer(page, async enabled => {
       const state = await window.cornerNote.getState();
       const button = document.querySelector('[data-testid="always-on-top-button"]');
       return state.alwaysOnTop === enabled && button.getAttribute('aria-pressed') === String(enabled) && !button.disabled;
@@ -253,7 +258,7 @@ async function main() {
     const first = '데스크톱 자동 저장 📝\n다시 열어도 남아 있어요.';
     await page.getByTestId('note-editor').fill(first);
     await page.getByTestId('color-mint').click();
-    await page.waitForFunction(async expected => (await window.cornerNote.getState()).text === expected, first);
+    await waitForRenderer(page, async expected => (await window.cornerNote.getState()).text === expected, first);
     // Quit immediately, without waiting for the disk debounce.
     await quit(page);
     let saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
@@ -395,7 +400,7 @@ async function main() {
     const longText = Array.from({length: 100}, (_, index) => `긴 메모 ${index + 1}: 스크롤한 상태에서도 제목 표시줄을 잡아 옮길 수 있어요.`).join('\n');
     const {bounds: beforeScrolledMove} = await centerWindow();
     await page.getByTestId('note-editor').fill(longText);
-    await page.waitForFunction(async text => (await window.cornerNote.getState()).text === text, longText);
+    await waitForRenderer(page, async text => (await window.cornerNote.getState()).text === text, longText);
     const scrolled = await page.getByTestId('note-editor').evaluate(editor => {
       editor.scrollTop = editor.scrollHeight;
       return {top: editor.scrollTop, documentTop: document.scrollingElement.scrollTop};
@@ -420,7 +425,7 @@ async function main() {
     assert.equal(await page.getByTestId('note-editor').inputValue(), longText);
     assert.equal((await stateFor(page)).title, customTitle);
     await page.getByTestId('note-editor').fill(first);
-    await page.waitForFunction(async text => (await window.cornerNote.getState()).text === text, first);
+    await waitForRenderer(page, async text => (await window.cornerNote.getState()).text === text, first);
     pass('dragging an expanded titlebar moves the actual native window with a long scrolled editor, preserving scroll position, text, title and size');
 
     for (const edge of ['left', 'right', 'top', 'bottom']) {
@@ -490,7 +495,7 @@ async function main() {
     await page.mouse.down();
     await page.mouse.move(resizeX + 30, resizeY, {steps: 5});
     await page.mouse.up();
-    await page.waitForFunction(async width => (await window.cornerNote.getState()).bounds.width > width, beforePointer.width);
+    await waitForRenderer(page, async width => (await window.cornerNote.getState()).bounds.width > width, beforePointer.width);
     const afterPointer = await nativeBounds();
     assert.equal(afterPointer.x, beforePointer.x);
     assert.equal(afterPointer.y, beforePointer.y);
@@ -561,7 +566,7 @@ async function main() {
 
     const returnedBody = await page.getByTestId('folded-note').boundingBox();
     await page.getByTestId('folded-note').dblclick({position: {x: returnedBody.width * .87, y: returnedBody.height * .87}});
-    await page.waitForFunction(async expected => {
+    await waitForRenderer(page, async expected => {
       const state = await window.cornerNote.getState();
       return state.folded && state.bounds.x === expected.x && state.bounds.y === expected.y;
     }, folded);
@@ -612,7 +617,7 @@ async function main() {
     await page.mouse.down();
     await page.mouse.move(tiny.x + 40, tiny.y + 34);
     await page.mouse.up();
-    await page.waitForFunction(async before => {
+    await waitForRenderer(page, async before => {
       const state = await window.cornerNote.getState();
       return state.folded && (state.bounds.x !== before.x || state.bounds.y !== before.y);
     }, beforeBodyDrag);
@@ -621,7 +626,7 @@ async function main() {
     // the separate diagonal grip continues to unfold it.
     const movedBody = await page.getByTestId('folded-note').boundingBox();
     await page.getByTestId('folded-note').dblclick({position: {x: movedBody.width * .2, y: movedBody.height * .2}});
-    await page.waitForFunction(async expected => {
+    await waitForRenderer(page, async expected => {
       const state = await window.cornerNote.getState();
       return state.folded && state.bounds.x === expected.x && state.bounds.y === expected.y;
     }, beforeBodyDrag);
@@ -664,7 +669,7 @@ async function main() {
     const idThree = (await stateFor(noteThree)).noteId;
     assert.equal(new Set([idOne, idTwo, idThree]).size, 3);
     for (const note of [noteOne, noteTwo, noteThree]) {
-      await note.waitForFunction(async () => (await window.cornerNote.getState()).noteCount === 3);
+      await waitForRenderer(note, async () => (await window.cornerNote.getState()).noteCount === 3);
     }
     assert.equal(await noteOne.getByTestId('note-editor').inputValue(), first);
     assert.equal((await stateFor(noteTwo)).text, '두 번째 메모 · 독립적인 내용');
@@ -713,7 +718,7 @@ async function main() {
     const overlapThree = desiredBounds(108, 350);
     await nativeFor(noteThree, 'setBounds', overlapThree);
     async function assertActive(note, id) {
-      await note.waitForFunction(async expected => (await window.cornerNote.getState()).activeNoteId === expected, id);
+      await waitForRenderer(note, async expected => (await window.cornerNote.getState()).activeNoteId === expected, id);
       // The Linux CI smoke display intentionally has no window manager, so it
       // cannot grant native focus. Windows is the supported desktop target and
       // must additionally pass real native focus and User32 stacking checks.
@@ -797,7 +802,7 @@ async function main() {
       noteThree.getByTestId('note-editor').fill(concurrentThree),
     ]);
     for (const [note, expected] of [[noteOne, concurrentOne], [noteTwo, '두 번째 메모 · 독립적인 내용'], [noteThree, concurrentThree]]) {
-      await note.waitForFunction(async expected => (await window.cornerNote.getState()).text === expected, expected);
+      await waitForRenderer(note, async expected => (await window.cornerNote.getState()).text === expected, expected);
       assert.equal((await stateFor(note)).text, expected);
       assert.deepEqual((await stateFor(note)).settings, {translationLanguages: ['fr', 'ja'], tutorialCompleted: true});
     }
@@ -996,7 +1001,7 @@ async function main() {
     assert.equal(backups.length, 1);
     assert.equal(await fs.readFile(path.join(directory, backups[0]), 'utf8'), '{damaged json');
     await page.getByTestId('note-editor').fill('복구한 새 메모');
-    await page.waitForFunction(async () => (await window.cornerNote.getState()).text === '복구한 새 메모');
+    await waitForRenderer(page, async () => (await window.cornerNote.getState()).text === '복구한 새 메모');
     await quit(page);
     saved = JSON.parse(await fs.readFile(statePath, 'utf8'));
     assert.equal(saved.notes[0].text, '복구한 새 메모');
