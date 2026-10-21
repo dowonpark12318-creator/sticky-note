@@ -1,6 +1,8 @@
 # CornerNote Instagram 홍보 영상
 
-최신 수정본: [항상 위 기능을 추가한 26초 영상](always-on-top/CornerNote-Instagram-AlwaysOnTop.mp4). 실제 버튼을 끄고 켜서 다른 창 뒤로 가려지는 모습과 다른 창을 작업해도 앞에 유지되는 모습을 비교합니다. [제작 정보](always-on-top/README.ko.md)
+최신 수정본: [중앙 자막과 반투명 흰 배경을 적용한 26초 영상](centered-captions/CornerNote-Instagram-Centered-Captions.mp4). ‘고정을 누르면, 메모는 항상 위에’와 ‘Available in Microsoft Store’ 문구를 반영했습니다. [제작 정보](centered-captions/README.ko.md)
+
+이전 수정본: [항상 위 기능을 추가한 26초 영상](always-on-top/CornerNote-Instagram-AlwaysOnTop.mp4). 실제 버튼을 끄고 켜서 다른 창 뒤로 가려지는 모습과 다른 창을 작업해도 앞에 유지되는 모습을 비교합니다. [제작 정보](always-on-top/README.ko.md)
 
 아래는 기존 20초 영상의 정보입니다.
 
