@@ -1,0 +1,22 @@
+[
+  {
+    "pin": false,
+    "noteFocused": false,
+    "documentFocused": true,
+    "noteHandle": "0x800004",
+    "documentHandle": "0x800011",
+    "label": "always-on-top-off",
+    "desktopStacking": "_NET_CLIENT_LIST_STACKING(WINDOW): window id # 0x800004, 0x800011",
+    "noteAboveDocument": false
+  },
+  {
+    "pin": true,
+    "noteFocused": false,
+    "documentFocused": true,
+    "noteHandle": "0x800004",
+    "documentHandle": "0x800011",
+    "label": "always-on-top-on-with-document-focused",
+    "desktopStacking": "_NET_CLIENT_LIST_STACKING(WINDOW): window id # 0x800011, 0x800004",
+    "noteAboveDocument": true
+  }
+]
