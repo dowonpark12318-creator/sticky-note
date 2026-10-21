@@ -73,6 +73,24 @@ async function main() {
     return {id, bounds, state};
   }, {options, delta, cancel});
   const stateFor = page => page.evaluate(() => window.cornerNote.getState());
+  async function waitTitleSettled(page, title, label = title || '모서리 메모') {
+    // The native state changes before its disk write, renderer notification and
+    // rename response finish. Observe both the saved value and the usable UI.
+    await page.waitForFunction(async ({title, label}) => {
+      const state = await window.cornerNote.getState();
+      const button = document.querySelector('#note-title');
+      const input = document.querySelector('#note-title-input');
+      return state.title === title && button.textContent === label && !button.hidden &&
+        !button.disabled && input.hidden && (state.folded || button.getClientRects().length > 0);
+    }, {title, label});
+  }
+  async function waitPinSettled(page, enabled) {
+    await page.waitForFunction(async enabled => {
+      const state = await window.cornerNote.getState();
+      const button = document.querySelector('[data-testid="always-on-top-button"]');
+      return state.alwaysOnTop === enabled && button.getAttribute('aria-pressed') === String(enabled) && !button.disabled;
+    }, enabled);
+  }
   async function nativeFor(page, action, argument) {
     const window = await application.browserWindow(page);
     return window.evaluate((window, {action, argument}) => {
@@ -253,7 +271,7 @@ async function main() {
     await page.locator('#note-title').click();
     await page.locator('#note-title-input').fill(customTitle);
     await page.keyboard.press('Enter');
-    await page.waitForFunction(async expected => (await window.cornerNote.getState()).title === expected, customTitle);
+    await waitTitleSettled(page, customTitle);
     assert.equal(await page.locator('#note-title').textContent(), customTitle);
     assert.equal(await page.locator('#note-title b').count(), 0, 'title text is never interpreted as HTML');
     assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), customTitle);
@@ -262,21 +280,23 @@ async function main() {
     await page.locator('#note-title').click();
     await page.locator('#note-title-input').fill('이 변경은 취소');
     await page.keyboard.press('Escape');
+    await waitTitleSettled(page, customTitle);
     assert.equal((await stateFor(page)).title, customTitle);
     assert.equal(await page.locator('#note-title').textContent(), customTitle);
     await page.locator('#note-title').click();
     await page.locator('#note-title-input').fill('');
     await page.keyboard.press('Enter');
-    await page.waitForFunction(async () => (await window.cornerNote.getState()).title === '');
+    await waitTitleSettled(page, '');
     assert.equal(await page.locator('#note-title').textContent(), '모서리 메모');
     assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), '모서리 메모');
     await page.locator('#note-title').click();
     await page.locator('#note-title-input').fill(customTitle);
     await page.getByTestId('note-editor').click();
-    await page.waitForFunction(async expected => (await window.cornerNote.getState()).title === expected, customTitle);
+    await waitTitleSettled(page, customTitle);
     await quit(page);
     assert.equal((await readSaved()).notes[0].title, customTitle);
     page = await launch();
+    await waitTitleSettled(page, customTitle);
     assert.equal((await stateFor(page)).title, customTitle);
     assert.equal(await page.locator('#note-title').textContent(), customTitle);
     assert.equal(await application.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].getTitle()), customTitle);
@@ -364,7 +384,7 @@ async function main() {
     pass('disconnect deletes saved credentials and a session-only key is lost on relaunch without changing the note');
 
     await page.getByTestId('always-on-top-button').click();
-    await page.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === false);
+    await waitPinSettled(page, false);
     assert.equal(await nativeTopmost(), false);
     await page.waitForFunction(() => document.querySelector('[data-testid="always-on-top-button"]').getAttribute('aria-pressed') === 'false');
     assert.equal(await page.getByTestId('always-on-top-button').getAttribute('aria-pressed'), 'false');
@@ -575,7 +595,7 @@ async function main() {
     assert.equal(await page.getByTestId('note-editor').inputValue(), first);
     assert.equal(await page.getByTestId('color-mint').getAttribute('aria-pressed'), 'true');
     await page.getByTestId('always-on-top-button').click();
-    await page.waitForFunction(async () => (await window.cornerNote.getState()).alwaysOnTop === true);
+    await waitPinSettled(page, true);
     assert.equal(await nativeTopmost(), true);
     pass('unfolding anchors the same physical corner, preserves expanded size and restores the pin on request');
 
@@ -728,7 +748,7 @@ async function main() {
     await noteOne.getByTestId('always-on-top-button').click();
     async function assertIndependentPins(expected) {
       for (const [note, enabled] of [[noteOne, expected[0]], [noteTwo, expected[1]], [noteThree, expected[2]]]) {
-        await note.waitForFunction(async enabled => (await window.cornerNote.getState()).alwaysOnTop === enabled, enabled);
+        await waitPinSettled(note, enabled);
         assert.equal((await nativeFor(note)).topmost, enabled);
         if (!(await stateFor(note)).folded) {
           assert.equal(await note.getByTestId('always-on-top-button').getAttribute('aria-pressed'), String(enabled));
@@ -759,10 +779,11 @@ async function main() {
     const secondTitle = '두 번째 메모 · 일정';
     const thirdTitle = 'Third note · 별도 제목';
     await noteTwo.evaluate(title => window.cornerNote.renameNote(title), secondTitle);
+    await waitTitleSettled(noteTwo, secondTitle);
     await noteThree.locator('#note-title').click();
     await noteThree.locator('#note-title-input').fill(thirdTitle);
     await noteThree.keyboard.press('Enter');
-    await noteThree.waitForFunction(async title => (await window.cornerNote.getState()).title === title, thirdTitle);
+    await waitTitleSettled(noteThree, thirdTitle);
     assert.equal((await stateFor(noteOne)).title, customTitle);
     assert.equal((await stateFor(noteTwo)).title, secondTitle);
     assert.equal((await stateFor(noteThree)).title, thirdTitle);
@@ -828,6 +849,8 @@ async function main() {
       const restoredNote = await stateFor(note);
       const expected = beforeRestart.get(restoredNote.noteId);
       assert.ok(expected, 'restore the same note IDs');
+      await waitTitleSettled(note, expected.title);
+      await waitPinSettled(note, expected.alwaysOnTop);
       for (const key of ['text', 'title', 'color', 'folded', 'corner', 'alwaysOnTop', 'bounds', 'settings']) assert.deepEqual(restoredNote[key], expected[key], `${restoredNote.noteId}: restore ${key}`);
       assert.equal(restoredNote.noteCount, 3);
       assert.equal((await nativeFor(note)).visible, true);
